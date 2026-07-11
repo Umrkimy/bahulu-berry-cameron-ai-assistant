@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Environment
+.env
+
+# Virtual environment
+.venv/
+venv/
+
+# Database
+*.db
+
+# Upload files
+media/
+static/
+
+# IDE
+.vscode/
+.idea/
+
+#admin create scripts
+scripts/
