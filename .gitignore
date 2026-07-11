@@ -1,0 +1,74 @@
+# =====================
+# Frontend (Node/Vite)
+# =====================
+
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+frontend/*.local
+
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Frontend env
+frontend/.env
+
+
+# =====================
+# Backend (Python)
+# =====================
+
+backend/__pycache__/
+backend/*.py[oc]
+
+backend/build/
+backend/dist/
+backend/wheels/
+backend/*.egg-info/
+
+# Backend env
+backend/.env
+
+# Python virtual environments
+backend/.venv/
+backend/venv/
+
+
+# Database
+backend/*.db
+
+
+# Upload files
+backend/media/
+backend/static/
+
+
+# =====================
+# IDE
+# =====================
+
+.vscode/
+.idea/
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# =====================
+# OS
+# =====================
+
+.DS_Store
+
+
+# =====================
+# Project scripts
+# =====================
+
+backend/scripts/
