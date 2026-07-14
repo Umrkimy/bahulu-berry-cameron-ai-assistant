@@ -65,7 +65,6 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
                   <Group gap="xs">
                     <Button
                       size="xs"
-                      variant="light"
                       onClick={() => onEdit(product)}
                     >
                       Edit
