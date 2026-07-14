@@ -1,23 +1,24 @@
-import { Card, Container, Group, Title, Text } from "@mantine/core";
-
+import { Button, Card, Group, Text } from "@mantine/core";
 import InventoryTable from "../../components/inventory/InventoryTable";
 
-export default function Inventory() {
+export default function InventoryPage() {
   return (
-    <Container size="xl" py="xl">
-      <Group justify="space-between" mb="lg">
+    <Card withBorder radius="md" p="lg">
+      <Group justify="space-between" mb="md">
         <div>
-          <Title order={2}>Inventory Management</Title>
+          <Text fw={700} size="lg">
+            Inventory Management
+          </Text>
 
-          <Text c="dimmed" mt={4}>
-            Monitor stock levels and adjust inventory
+          <Text c="dimmed" size="sm">
+            Monitor stock levels and manage inventory
           </Text>
         </div>
+
+        <Button>Stock Adjustment</Button>
       </Group>
 
-      <Card withBorder radius="md">
-        <InventoryTable />
-      </Card>
-    </Container>
+      <InventoryTable />
+    </Card>
   );
 }
