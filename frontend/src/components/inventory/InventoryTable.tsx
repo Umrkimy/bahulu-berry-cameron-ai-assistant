@@ -75,12 +75,8 @@ export default function InventoryTable() {
                 </Table.Td>
 
                 <Table.Td>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    onClick={() => setSelectedInventory(item)}
-                  >
-                    Adjust
+                  <Button size="xs" onClick={() => setSelectedInventory(item)}>
+                    Edit
                   </Button>
                 </Table.Td>
               </Table.Tr>
