@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from app.schemas.inventory import InventoryPublic
+from app.schemas.inventory import InventoryNested
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,7 +13,7 @@ class ProductBase(BaseModel):
         max_digits=10,
         decimal_places=2,
     )
-    image_file: str | None
+    image_file: str | None = None
     category: str | None = Field(default=None, max_length=50)
     is_active: bool = True
 
@@ -34,7 +34,7 @@ class ProductPublic(BaseModel):
     )
     image_path: str
     category: str | None
-    inventory: InventoryPublic | None
+    inventory: InventoryNested | None
 
 
 class ProductPrivate(ProductPublic):

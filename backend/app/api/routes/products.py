@@ -114,6 +114,163 @@ async def get_products(
     )
 
 
+@router.get(
+    "/admin",
+    response_model=PaginatedResponse[ProductPrivate],
+)
+async def get_admin_products(
+    db: Annotated[
+        AsyncSession,
+        Depends(get_db),
+    ],
+    current_admin: Annotated[
+        Admin,
+        Depends(get_current_admin),
+    ],
+    search: str | None = Query(
+        default=None,
+        description="Search by product name",
+    ),
+    category: str | None = Query(
+        default=None,
+        description="Filter by category",
+    ),
+    is_active: bool | None = Query(
+        default=None,
+        description="Filter active/inactive products",
+    ),
+    sort: str = Query(
+        default="newest",
+        description="newest | oldest | price_asc | price_desc | name_asc | name_desc",
+    ),
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    page_size: int = Query(
+        default=20,
+        ge=1,
+        le=100,
+    ),
+):
+
+    filters = []
+
+    # SEARCH
+    if search:
+        filters.append(
+            func.lower(Product.name).contains(search.lower())
+        )
+
+
+    # CATEGORY FILTER
+    if category:
+        filters.append(
+            Product.category == category
+        )
+
+
+    # ADMIN CAN SEE BOTH ACTIVE AND INACTIVE
+    if is_active is not None:
+        filters.append(
+            Product.is_active == is_active
+        )
+
+
+    # COUNT TOTAL PRODUCTS
+    count_query = (
+        select(func.count())
+        .select_from(Product)
+        .where(*filters)
+    )
+
+    total = await db.scalar(count_query)
+
+
+    # GET PRODUCTS
+    query = (
+        select(Product)
+        .options(
+            selectinload(Product.inventory)
+        )
+        .where(*filters)
+    )
+
+
+    # SORTING
+    if sort == "newest":
+
+        query = query.order_by(
+            Product.created_at.desc()
+        )
+
+
+    elif sort == "oldest":
+
+        query = query.order_by(
+            Product.created_at.asc()
+        )
+
+
+    elif sort == "price_asc":
+
+        query = query.order_by(
+            Product.price.asc()
+        )
+
+
+    elif sort == "price_desc":
+
+        query = query.order_by(
+            Product.price.desc()
+        )
+
+
+    elif sort == "name_asc":
+
+        query = query.order_by(
+            Product.name.asc()
+        )
+
+
+    elif sort == "name_desc":
+
+        query = query.order_by(
+            Product.name.desc()
+        )
+
+
+    else:
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort option",
+        )
+
+
+    # PAGINATION
+    query = (
+        query
+        .offset(
+            (page - 1) * page_size
+        )
+        .limit(page_size)
+    )
+
+
+    result = await db.execute(query)
+
+    products = result.scalars().all()
+
+
+    return PaginatedResponse.create(
+        items=products,
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
+
+
 # GET SINGLE PRODUCT
 @router.get("/{product_id}", response_model=ProductPublic)
 async def get_product(product_id: int, db: Annotated[AsyncSession, Depends(get_db)]):

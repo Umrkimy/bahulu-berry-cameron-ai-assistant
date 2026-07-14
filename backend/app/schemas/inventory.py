@@ -22,7 +22,17 @@ class InventoryPublic(BaseModel):
 
     id: int
     product_id: int
+    product_name: str
+    product_category: str | None
     quantity: int
     low_stock_threshold: int
     created_at: datetime
     updated_at: datetime
+
+class InventoryNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    quantity: int
+    low_stock_threshold: int
