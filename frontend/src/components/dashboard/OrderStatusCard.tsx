@@ -1,10 +1,36 @@
-import { Card, RingProgress, Text, Group } from "@mantine/core";
+import { Card, Group, RingProgress, Text } from "@mantine/core";
+
+import { useDashboard } from "../../hooks/useDashboard";
 
 export default function OrderStatusCard() {
+  const { data, isLoading, error } = useDashboard();
+
+  if (isLoading) {
+    return (
+      <Card withBorder radius="md" p="xl">
+        Loading order status...
+      </Card>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <Card withBorder radius="md" p="xl">
+        Failed to load order status.
+      </Card>
+    );
+  }
+
+  const totalOrders = data.orders.total;
+  const completedOrders = data.orders.completed;
+
+  const completionRate =
+    totalOrders === 0 ? 0 : Math.round((completedOrders / totalOrders) * 100);
+
   return (
     <Card withBorder radius="md" p="xl">
       <Text fw={700} fz="xl">
-        Order Status
+        Order Completion
       </Text>
 
       <Group justify="center" mt="lg">
@@ -14,20 +40,20 @@ export default function OrderStatusCard() {
           roundCaps
           sections={[
             {
-              value: 85,
+              value: completionRate,
               color: "red",
             },
           ]}
           label={
             <Text ta="center" fw={700}>
-              85%
+              {completionRate}%
             </Text>
           }
         />
       </Group>
 
       <Text ta="center" c="dimmed" mt="md">
-        102 completed out of 120 orders
+        {completedOrders} completed out of {totalOrders} orders
       </Text>
     </Card>
   );
