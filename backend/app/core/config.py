@@ -1,6 +1,7 @@
 from typing import List
+
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, SecretStr
 
 
 class Settings(BaseSettings):
@@ -17,7 +18,8 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: str = ""
 
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: SecretStr
+    OPENAI_MODEL: str = "gpt-4o-mini"
 
     SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"
