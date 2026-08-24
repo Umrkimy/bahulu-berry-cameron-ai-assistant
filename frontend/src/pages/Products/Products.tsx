@@ -9,29 +9,31 @@ import type { Product } from "../../types/product";
 
 export default function ProductsPage() {
   const [createOpened, setCreateOpened] = useState(false);
-
   const [editOpened, setEditOpened] = useState(false);
-
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   function openEdit(product: Product) {
     setSelectedProduct(product);
-
     setEditOpened(true);
   }
 
   function closeEditModal() {
     setSelectedProduct(null);
-
     setEditOpened(false);
   }
 
   return (
     <Card withBorder radius="md" p="lg">
       <Group justify="space-between" mb="md">
-        <Text fw={700} size="lg">
-          Products Management
-        </Text>
+        <div>
+          <Text fw={700} size="lg">
+            Products Management
+          </Text>
+
+          <Text c="dimmed" size="sm">
+            Manage your products, prices, and availability
+          </Text>
+        </div>
 
         <Button onClick={() => setCreateOpened(true)}>Add Product</Button>
       </Group>

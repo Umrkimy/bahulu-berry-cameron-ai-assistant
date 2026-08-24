@@ -36,29 +36,26 @@ export default function Home() {
     {
       title: "Revenue",
       value: `RM ${data.sales.revenue}`,
-      diff: 12,
       icon: <IconCurrencyDollar />,
+      color: "red",
     },
-
     {
       title: "Orders",
       value: String(data.orders.total),
-      diff: 8,
       icon: <IconShoppingCart />,
+      color: "blue",
     },
-
     {
       title: "Customers",
       value: String(data.customers.total),
-      diff: 5,
       icon: <IconUsers />,
+      color: "violet",
     },
-
     {
       title: "Products",
       value: String(data.products.total),
-      diff: -2,
       icon: <IconPackage />,
+      color: "orange",
     },
   ];
 
@@ -70,7 +67,7 @@ export default function Home() {
         <Title order={2}>Dashboard</Title>
 
         <Text c="dimmed">
-          Welcome back, Umar 👋 Here is your business overview.
+          Welcome back, Umar. Here is your business overview.
         </Text>
       </div>
 

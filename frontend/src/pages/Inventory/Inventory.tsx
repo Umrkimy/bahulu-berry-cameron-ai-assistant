@@ -1,4 +1,4 @@
-import { Button, Card, Group, Text } from "@mantine/core";
+import { Card, Group, Text } from "@mantine/core";
 import InventoryTable from "../../components/inventory/InventoryTable";
 
 export default function InventoryPage() {
@@ -14,8 +14,6 @@ export default function InventoryPage() {
             Monitor stock levels and manage inventory
           </Text>
         </div>
-
-        <Button>Stock Adjustment</Button>
       </Group>
 
       <InventoryTable />

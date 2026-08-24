@@ -8,6 +8,7 @@ from app.api.routes import (
     inventories,
     auth,
     dashboard,
+    ai_assistant,
 )
 
 api_router = APIRouter()
@@ -54,3 +55,8 @@ api_router.include_router(
     tags=["dashboard"],
 )
 
+api_router.include_router(
+    ai_assistant.router,
+    prefix="/ai-assistant",
+    tags=["AI Assistant"],
+)
