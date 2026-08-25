@@ -19,3 +19,17 @@ export async function updateInventory(
 
   return response.data;
 }
+
+export async function adjustInventory(
+  inventoryId: number,
+  quantityChange: number,
+) {
+  const response = await api.patch<Inventory>(
+    `/inventories/${inventoryId}/adjust`,
+    {
+      quantity_change: quantityChange,
+    },
+  );
+
+  return response.data;
+}

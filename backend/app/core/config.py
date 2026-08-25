@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = ""
 
     OPENAI_API_KEY: SecretStr
-    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_MODEL: str = "gpt-5.6-luna"
+    OPENAI_REASONING_EFFORT: str = "none"
 
     SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"

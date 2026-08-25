@@ -1,8 +1,10 @@
 import { Badge, Button, Card, Table, Text } from "@mantine/core";
+
 import { useQuery } from "@tanstack/react-query";
 
 import { getCustomers } from "../../api/customers";
 import { useOrders } from "../../hooks/useOrders";
+
 import type { Order } from "../../types/order";
 
 interface Props {
@@ -11,8 +13,11 @@ interface Props {
 
 function getOrderStatusColor(status: string) {
   if (status === "COMPLETED") return "green";
+
   if (status === "CANCELLED") return "red";
+
   if (status === "SHIPPED") return "blue";
+
   if (status === "PROCESSING") return "violet";
 
   return "yellow";
@@ -45,11 +50,17 @@ export default function OrdersTable({ onEdit }: Props) {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Order</Table.Th>
+
               <Table.Th>Customer</Table.Th>
+
               <Table.Th>Total</Table.Th>
-              <Table.Th>Payment</Table.Th>
+
               <Table.Th>Status</Table.Th>
+
+              <Table.Th>Payment</Table.Th>
+
               <Table.Th>Date</Table.Th>
+
               <Table.Th>Action</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -74,15 +85,6 @@ export default function OrdersTable({ onEdit }: Props) {
                 <Table.Td>
                   <Badge
                     variant="light"
-                    color={order.payment_status === "PAID" ? "green" : "red"}
-                  >
-                    {order.payment_status}
-                  </Badge>
-                </Table.Td>
-
-                <Table.Td>
-                  <Badge
-                    variant="light"
                     color={getOrderStatusColor(order.status)}
                   >
                     {order.status}
@@ -90,7 +92,18 @@ export default function OrdersTable({ onEdit }: Props) {
                 </Table.Td>
 
                 <Table.Td>
-                  {new Date(order.created_at).toLocaleDateString("en-MY")}
+                  <Badge
+                    variant="light"
+                    color={order.payment_status === "PAID" ? "green" : "red"}
+                  >
+                    {order.payment_status}
+                  </Badge>
+                </Table.Td>
+
+                <Table.Td>
+                  {new Date(order.created_at).toLocaleDateString("en-MY", {
+                    timeZone: "Asia/Kuala_Lumpur",
+                  })}
                 </Table.Td>
 
                 <Table.Td>

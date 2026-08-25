@@ -18,8 +18,8 @@ from app.schemas.product import (
 from app.schemas.order import (
     OrderBase,
     OrderCreate,
-    OrderPrivate,
     OrderUpdate,
+    OrderPrivate,
 )
 
 from app.schemas.order_item import (
