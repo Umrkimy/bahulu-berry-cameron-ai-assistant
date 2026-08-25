@@ -1,12 +1,10 @@
 ORDER_STATUS = [
     "PENDING",
-    "CONFIRMED",
     "PROCESSING",
     "SHIPPED",
     "COMPLETED",
     "CANCELLED",
 ]
-
 
 PAYMENT_STATUS = [
     "UNPAID",

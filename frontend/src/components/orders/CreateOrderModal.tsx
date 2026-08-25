@@ -10,15 +10,21 @@ import {
   Table,
   Text,
 } from "@mantine/core";
+
 import { notifications } from "@mantine/notifications";
+
 import { IconTrash } from "@tabler/icons-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { useQuery } from "@tanstack/react-query";
+
 import { useState } from "react";
 
 import { getCustomers } from "../../api/customers";
-import { createOrderItem } from "../../api/orders";
+
 import { getProducts } from "../../api/products";
+
 import { useCreateOrder } from "../../hooks/useOrders";
+
 import type { Product } from "../../types/product";
 
 interface Props {
@@ -32,12 +38,14 @@ interface OrderLine {
 }
 
 export default function CreateOrderModal({ opened, onClose }: Props) {
-  const queryClient = useQueryClient();
   const createOrderMutation = useCreateOrder();
 
   const [customerId, setCustomerId] = useState<string | null>(null);
+
   const [productId, setProductId] = useState<string | null>(null);
+
   const [quantity, setQuantity] = useState(1);
+
   const [items, setItems] = useState<OrderLine[]>([]);
 
   const { data: customers, isLoading: isLoadingCustomers } = useQuery({
@@ -64,6 +72,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         message: "Choose a product before adding it.",
         color: "red",
       });
+
       return;
     }
 
@@ -78,6 +87,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         message: `Only ${availableStock} units are available.`,
         color: "red",
       });
+
       return;
     }
 
@@ -89,12 +99,21 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
       if (existingItem) {
         return currentItems.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? {
+                ...item,
+                quantity: item.quantity + quantity,
+              }
             : item,
         );
       }
 
-      return [...currentItems, { product, quantity }];
+      return [
+        ...currentItems,
+        {
+          product,
+          quantity,
+        },
+      ];
     });
 
     setProductId(null);
@@ -114,6 +133,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         message: "Choose a customer before creating the order.",
         color: "red",
       });
+
       return;
     }
 
@@ -123,28 +143,23 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         message: "An order needs at least one product.",
         color: "red",
       });
+
       return;
     }
 
     try {
-      const order = await createOrderMutation.mutateAsync({
+      await createOrderMutation.mutateAsync({
         customer_id: Number(customerId),
-      });
 
-      for (const item of items) {
-        await createOrderItem(order.id, {
+        items: items.map((item) => ({
           product_id: item.product.id,
           quantity: item.quantity,
-        });
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
-      await queryClient.invalidateQueries({ queryKey: ["inventories"] });
+        })),
+      });
 
       notifications.show({
         title: "Order Created",
-        message: "Products were added and inventory was updated.",
+        message: "Order was created successfully.",
         color: "green",
       });
 
@@ -152,6 +167,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
       setProductId(null);
       setQuantity(1);
       setItems([]);
+
       onClose();
     } catch {
       notifications.show({
@@ -185,6 +201,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
           data={
             customers?.map((customer) => ({
               value: String(customer.id),
+
               label: `${customer.full_name} — ${customer.phone_number}`,
             })) ?? []
           }
@@ -204,6 +221,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
               maxDropdownHeight={240}
               data={products.map((product) => ({
                 value: String(product.id),
+
                 label: `${product.name} — RM ${Number(product.price).toFixed(
                   2,
                 )} — Stock: ${product.inventory?.quantity ?? 0}`,
@@ -240,9 +258,13 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Product</Table.Th>
+
                     <Table.Th>Unit Price</Table.Th>
+
                     <Table.Th>Quantity</Table.Th>
+
                     <Table.Th>Total</Table.Th>
+
                     <Table.Th />
                   </Table.Tr>
                 </Table.Thead>

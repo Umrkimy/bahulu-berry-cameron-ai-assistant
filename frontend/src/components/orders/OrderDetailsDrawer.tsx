@@ -10,16 +10,31 @@ import {
   Table,
   Text,
 } from "@mantine/core";
+
+import { modals } from "@mantine/modals";
+
 import { useForm } from "@mantine/form";
+
 import { notifications } from "@mantine/notifications";
+
 import { useQuery } from "@tanstack/react-query";
+
 import { useEffect } from "react";
 
 import { getCustomers } from "../../api/customers";
 import { getOrderItems } from "../../api/orders";
 import { getProducts } from "../../api/products";
-import { useUpdateOrder } from "../../hooks/useOrders";
-import type { Order, OrderStatus, PaymentStatus } from "../../types/order";
+
+import {
+  useCancelOrder,
+  useUpdateOrder,
+} from "../../hooks/useOrders";
+
+import type {
+  Order,
+  OrderStatus,
+  PaymentStatus,
+} from "../../types/order";
 
 interface Props {
   opened: boolean;
@@ -36,8 +51,13 @@ function getStatusColor(status: string) {
   return "yellow";
 }
 
-export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
+export default function OrderDetailsDrawer({
+  opened,
+  onClose,
+  order,
+}: Props) {
   const updateOrderMutation = useUpdateOrder();
+  const cancelOrderMutation = useCancelOrder();
 
   const form = useForm<{
     status: OrderStatus;
@@ -50,7 +70,9 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
   });
 
   useEffect(() => {
-    if (!order) return;
+    if (!order) {
+      return;
+    }
 
     form.setValues({
       status: order.status,
@@ -68,32 +90,54 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
     queryFn: getProducts,
   });
 
-  const { data: items, isLoading: isLoadingItems } = useQuery({
+  const {
+    data: items,
+    isLoading: isLoadingItems,
+  } = useQuery({
     queryKey: ["order-items", order?.id],
     queryFn: () => getOrderItems(order!.id),
     enabled: opened && order !== null,
   });
 
-  if (!order) return null;
+  if (!order) {
+    return null;
+  }
+
+  const orderId = order.id;
 
   const customerName =
-    customers?.find((customer) => customer.id === order.customer_id)
-      ?.full_name ?? `Customer #${order.customer_id}`;
+    customers?.find(
+      (customer) => customer.id === order.customer_id,
+    )?.full_name ??
+    `Customer #${order.customer_id}`;
 
   const productNames = new Map(
-    productsData?.items.map((product) => [product.id, product.name]) ?? [],
+    productsData?.items.map((product) => [
+      product.id,
+      product.name,
+    ]) ?? [],
   );
 
-  async function handleSubmit(values: typeof form.values) {
+  const isFinalOrder =
+    order.status === "COMPLETED" ||
+    order.status === "CANCELLED";
+
+  async function handleSubmit(
+    values: typeof form.values,
+  ) {
     try {
       await updateOrderMutation.mutateAsync({
-        orderId: order.id,
-        data: values,
+        orderId,
+        data: {
+          status: values.status,
+          payment_status: values.payment_status,
+        },
       });
 
       notifications.show({
         title: "Order Updated",
-        message: "Order status was updated successfully.",
+        message:
+          "Order status was updated successfully.",
         color: "green",
       });
 
@@ -101,10 +145,71 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
     } catch {
       notifications.show({
         title: "Update Failed",
-        message: "Unable to update this order.",
+        message:
+          "Unable to update this order.",
         color: "red",
       });
     }
+  }
+
+  function handleCancelOrder() {
+    modals.openConfirmModal({
+      title: `Cancel Order #${orderId}`,
+
+      children: (
+        <Text size="sm">
+          Are you sure you want to cancel this order?
+          The ordered products will be returned to
+          inventory.
+        </Text>
+      ),
+
+      labels: {
+        confirm: "Cancel Order",
+        cancel: "Keep Order",
+      },
+
+      confirmProps: {
+        color: "red",
+      },
+
+      closeOnConfirm: false,
+
+      onConfirm: async () => {
+        try {
+          await cancelOrderMutation.mutateAsync(
+            orderId,
+          );
+
+          notifications.show({
+            title: "Order Cancelled",
+            message:
+              "Order cancelled and inventory restored successfully.",
+            color: "green",
+          });
+
+          /*
+           * Close the confirmation modal first.
+           */
+          modals.closeAll();
+
+          /*
+           * Close the order drawer.
+           *
+           * This returns the user directly to
+           * the Orders table.
+           */
+          onClose();
+        } catch {
+          notifications.show({
+            title: "Cancellation Failed",
+            message:
+              "Unable to cancel this order.",
+            color: "red",
+          });
+        }
+      },
+    });
   }
 
   return (
@@ -114,58 +219,102 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
       position="right"
       size="lg"
       padding="xl"
-      title={`Order #${order.id}`}
+      title={`Order #${orderId}`}
     >
       <Stack gap="lg">
-        <Paper withBorder radius="md" p="md">
-          <Group justify="space-between" align="start">
+        <Paper
+          withBorder
+          radius="md"
+          p="md"
+        >
+          <Group
+            justify="space-between"
+            align="start"
+          >
             <div>
-              <Text size="sm" c="dimmed">
+              <Text
+                size="sm"
+                c="dimmed"
+              >
                 Customer
               </Text>
 
-              <Text fw={700}>{customerName}</Text>
+              <Text fw={700}>
+                {customerName}
+              </Text>
             </div>
 
             <div>
-              <Text size="sm" c="dimmed">
+              <Text
+                size="sm"
+                c="dimmed"
+              >
                 Total
               </Text>
 
-              <Text fw={700} size="lg">
-                RM {Number(order.total_amount).toFixed(2)}
+              <Text
+                fw={700}
+                size="lg"
+              >
+                RM{" "}
+                {Number(
+                  order.total_amount,
+                ).toFixed(2)}
               </Text>
             </div>
           </Group>
         </Paper>
 
-        <Divider label="Order Items" labelPosition="center" />
+        <Divider
+          label="Order Items"
+          labelPosition="center"
+        />
 
         {isLoadingItems ? (
-          <Text c="dimmed">Loading products...</Text>
-        ) : items && items.length > 0 ? (
+          <Text c="dimmed">
+            Loading products...
+          </Text>
+        ) : items &&
+          items.length > 0 ? (
           <Table.ScrollContainer minWidth={500}>
             <Table verticalSpacing="sm">
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Product</Table.Th>
-                  <Table.Th>Qty</Table.Th>
-                  <Table.Th>Subtotal</Table.Th>
+                  <Table.Th>
+                    Product
+                  </Table.Th>
+
+                  <Table.Th>
+                    Qty
+                  </Table.Th>
+
+                  <Table.Th>
+                    Subtotal
+                  </Table.Th>
                 </Table.Tr>
               </Table.Thead>
 
               <Table.Tbody>
                 {items.map((item) => (
-                  <Table.Tr key={item.id}>
+                  <Table.Tr
+                    key={item.id}
+                  >
                     <Table.Td>
-                      {productNames.get(item.product_id) ??
+                      {productNames.get(
+                        item.product_id,
+                      ) ??
                         `Product #${item.product_id}`}
                     </Table.Td>
 
-                    <Table.Td>{item.quantity}</Table.Td>
+                    <Table.Td>
+                      {item.quantity}
+                    </Table.Td>
 
                     <Table.Td fw={600}>
-                      RM {Number(item.subtotal).toFixed(2)}
+                      RM{" "}
+                      {Number(
+                        item.subtotal,
+                      ).toFixed(2)}
                     </Table.Td>
                   </Table.Tr>
                 ))}
@@ -173,12 +322,21 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
             </Table>
           </Table.ScrollContainer>
         ) : (
-          <Text c="dimmed">No products in this order.</Text>
+          <Text c="dimmed">
+            No products in this order.
+          </Text>
         )}
 
-        <Divider label="Order Management" labelPosition="center" />
+        <Divider
+          label="Order Management"
+          labelPosition="center"
+        />
 
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        <form
+          onSubmit={form.onSubmit(
+            handleSubmit,
+          )}
+        >
           <Stack>
             <Select
               label="Order Status"
@@ -187,33 +345,82 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                 "PROCESSING",
                 "SHIPPED",
                 "COMPLETED",
-                "CANCELLED",
               ]}
-              {...form.getInputProps("status")}
+              disabled={
+                updateOrderMutation.isPending ||
+                cancelOrderMutation.isPending ||
+                isFinalOrder
+              }
+              {...form.getInputProps(
+                "status",
+              )}
             />
 
             <Select
               label="Payment Status"
-              data={["UNPAID", "PAID"]}
-              {...form.getInputProps("payment_status")}
+              data={[
+                "UNPAID",
+                "PAID",
+              ]}
+              disabled={
+                updateOrderMutation.isPending ||
+                cancelOrderMutation.isPending ||
+                isFinalOrder
+              }
+              {...form.getInputProps(
+                "payment_status",
+              )}
             />
 
             <Group justify="space-between">
               <Group gap="xs">
-                <Badge color={getStatusColor(order.status)}>
+                <Badge
+                  color={getStatusColor(
+                    order.status,
+                  )}
+                >
                   {order.status}
                 </Badge>
 
                 <Badge
-                  color={order.payment_status === "PAID" ? "green" : "red"}
+                  color={
+                    order.payment_status ===
+                    "PAID"
+                      ? "green"
+                      : "red"
+                  }
                 >
                   {order.payment_status}
                 </Badge>
               </Group>
 
-              <Button type="submit" loading={updateOrderMutation.isPending}>
-                Save Changes
-              </Button>
+              <Group>
+                {!isFinalOrder && (
+                  <Button
+                    color="red"
+                    variant="light"
+                    onClick={
+                      handleCancelOrder
+                    }
+                    loading={
+                      cancelOrderMutation.isPending
+                    }
+                  >
+                    Cancel Order
+                  </Button>
+                )}
+
+                {!isFinalOrder && (
+                  <Button
+                    type="submit"
+                    loading={
+                      updateOrderMutation.isPending
+                    }
+                  >
+                    Save Changes
+                  </Button>
+                )}
+              </Group>
             </Group>
           </Stack>
         </form>
