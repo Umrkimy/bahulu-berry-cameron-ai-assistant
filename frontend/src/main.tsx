@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import { ModalsProvider } from "@mantine/modals";
 
 import App from "./App";
 
@@ -18,9 +19,11 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <MantineProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ModalsProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ModalsProvider>
         </MantineProvider>
       </BrowserRouter>
     </QueryClientProvider>

@@ -1,9 +1,13 @@
 import { Button, Modal, Select, Stack } from "@mantine/core";
+
 import { useForm } from "@mantine/form";
+
 import { notifications } from "@mantine/notifications";
+
 import { useEffect } from "react";
 
 import { useUpdateOrder } from "../../hooks/useOrders";
+
 import type { Order, OrderStatus, PaymentStatus } from "../../types/order";
 
 interface Props {
@@ -40,6 +44,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
     try {
       await updateOrderMutation.mutateAsync({
         orderId: order.id,
+
         data: {
           status: values.status,
           payment_status: values.payment_status,
@@ -68,13 +73,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
         <Stack>
           <Select
             label="Order Status"
-            data={[
-              "PENDING",
-              "PROCESSING",
-              "SHIPPED",
-              "COMPLETED",
-              "CANCELLED",
-            ]}
+            data={["PENDING", "PROCESSING", "SHIPPED", "COMPLETED"]}
             disabled={updateOrderMutation.isPending}
             {...form.getInputProps("status")}
           />

@@ -22,10 +22,10 @@ async def chat(
         Depends(get_db),
     ],
 ):
-
     response = await generate_ai_response(
         db=db,
         message=request.message,
+        conversation_history=request.conversation_history,
     )
 
     return AIChatResponse(

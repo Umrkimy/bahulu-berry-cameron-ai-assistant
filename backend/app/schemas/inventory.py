@@ -36,3 +36,6 @@ class InventoryNested(BaseModel):
     product_id: int
     quantity: int
     low_stock_threshold: int
+
+class InventoryAdjustment(BaseModel):
+    quantity_change: int

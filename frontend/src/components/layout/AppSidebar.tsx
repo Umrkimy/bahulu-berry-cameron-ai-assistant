@@ -8,6 +8,7 @@ import {
   IconBrandWhatsapp,
   IconSettings,
   IconBuildingWarehouse,
+  IconMessageChatbot,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -15,6 +16,7 @@ import NavSection from "./NavSection";
 export default function AppSidebar() {
   return (
     <Stack p="md" gap="md">
+      {/* OVERVIEW */}
       <NavSection
         title="OVERVIEW"
         items={[
@@ -26,6 +28,7 @@ export default function AppSidebar() {
         ]}
       />
 
+      {/* COMMERCE */}
       <NavSection
         title="COMMERCE"
         items={[
@@ -55,9 +58,16 @@ export default function AppSidebar() {
         ]}
       />
 
+      {/* AI ASSISTANT */}
       <NavSection
         title="AI ASSISTANT"
         items={[
+          {
+            label: "ChatGPT",
+            link: "/ai-assistant",
+            icon: <IconMessageChatbot size={18} />,
+          },
+
           {
             label: "WhatsApp",
             link: "/whatsapp",
@@ -66,6 +76,7 @@ export default function AppSidebar() {
         ]}
       />
 
+      {/* SYSTEM */}
       <NavSection
         title="SYSTEM"
         items={[

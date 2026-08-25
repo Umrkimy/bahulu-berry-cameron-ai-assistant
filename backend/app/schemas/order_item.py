@@ -1,9 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field
 from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderItemBase(BaseModel):
-    quantity: int = Field(default=1, ge=1)
+    quantity: int = Field(
+        default=1,
+        ge=1,
+    )
 
 
 class OrderItemCreate(OrderItemBase):
@@ -11,11 +15,16 @@ class OrderItemCreate(OrderItemBase):
 
 
 class OrderItemUpdate(BaseModel):
-    quantity: int | None = Field(default=None, ge=1)
+    quantity: int | None = Field(
+        default=None,
+        ge=1,
+    )
 
 
 class OrderItemPublic(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
     id: int
     order_id: int

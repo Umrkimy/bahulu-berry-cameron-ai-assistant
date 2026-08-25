@@ -10,6 +10,7 @@ import Customers from "../pages/Customers/Customers";
 import WhatsApp from "../pages/WhatsApp/Whatsapp";
 import Settings from "../pages/Settings/Settings";
 import Inventory from "../pages/Inventory/Inventory";
+import AIAssistant from "../pages/AIAssistant/AIAssistant";
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 
@@ -33,16 +34,17 @@ export default function AppRoutes() {
 
         <Route path="/products" element={<Products />} />
 
+        <Route path="/inventory" element={<Inventory />} />
+
         <Route path="/orders" element={<Orders />} />
 
         <Route path="/customers" element={<Customers />} />
 
+        <Route path="/ai-assistant" element={<AIAssistant />} />
+
         <Route path="/whatsapp" element={<WhatsApp />} />
 
         <Route path="/settings" element={<Settings />} />
-
-        <Route path="/inventory" element={<Inventory />} />
-        
       </Route>
 
       {/* Default route */}

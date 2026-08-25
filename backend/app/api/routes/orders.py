@@ -4,18 +4,22 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
-from app.models.order import Order
-from app.models.customer import Customer
-from app.models.admin import Admin
 from app.auth.dependencies import (
     get_current_admin,
     get_current_superuser,
 )
+from app.db.database import get_db
+from app.models.admin import Admin
+from app.models.order import Order
 from app.schemas.order import (
     OrderCreate,
     OrderPrivate,
     OrderUpdate,
+)
+from app.services.order_services import (
+    cancel_order,
+    create_order as service_create_order,
+    update_order as service_update_order,
 )
 
 router = APIRouter()
@@ -35,11 +39,13 @@ async def get_orders(
         Depends(get_current_admin),
     ],
 ):
-    result = await db.execute(select(Order))
+    result = await db.execute(
+        select(Order).order_by(
+            Order.created_at.desc()
+        )
+    )
 
-    orders = result.scalars().all()
-
-    return orders
+    return result.scalars().all()
 
 
 @router.get(
@@ -57,7 +63,12 @@ async def get_order(
         Depends(get_current_admin),
     ],
 ):
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    result = await db.execute(
+        select(Order).where(
+            Order.id == order_id
+        )
+    )
+
     order = result.scalars().first()
 
     if not order:
@@ -85,29 +96,46 @@ async def create_order(
         Depends(get_current_admin),
     ],
 ):
-    # Check customer exists
-    result = await db.execute(
-        select(Customer).where(Customer.id == order_data.customer_id)
+    result = await service_create_order(
+        db=db,
+        customer_id=order_data.customer_id,
+        items=[
+            {
+                "product_id": item.product_id,
+                "quantity": item.quantity,
+            }
+            for item in order_data.items
+        ],
+        delivery_name=order_data.delivery_name,
+        delivery_phone=order_data.delivery_phone,
+        delivery_address=order_data.delivery_address,
+        city=order_data.city,
+        state=order_data.state,
+        postal_code=order_data.postal_code,
+        country=order_data.country,
     )
 
-    customer = result.scalars().first()
-
-    if not customer:
+    if not result["success"]:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"],
         )
 
-    order = Order(
-        customer_id=order_data.customer_id,
-        status="PENDING",
-        payment_status="UNPAID",
-        total_amount=0,
+    created_order = result["order"]
+
+    order_result = await db.execute(
+        select(Order).where(
+            Order.id == created_order["id"]
+        )
     )
 
-    db.add(order)
-    await db.commit()
-    await db.refresh(order)
+    order = order_result.scalars().first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order was created but could not be retrieved.",
+        )
 
     return order
 
@@ -128,26 +156,65 @@ async def update_order(
         Depends(get_current_admin),
     ],
 ):
+    update_data = order_data.model_dump(
+        exclude_unset=True
+    )
 
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    result = await service_update_order(
+        db=db,
+        order_id=order_id,
+        **update_data,
+    )
 
-    order = result.scalars().first()
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"],
+        )
+
+    order_result = await db.execute(
+        select(Order).where(
+            Order.id == order_id
+        )
+    )
+
+    order = order_result.scalars().first()
 
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found",
+            detail="Order was updated but could not be retrieved.",
         )
 
-    update_data = order_data.model_dump(exclude_unset=True)
-
-    for field, value in update_data.items():
-        setattr(order, field, value)
-
-    await db.commit()
-    await db.refresh(order)
-
     return order
+
+
+@router.post(
+    "/{order_id}/cancel",
+)
+async def cancel_order_route(
+    order_id: int,
+    db: Annotated[
+        AsyncSession,
+        Depends(get_db),
+    ],
+    current_admin: Annotated[
+        Admin,
+        Depends(get_current_admin),
+    ],
+):
+    result = await cancel_order(
+        db=db,
+        order_id=order_id,
+    )
+
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"],
+        )
+
+    return result
 
 
 @router.delete(
@@ -165,8 +232,11 @@ async def delete_order(
         Depends(get_current_superuser),
     ],
 ):
-
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    result = await db.execute(
+        select(Order).where(
+            Order.id == order_id
+        )
+    )
 
     order = result.scalars().first()
 
