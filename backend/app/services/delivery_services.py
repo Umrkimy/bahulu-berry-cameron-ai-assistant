@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.constants.delivery import DELIVERY_STATUS
 from app.models.delivery import Delivery
+from app.models.order import Order
 
 
 async def get_delivery_by_order(
@@ -49,6 +50,8 @@ async def update_delivery(
     if not update_data:
         return delivery
 
+    new_status = None
+
     if "status" in update_data:
         new_status = update_data["status"]
 
@@ -67,6 +70,13 @@ async def update_delivery(
             delivery,
             field,
             value,
+        )
+
+    if new_status is not None:
+        await _sync_order_status(
+            db=db,
+            order_id=order_id,
+            delivery_status=new_status,
         )
 
     try:
@@ -103,6 +113,45 @@ async def update_delivery_status(
             "status": normalized_status,
         },
     )
+
+
+async def _sync_order_status(
+    db: AsyncSession,
+    order_id: int,
+    delivery_status: str,
+) -> None:
+    """
+    Automatically synchronize the order status
+    based on the delivery status.
+    """
+
+    result = await db.execute(
+        select(Order).where(
+            Order.id == order_id
+        )
+    )
+
+    order = result.scalar_one_or_none()
+
+    if order is None:
+        return
+
+    if order.status == "CANCELLED":
+        return
+
+    if delivery_status in {
+        "SHIPPED",
+        "IN_TRANSIT",
+        "OUT_FOR_DELIVERY",
+    }:
+        if order.status != "COMPLETED":
+            order.status = "PROCESSING"
+
+    elif delivery_status == "DELIVERED":
+        order.status = "COMPLETED"
+
+        if hasattr(order, "completed_at"):
+            order.completed_at = datetime.now(UTC)
 
 
 def _update_delivery_timestamp(

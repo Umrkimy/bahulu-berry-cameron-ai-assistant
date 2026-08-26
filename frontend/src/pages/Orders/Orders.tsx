@@ -2,7 +2,7 @@ import { Button, Card, Group, Text } from "@mantine/core";
 import { useState } from "react";
 
 import CreateOrderModal from "../../components/orders/CreateOrderModal";
-import OrderDetailsDrawer from "../../components/orders/OrderDetailsDrawer";
+import OrderDetailsDrawer from "../../components/orders/OrderDetailsModal";
 import OrdersTable from "../../components/orders/OrdersTable";
 import type { Order } from "../../types/order";
 

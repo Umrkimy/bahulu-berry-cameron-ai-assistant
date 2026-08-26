@@ -1,52 +1,42 @@
-import { Button, Card, Group, Stack, Text } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Button, Card, Group, Text } from "@mantine/core";
 import { useState } from "react";
 
-import ProductTable from "../../components/product/ProductTable";
 import CreateProductModal from "../../components/product/CreateProductModal";
 import EditProductModal from "../../components/product/EditProductModal";
+import ProductTable from "../../components/product/ProductTable";
 
 import type { Product } from "../../types/product";
 
 export default function ProductsPage() {
   const [createOpened, setCreateOpened] = useState(false);
-  const [editOpened, setEditOpened] = useState(false);
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   function openEdit(product: Product) {
     setSelectedProduct(product);
-    setEditOpened(true);
   }
 
-  function closeEditModal() {
+  function closeEdit() {
     setSelectedProduct(null);
-    setEditOpened(false);
   }
 
   return (
-    <Stack gap="lg">
-      <Group justify="space-between" align="flex-end">
+    <Card withBorder radius="md" p={0} style={{ overflow: "hidden" }}>
+      <Group justify="space-between" p="lg">
         <div>
-          <Text fw={700} size="xl">
+          <Text fw={700} size="lg">
             Products Management
           </Text>
 
-          <Text c="dimmed" size="sm" mt={4}>
+          <Text c="dimmed" size="sm">
             Manage your products, prices, stock, and availability
           </Text>
         </div>
 
-        <Button
-          leftSection={<IconPlus size={17} />}
-          onClick={() => setCreateOpened(true)}
-        >
-          Add Product
-        </Button>
+        <Button onClick={() => setCreateOpened(true)}>Add Product</Button>
       </Group>
 
-      <Card withBorder radius="md" p={0}>
-        <ProductTable onEdit={openEdit} />
-      </Card>
+      <ProductTable onEdit={openEdit} />
 
       <CreateProductModal
         opened={createOpened}
@@ -54,10 +44,10 @@ export default function ProductsPage() {
       />
 
       <EditProductModal
-        opened={editOpened}
-        onClose={closeEditModal}
+        opened={selectedProduct !== null}
         product={selectedProduct}
+        onClose={closeEdit}
       />
-    </Stack>
+    </Card>
   );
 }
