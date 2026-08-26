@@ -1,26 +1,58 @@
-import { Badge, Button, Card, Table, Text } from "@mantine/core";
+import { useMemo, useState } from "react";
+
+import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
+
+import { IconEdit, IconEye } from "@tabler/icons-react";
 
 import { useQuery } from "@tanstack/react-query";
 
 import { getCustomers } from "../../api/customers";
+
 import { useOrders } from "../../hooks/useOrders";
 
 import type { Order } from "../../types/order";
 
-interface Props {
-  onEdit: (order: Order) => void;
-}
+import OrderDetailsModal from "./OrderDetailsModal";
+import EditOrderModal from "./EditOrderModal";
 
 function getOrderStatusColor(status: string) {
-  if (status === "COMPLETED") return "green";
-  if (status === "CANCELLED") return "red";
-  if (status === "SHIPPED") return "blue";
-  if (status === "PROCESSING") return "violet";
+  switch (status) {
+    case "COMPLETED":
+      return "green";
 
-  return "yellow";
+    case "CANCELLED":
+      return "red";
+
+    case "SHIPPED":
+      return "blue";
+
+    case "PROCESSING":
+      return "violet";
+
+    case "PENDING":
+    default:
+      return "yellow";
+  }
 }
 
-export default function OrdersTable({ onEdit }: Props) {
+function getPaymentStatusColor(status: string) {
+  switch (status) {
+    case "PAID":
+      return "green";
+
+    case "FAILED":
+      return "red";
+
+    case "REFUNDED":
+      return "violet";
+
+    case "UNPAID":
+    default:
+      return "yellow";
+  }
+}
+
+export default function OrdersTable() {
   const { data: orders, isLoading: isLoadingOrders } = useOrders();
 
   const { data: customers, isLoading: isLoadingCustomers } = useQuery({
@@ -28,17 +60,47 @@ export default function OrdersTable({ onEdit }: Props) {
     queryFn: getCustomers,
   });
 
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  const [viewOpened, setViewOpened] = useState(false);
+
+  const [editOpened, setEditOpened] = useState(false);
+
+  const customerNames = useMemo(
+    () =>
+      new Map(
+        customers?.map((customer) => [customer.id, customer.full_name]) ?? [],
+      ),
+    [customers],
+  );
+
+  function handleView(order: Order) {
+    setSelectedOrder(order);
+    setViewOpened(true);
+  }
+
+  function handleEdit(order: Order) {
+    setSelectedOrder(order);
+    setEditOpened(true);
+  }
+
+  function handleCloseView() {
+    setViewOpened(false);
+    setSelectedOrder(null);
+  }
+
+  function handleCloseEdit() {
+    setEditOpened(false);
+    setSelectedOrder(null);
+  }
+
   if (isLoadingOrders || isLoadingCustomers) {
     return (
-      <Card withBorder p="lg">
-        Loading orders...
+      <Card withBorder radius="md" p="lg">
+        <Text c="dimmed">Loading orders...</Text>
       </Card>
     );
   }
-
-  const customerNames = new Map(
-    customers?.map((customer) => [customer.id, customer.full_name]) ?? [],
-  );
 
   if (!orders || orders.length === 0) {
     return (
@@ -51,72 +113,261 @@ export default function OrdersTable({ onEdit }: Props) {
   }
 
   return (
-    <Card withBorder radius="md" p="lg">
-      <Table.ScrollContainer minWidth={1000}>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Order</Table.Th>
-              <Table.Th>Customer</Table.Th>
-              <Table.Th>Total</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Payment</Table.Th>
-              <Table.Th>Date</Table.Th>
-              <Table.Th>Action</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
+    <>
+      <Card
+        withBorder
+        radius="md"
+        p={0}
+        style={{
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              minWidth: 1000,
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Order
+                </th>
 
-          <Table.Tbody>
-            {orders.map((order) => (
-              <Table.Tr key={order.id}>
-                <Table.Td>
-                  <Text fw={600}>#{order.id}</Text>
-                </Table.Td>
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Customer
+                </th>
 
-                <Table.Td>
-                  {customerNames.get(order.customer_id) ?? "-"}
-                </Table.Td>
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Total
+                </th>
 
-                <Table.Td>
-                  <Text fw={600}>
-                    RM {Number(order.total_amount).toFixed(2)}
-                  </Text>
-                </Table.Td>
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Status
+                </th>
 
-                <Table.Td>
-                  <Badge
-                    variant="light"
-                    color={getOrderStatusColor(order.status)}
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Payment
+                </th>
+
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Date
+                </th>
+
+                <th
+                  style={{
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "var(--mantine-color-gray-0)",
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {orders.map((order) => (
+                <tr
+                  key={order.id}
+                  style={{
+                    borderBottom: "1px solid var(--mantine-color-gray-2)",
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
                   >
-                    {order.status}
-                  </Badge>
-                </Table.Td>
+                    <Text fw={600}>#{order.id}</Text>
+                  </td>
 
-                <Table.Td>
-                  <Badge
-                    variant="light"
-                    color={order.payment_status === "PAID" ? "green" : "red"}
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
                   >
-                    {order.payment_status}
-                  </Badge>
-                </Table.Td>
+                    <Text>
+                      {customerNames.get(order.customer_id) ??
+                        `Customer #${order.customer_id}`}
+                    </Text>
+                  </td>
 
-                <Table.Td>
-                  {new Date(order.created_at).toLocaleDateString("en-MY", {
-                    timeZone: "Asia/Kuala_Lumpur",
-                  })}
-                </Table.Td>
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
+                  >
+                    <Text fw={600}>
+                      RM {Number(order.total_amount).toFixed(2)}
+                    </Text>
+                  </td>
 
-                <Table.Td>
-                  <Button size="xs" onClick={() => onEdit(order)}>
-                    Manage
-                  </Button>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
-    </Card>
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
+                  >
+                    <Badge
+                      variant="light"
+                      color={getOrderStatusColor(order.status)}
+                    >
+                      {order.status}
+                    </Badge>
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
+                  >
+                    <Badge
+                      variant="light"
+                      color={getPaymentStatusColor(order.payment_status)}
+                    >
+                      {order.payment_status}
+                    </Badge>
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
+                  >
+                    {new Date(order.created_at).toLocaleDateString("en-MY", {
+                      timeZone: "Asia/Kuala_Lumpur",
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      fontSize: 14,
+                    }}
+                  >
+                    <Group gap="xs">
+                      <Tooltip label="View order" withArrow>
+                        <ActionIcon
+                          size="lg"
+                          variant="light"
+                          color="blue"
+                          onClick={() => handleView(order)}
+                          aria-label="View order"
+                        >
+                          <IconEye size={20} />
+                        </ActionIcon>
+                      </Tooltip>
+
+                      <Tooltip label="Edit order" withArrow>
+                        <ActionIcon
+                          size="lg"
+                          variant="light"
+                          color="orange"
+                          onClick={() => handleEdit(order)}
+                          aria-label="Edit order"
+                        >
+                          <IconEdit size={20} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <OrderDetailsModal
+        opened={viewOpened}
+        order={selectedOrder}
+        onClose={handleCloseView}
+      />
+
+      <EditOrderModal
+        opened={editOpened}
+        order={selectedOrder}
+        onClose={handleCloseEdit}
+      />
+    </>
   );
 }

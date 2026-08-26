@@ -1,6 +1,9 @@
 import { NumberInput, Stack, Switch, TextInput, Textarea } from "@mantine/core";
 
+import { notifications } from "@mantine/notifications";
+
 import { useEffect } from "react";
+
 import { useForm } from "@mantine/form";
 
 import { FormModal } from "../common/DataTable";
@@ -29,7 +32,6 @@ export default function EditProductModal({
       price: 0,
       category: "",
       is_active: true,
-      initial_quantity: 0,
     },
 
     validate: {
@@ -37,14 +39,13 @@ export default function EditProductModal({
         value.trim().length < 1 ? "Product name is required" : null,
 
       price: (value) => (value <= 0 ? "Price must be greater than 0" : null),
-
-      initial_quantity: (value) =>
-        value < 0 ? "Stock cannot be negative" : null,
     },
   });
 
   useEffect(() => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     form.setValues({
       name: product.name,
@@ -52,38 +53,75 @@ export default function EditProductModal({
       price: Number(product.price),
       category: product.category ?? "",
       is_active: product.is_active,
-      initial_quantity: product.inventory?.quantity ?? 0,
     });
   }, [product]);
 
   function handleSubmit(values: typeof form.values) {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
+
+    const hasChanges =
+      values.name.trim() !== product.name ||
+      values.description !== (product.description ?? "") ||
+      values.price !== Number(product.price) ||
+      values.category !== (product.category ?? "") ||
+      values.is_active !== product.is_active;
+
+    if (!hasChanges) {
+      notifications.show({
+        title: "No Changes",
+        message: "No product information has been changed.",
+        color: "blue",
+      });
+
+      return;
+    }
 
     updateMutation.mutate(
       {
         productId: product.id,
+
         data: {
-          name: values.name,
-          description: values.description,
+          name: values.name.trim(),
+          description: values.description.trim(),
           price: values.price,
-          category: values.category,
+          category: values.category.trim(),
           is_active: values.is_active,
         },
       },
       {
         onSuccess: () => {
+          notifications.show({
+            title: "Product Updated",
+            message: "Product was updated successfully.",
+            color: "green",
+          });
+
           form.reset();
+
           onClose();
+        },
+
+        onError: () => {
+          notifications.show({
+            title: "Update Failed",
+            message: "Unable to update the product.",
+            color: "red",
+          });
         },
       },
     );
   }
 
   function handleClose() {
-    if (!updateMutation.isPending) {
-      form.reset();
-      onClose();
+    if (updateMutation.isPending) {
+      return;
     }
+
+    form.reset();
+
+    onClose();
   }
 
   return (
@@ -101,6 +139,7 @@ export default function EditProductModal({
           label="Product Name"
           placeholder="Enter product name"
           withAsterisk
+          disabled={updateMutation.isPending}
           {...form.getInputProps("name")}
         />
 
@@ -109,12 +148,14 @@ export default function EditProductModal({
           placeholder="Enter product description"
           autosize
           minRows={3}
+          disabled={updateMutation.isPending}
           {...form.getInputProps("description")}
         />
 
         <TextInput
           label="Category"
           placeholder="Bahulu"
+          disabled={updateMutation.isPending}
           {...form.getInputProps("category")}
         />
 
@@ -126,13 +167,8 @@ export default function EditProductModal({
           decimalScale={2}
           fixedDecimalScale
           withAsterisk
+          disabled={updateMutation.isPending}
           {...form.getInputProps("price")}
-        />
-
-        <NumberInput
-          label="Stock Quantity"
-          min={0}
-          {...form.getInputProps("initial_quantity")}
         />
 
         <Switch
@@ -143,6 +179,7 @@ export default function EditProductModal({
               : "Product is hidden from customers"
           }
           checked={form.values.is_active}
+          disabled={updateMutation.isPending}
           onChange={(event) =>
             form.setFieldValue("is_active", event.currentTarget.checked)
           }

@@ -1,17 +1,16 @@
-import { useMemo } from "react";
-import { Badge, Button, Text } from "@mantine/core";
+import { useMemo, useState } from "react";
+import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
+import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "../common/DataTable";
 
+import { useDeliveries } from "../../hooks/useDeliveries";
+
 import type { Delivery, DeliveryStatus } from "../../types/delivery";
 
-interface Props {
-  deliveries: Delivery[];
-  isLoading: boolean;
-  isError: boolean;
-  onSelectDelivery: (delivery: Delivery) => void;
-}
+import DeliveryDetailsModal from "./DeliveryDetailsModal";
+import EditDeliveryModal from "./EditDeliveryModal";
 
 function getStatusColor(status: DeliveryStatus) {
   switch (status) {
@@ -49,12 +48,39 @@ function formatDate(date: string) {
   });
 }
 
-export default function DeliveriesTable({
-  deliveries,
-  isLoading,
-  isError,
-  onSelectDelivery,
-}: Props) {
+export default function DeliveriesTable() {
+  const { data, isLoading, isError } = useDeliveries();
+
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
+    null,
+  );
+
+  const [viewOpened, setViewOpened] = useState(false);
+
+  const [editOpened, setEditOpened] = useState(false);
+
+  const deliveries = data ?? [];
+
+  function handleView(delivery: Delivery) {
+    setSelectedDelivery(delivery);
+    setViewOpened(true);
+  }
+
+  function handleEdit(delivery: Delivery) {
+    setSelectedDelivery(delivery);
+    setEditOpened(true);
+  }
+
+  function handleCloseView() {
+    setViewOpened(false);
+    setSelectedDelivery(null);
+  }
+
+  function handleCloseEdit() {
+    setEditOpened(false);
+    setSelectedDelivery(null);
+  }
+
   const columns = useMemo<ColumnDef<Delivery, unknown>[]>(
     () => [
       {
@@ -128,41 +154,77 @@ export default function DeliveriesTable({
       },
 
       {
-        id: "action",
-        header: "Action",
+        id: "actions",
+        header: "Actions",
         enableSorting: false,
         cell: ({ row }) => (
-          <Button
-            size="xs"
-            variant="light"
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelectDelivery(row.original);
-            }}
-          >
-            View
-          </Button>
+          <Group gap="xs">
+            <Tooltip label="View delivery" withArrow>
+              <ActionIcon
+                size="lg"
+                variant="light"
+                color="blue"
+                onClick={() => handleView(row.original)}
+                aria-label="View delivery"
+              >
+                <IconEye size={20} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Edit delivery" withArrow>
+              <ActionIcon
+                size="lg"
+                variant="light"
+                color="orange"
+                onClick={() => handleEdit(row.original)}
+                aria-label="Edit delivery"
+              >
+                <IconEdit size={20} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         ),
       },
     ],
-    [onSelectDelivery],
+    [],
   );
 
   if (isError) {
-    return (
-      <Text c="red" p="lg">
-        Failed to load deliveries.
-      </Text>
-    );
+    return <Text c="red">Failed to load deliveries.</Text>;
   }
 
   return (
-    <DataTable
-      data={deliveries}
-      columns={columns}
-      loading={isLoading}
-      searchPlaceholder="Search deliveries..."
-      emptyMessage="No deliveries found."
-    />
+    <>
+      <Card
+        withBorder
+        radius="md"
+        p={0}
+        style={{
+          overflow: "hidden",
+        }}
+      >
+        <DataTable
+          data={deliveries}
+          columns={columns}
+          loading={isLoading}
+          searchPlaceholder="Search deliveries..."
+          emptyMessage="No deliveries found."
+        />
+      </Card>
+
+      {/* VIEW DELIVERY */}
+      <DeliveryDetailsModal
+        opened={viewOpened}
+        delivery={selectedDelivery}
+        onClose={handleCloseView}
+      />
+
+      {/* EDIT DELIVERY */}
+      <EditDeliveryModal
+        opened={editOpened}
+        delivery={selectedDelivery}
+        onClose={handleCloseEdit}
+      />
+    </>
   );
 }
