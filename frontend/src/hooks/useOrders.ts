@@ -35,6 +35,10 @@ export function useCreateOrder() {
         queryClient.invalidateQueries({
           queryKey: ["inventories"],
         }),
+
+        queryClient.invalidateQueries({
+          queryKey: ["dashboard"],
+        }),
       ]);
     },
   });
@@ -53,9 +57,6 @@ export function useUpdateOrder() {
     }) => updateOrder(orderId, data),
 
     onSuccess: async (updatedOrder: Order) => {
-      /*
-       * Immediately update the order in the table.
-       */
       queryClient.setQueryData<Order[]>(["orders"], (currentOrders) => {
         if (!currentOrders) {
           return currentOrders;
@@ -65,9 +66,16 @@ export function useUpdateOrder() {
           order.id === updatedOrder.id ? updatedOrder : order,
         );
       });
-      await queryClient.invalidateQueries({
-        queryKey: ["orders"],
-      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["orders"],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: ["dashboard"],
+        }),
+      ]);
     },
   });
 }
@@ -100,6 +108,10 @@ export function useCancelOrder() {
 
         queryClient.invalidateQueries({
           queryKey: ["inventories"],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: ["dashboard"],
         }),
       ]);
     },

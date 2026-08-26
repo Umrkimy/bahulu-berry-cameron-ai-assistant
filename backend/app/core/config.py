@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-5.6-luna"
     OPENAI_REASONING_EFFORT: str = "none"
 
+    STRIPE_SECRET_KEY: SecretStr
+    STRIPE_WEBHOOK_SECRET: SecretStr
+    STRIPE_SUCCESS_URL: str
+    STRIPE_CANCEL_URL: str
+
     SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120

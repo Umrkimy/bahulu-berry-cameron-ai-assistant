@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.constants.order import ORDER_STATUS, PAYMENT_STATUS
 from app.models.customer import Customer
+from app.models.delivery import Delivery
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
@@ -253,13 +254,6 @@ async def create_order(
     db: AsyncSession,
     customer_id: int,
     items: list[dict],
-    delivery_name: str | None = None,
-    delivery_phone: str | None = None,
-    delivery_address: str | None = None,
-    city: str | None = None,
-    state: str | None = None,
-    postal_code: str | None = None,
-    country: str = "Malaysia",
 ) -> dict:
     customer_result = await db.execute(
         select(Customer).where(
@@ -381,43 +375,36 @@ async def create_order(
         Decimal("0.00"),
     )
 
+    # Create the Order.
     order = Order(
         customer_id=customer.id,
         status="PENDING",
         payment_status="UNPAID",
         total_amount=total_amount,
-        delivery_name=(
-            delivery_name
-            or customer.full_name
-        ),
-        delivery_phone=(
-            delivery_phone
-            or customer.phone_number
-        ),
-        delivery_address=(
-            delivery_address
-            or customer.address
-        ),
-        city=(
-            city
-            or customer.city
-        ),
-        state=(
-            state
-            or customer.state
-        ),
-        postal_code=(
-            postal_code
-            or customer.postal_code
-        ),
-        country=(
-            country
-            or customer.country
-        ),
     )
 
     db.add(order)
 
+    # Create exactly one Delivery for this Order.
+    #
+    # The customer's current information is copied here so
+    # the delivery address becomes a snapshot of the address
+    # used when the order was created.
+    delivery = Delivery(
+        order=order,
+        recipient_name=customer.full_name,
+        recipient_phone=customer.phone_number,
+        address=customer.address,
+        city=customer.city,
+        state=customer.state,
+        postal_code=customer.postal_code,
+        country=customer.country,
+        status="PENDING",
+    )
+
+    db.add(delivery)
+
+    # Create OrderItems and reduce inventory.
     for item in validated_items:
         product = item["product"]
         quantity = item["quantity"]
@@ -474,14 +461,6 @@ async def update_order(
     order_id: int,
     status: str | None = None,
     payment_status: str | None = None,
-    delivery_name: str | None = None,
-    delivery_phone: str | None = None,
-    delivery_address: str | None = None,
-    city: str | None = None,
-    state: str | None = None,
-    postal_code: str | None = None,
-    country: str | None = None,
-    tracking_number: str | None = None,
 ) -> dict:
     result = await db.execute(
         _order_query().where(
@@ -529,44 +508,7 @@ async def update_order(
                 ),
             }
 
-        # Cancellation restores inventory.
-        if normalized_status == "CANCELLED":
-            for item in order.items:
-                if item.product is None:
-                    return {
-                        "success": False,
-                        "error": (
-                            f"Product #{item.product_id} "
-                            "was not found."
-                        ),
-                    }
-
-                if item.product.inventory is None:
-                    return {
-                        "success": False,
-                        "error": (
-                            "No inventory record exists "
-                            f"for product '{item.product.name}'."
-                        ),
-                    }
-
-            for item in order.items:
-                await adjust_inventory(
-                    db=db,
-                    product_id=item.product.id,
-                    quantity_change=item.quantity,
-                )
-
-            order.status = "CANCELLED"
-
-        else:
-            order.status = normalized_status
-
-            if normalized_status == "SHIPPED":
-                order.shipped_at = datetime.now(UTC)
-
-            elif normalized_status == "COMPLETED":
-                order.completed_at = datetime.now(UTC)
+        order.status = normalized_status
 
     if payment_status is not None:
         normalized_payment_status = (
@@ -585,30 +527,6 @@ async def update_order(
             }
 
         order.payment_status = normalized_payment_status
-
-    if delivery_name is not None:
-        order.delivery_name = delivery_name
-
-    if delivery_phone is not None:
-        order.delivery_phone = delivery_phone
-
-    if delivery_address is not None:
-        order.delivery_address = delivery_address
-
-    if city is not None:
-        order.city = city
-
-    if state is not None:
-        order.state = state
-
-    if postal_code is not None:
-        order.postal_code = postal_code
-
-    if country is not None:
-        order.country = country
-
-    if tracking_number is not None:
-        order.tracking_number = tracking_number
 
     try:
         await db.commit()
@@ -663,11 +581,100 @@ async def cancel_order(
     db: AsyncSession,
     order_id: int,
 ) -> dict:
-    return await update_order(
-        db=db,
-        order_id=order_id,
-        status="CANCELLED",
+    result = await db.execute(
+        _order_query().where(
+            Order.id == order_id
+        )
     )
+
+    order = (
+        result.scalars()
+        .unique()
+        .first()
+    )
+
+    if order is None:
+        return {
+            "success": False,
+            "error": (
+                f"Order #{order_id} was not found."
+            ),
+        }
+
+    # Completed and already cancelled orders are final.
+    if order.status in {
+        "COMPLETED",
+        "CANCELLED",
+    }:
+        return {
+            "success": False,
+            "error": (
+                f"Order #{order_id} is already "
+                f"{order.status.lower()} and cannot be cancelled."
+            ),
+        }
+
+    # Validate all inventory records before changing anything.
+    for item in order.items:
+        if item.product is None:
+            return {
+                "success": False,
+                "error": (
+                    f"Product #{item.product_id} was not found."
+                ),
+            }
+
+        if item.product.inventory is None:
+            return {
+                "success": False,
+                "error": (
+                    "No inventory record exists "
+                    f"for product '{item.product.name}'."
+                ),
+            }
+
+    # Restore inventory.
+    for item in order.items:
+        await adjust_inventory(
+            db=db,
+            product_id=item.product.id,
+            quantity_change=item.quantity,
+        )
+
+    order.status = "CANCELLED"
+
+    try:
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+
+        return {
+            "success": False,
+            "error": "Failed to cancel order.",
+        }
+
+    cancelled_order = await _reload_order(
+        db,
+        order_id,
+    )
+
+    if cancelled_order is None:
+        return {
+            "success": False,
+            "error": (
+                f"Order #{order_id} was cancelled "
+                "but could not be reloaded."
+            ),
+        }
+
+    return {
+        "success": True,
+        "message": (
+            f"Order #{order_id} cancelled successfully."
+        ),
+        "order": _serialize_order(cancelled_order),
+    }
 
 
 def _serialize_order(
@@ -706,16 +713,6 @@ def _serialize_order(
         "status": order.status,
         "payment_status": order.payment_status,
         "total_amount": float(order.total_amount),
-        "delivery": {
-            "name": order.delivery_name,
-            "phone": order.delivery_phone,
-            "address": order.delivery_address,
-            "city": order.city,
-            "state": order.state,
-            "postal_code": order.postal_code,
-            "country": order.country,
-        },
-        "tracking_number": order.tracking_number,
         "created_at": created_at_malaysia.isoformat(),
         "updated_at": updated_at_malaysia.isoformat(),
         "items": [

@@ -355,9 +355,8 @@ async def update_product(
         Depends(get_current_admin),
     ],
 ):
-
     result = await db.execute(
-        select(Product).where(Product.id == product_id, Product.is_active)
+        select(Product).where(Product.id == product_id)
     )
 
     product = result.scalar_one_or_none()
@@ -368,13 +367,15 @@ async def update_product(
             detail="Product not found",
         )
 
-    # Check name duplicate
     if (
         product_data.name is not None
         and product_data.name.lower() != product.name.lower()
     ):
         result = await db.execute(
-            select(Product).where(func.lower(Product.name) == product_data.name.lower())
+            select(Product).where(
+                func.lower(Product.name) == product_data.name.lower(),
+                Product.id != product_id,
+            )
         )
 
         existing_product = result.scalar_one_or_none()

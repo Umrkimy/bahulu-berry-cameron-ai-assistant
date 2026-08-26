@@ -106,13 +106,6 @@ async def create_order(
             }
             for item in order_data.items
         ],
-        delivery_name=order_data.delivery_name,
-        delivery_phone=order_data.delivery_phone,
-        delivery_address=order_data.delivery_address,
-        city=order_data.city,
-        state=order_data.state,
-        postal_code=order_data.postal_code,
-        country=order_data.country,
     )
 
     if not result["success"]:

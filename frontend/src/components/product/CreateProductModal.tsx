@@ -1,14 +1,8 @@
-import {
-  Button,
-  Modal,
-  NumberInput,
-  Stack,
-  TextInput,
-  Textarea,
-  Switch,
-} from "@mantine/core";
+import { NumberInput, Stack, Switch, TextInput, Textarea } from "@mantine/core";
 
 import { useForm } from "@mantine/form";
+
+import { FormModal } from "../common/DataTable";
 
 import { useCreateProduct } from "../../hooks/useProducts";
 
@@ -26,86 +20,103 @@ export default function CreateProductModal({
   const form = useForm({
     initialValues: {
       name: "",
-
       description: "",
-
       price: 0,
-
       category: "",
-
       initial_quantity: 0,
-
       is_active: true,
     },
 
     validate: {
-      name: (value) => (value.length < 1 ? "Product name is required" : null),
+      name: (value) =>
+        value.trim().length < 1 ? "Product name is required" : null,
 
       price: (value) => (value <= 0 ? "Price must be greater than 0" : null),
+
+      initial_quantity: (value) =>
+        value < 0 ? "Stock cannot be negative" : null,
     },
   });
 
   function handleSubmit(values: typeof form.values) {
-    createMutation.mutate(
-      values,
-
-      {
-        onSuccess() {
-          form.reset();
-
-          onClose();
-        },
+    createMutation.mutate(values, {
+      onSuccess() {
+        form.reset();
+        onClose();
       },
-    );
+    });
+  }
+
+  function handleClose() {
+    if (!createMutation.isPending) {
+      form.reset();
+      onClose();
+    }
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Add Product">
-      <form onSubmit={form.onSubmit(handleSubmit)}>
-        <Stack>
-          <TextInput
-            label="Product Name"
-            placeholder="Bahulu Berry"
-            {...form.getInputProps("name")}
-          />
+    <FormModal
+      opened={opened}
+      onClose={handleClose}
+      title="Add Product"
+      description="Create a new product and configure its availability."
+      submitLabel="Create Product"
+      loading={createMutation.isPending}
+      onSubmit={() => form.onSubmit(handleSubmit)()}
+    >
+      <Stack gap="md">
+        <TextInput
+          label="Product Name"
+          placeholder="Bahulu Berry"
+          withAsterisk
+          {...form.getInputProps("name")}
+        />
 
-          <Textarea
-            label="Description"
-            placeholder="Product description"
-            {...form.getInputProps("description")}
-          />
+        <Textarea
+          label="Description"
+          placeholder="Enter product description"
+          autosize
+          minRows={3}
+          {...form.getInputProps("description")}
+        />
 
-          <NumberInput
-            label="Price"
-            prefix="RM "
-            min={0}
-            {...form.getInputProps("price")}
-          />
+        <TextInput
+          label="Category"
+          placeholder="Bahulu"
+          {...form.getInputProps("category")}
+        />
 
-          <TextInput
-            label="Category"
-            placeholder="Berry"
-            {...form.getInputProps("category")}
-          />
+        <NumberInput
+          label="Price"
+          placeholder="15.00"
+          prefix="RM "
+          min={0}
+          decimalScale={2}
+          fixedDecimalScale
+          withAsterisk
+          {...form.getInputProps("price")}
+        />
 
-          <NumberInput
-            label="Initial Quantity"
-            min={0}
-            {...form.getInputProps("initial_quantity")}
-          />
+        <NumberInput
+          label="Initial Stock"
+          placeholder="100"
+          min={0}
+          {...form.getInputProps("initial_quantity")}
+        />
 
-          <Switch
-            label="Active Product"
-            {...form.getInputProps("is_active", {
-              type: "checkbox",
-            })}
-          />
-
-          <Button type="submit" loading={createMutation.isPending}>
-            Create Product
-          </Button>
-        </Stack>
-      </form>
-    </Modal>
+        <Switch
+          label="Active Product"
+          description={
+            form.values.is_active
+              ? "Product is available to customers"
+              : "Product is hidden from customers"
+          }
+          checked={form.values.is_active}
+          onChange={(event) =>
+            form.setFieldValue("is_active", event.currentTarget.checked)
+          }
+        />
+      </Stack>
+    </FormModal>
   );
 }

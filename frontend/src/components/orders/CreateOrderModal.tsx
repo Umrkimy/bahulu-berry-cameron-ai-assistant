@@ -20,7 +20,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { getCustomers } from "../../api/customers";
-
 import { getProducts } from "../../api/products";
 
 import { useCreateOrder } from "../../hooks/useOrders";
@@ -63,10 +62,24 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
       (product) => product.is_active && (product.inventory?.quantity ?? 0) > 0,
     ) ?? [];
 
-  function addItem() {
-    const product = products.find((item) => item.id === Number(productId));
+  function resetForm() {
+    setCustomerId(null);
+    setProductId(null);
+    setQuantity(1);
+    setItems([]);
+  }
 
-    if (!product) {
+  function handleClose() {
+    if (createOrderMutation.isPending) {
+      return;
+    }
+
+    resetForm();
+    onClose();
+  }
+
+  function addItem() {
+    if (!productId) {
       notifications.show({
         title: "Select a product",
         message: "Choose a product before adding it.",
@@ -76,12 +89,37 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
       return;
     }
 
-    const existingQuantity =
-      items.find((item) => item.product.id === product.id)?.quantity ?? 0;
+    if (quantity < 1) {
+      notifications.show({
+        title: "Invalid quantity",
+        message: "Quantity must be at least 1.",
+        color: "red",
+      });
+
+      return;
+    }
+
+    const product = products.find((item) => item.id === Number(productId));
+
+    if (!product) {
+      notifications.show({
+        title: "Product unavailable",
+        message: "The selected product is no longer available.",
+        color: "red",
+      });
+
+      return;
+    }
 
     const availableStock = product.inventory?.quantity ?? 0;
 
-    if (existingQuantity + quantity > availableStock) {
+    const existingItem = items.find((item) => item.product.id === product.id);
+
+    const existingQuantity = existingItem?.quantity ?? 0;
+
+    const newQuantity = existingQuantity + quantity;
+
+    if (newQuantity > availableStock) {
       notifications.show({
         title: "Not enough stock",
         message: `Only ${availableStock} units are available.`,
@@ -92,11 +130,11 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
     }
 
     setItems((currentItems) => {
-      const existingItem = currentItems.find(
+      const existing = currentItems.find(
         (item) => item.product.id === product.id,
       );
 
-      if (existingItem) {
+      if (existing) {
         return currentItems.map((item) =>
           item.product.id === product.id
             ? {
@@ -163,16 +201,12 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         color: "green",
       });
 
-      setCustomerId(null);
-      setProductId(null);
-      setQuantity(1);
-      setItems([]);
-
+      resetForm();
       onClose();
     } catch {
       notifications.show({
         title: "Create Failed",
-        message: "Unable to create the order. Check product stock.",
+        message: "Unable to create the order. The stock may have changed.",
         color: "red",
       });
     }
@@ -183,31 +217,37 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
     0,
   );
 
+  const isLoading =
+    isLoadingCustomers || isLoadingProducts || createOrderMutation.isPending;
+
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={handleClose}
       title="Create New Order"
       centered
       size="xl"
       padding="xl"
+      closeOnClickOutside={!createOrderMutation.isPending}
+      closeOnEscape={!createOrderMutation.isPending}
     >
       <Stack gap="lg">
         <Select
           label="Customer"
           placeholder="Select a customer"
           searchable
+          clearable
           maxDropdownHeight={240}
           data={
             customers?.map((customer) => ({
               value: String(customer.id),
-
               label: `${customer.full_name} — ${customer.phone_number}`,
             })) ?? []
           }
           value={customerId}
           onChange={setCustomerId}
-          disabled={isLoadingCustomers || createOrderMutation.isPending}
+          disabled={isLoading}
+          nothingFoundMessage="No customers found"
         />
 
         <Divider label="Add Products" labelPosition="center" />
@@ -218,24 +258,34 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
               label="Product"
               placeholder="Select a product"
               searchable
+              clearable
               maxDropdownHeight={240}
               data={products.map((product) => ({
                 value: String(product.id),
-
                 label: `${product.name} — RM ${Number(product.price).toFixed(
                   2,
                 )} — Stock: ${product.inventory?.quantity ?? 0}`,
               }))}
               value={productId}
               onChange={setProductId}
-              disabled={isLoadingProducts || createOrderMutation.isPending}
+              disabled={isLoading}
+              nothingFoundMessage="No products available"
             />
 
             <NumberInput
               label="Quantity"
               min={1}
+              max={
+                productId
+                  ? (products.find(
+                      (product) => product.id === Number(productId),
+                    )?.inventory?.quantity ?? undefined)
+                  : undefined
+              }
               value={quantity}
-              onChange={(value) => setQuantity(Number(value) || 1)}
+              onChange={(value) =>
+                setQuantity(typeof value === "number" && value > 0 ? value : 1)
+              }
               disabled={createOrderMutation.isPending}
             />
 
@@ -300,6 +350,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
                           variant="subtle"
                           size="xs"
                           onClick={() => removeItem(item.product.id)}
+                          disabled={createOrderMutation.isPending}
                           leftSection={<IconTrash size={14} />}
                         >
                           Remove
@@ -329,6 +380,12 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
           size="md"
           onClick={handleSubmit}
           loading={createOrderMutation.isPending}
+          disabled={
+            isLoadingCustomers ||
+            isLoadingProducts ||
+            !customerId ||
+            items.length === 0
+          }
         >
           Create Order
         </Button>
