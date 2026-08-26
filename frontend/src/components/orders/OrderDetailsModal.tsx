@@ -2,8 +2,8 @@ import {
   Badge,
   Button,
   Divider,
-  Drawer,
   Group,
+  Modal,
   Paper,
   Select,
   Stack,
@@ -72,7 +72,7 @@ function getDeliveryStatusColor(status: string) {
   return "yellow";
 }
 
-export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
+export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const navigate = useNavigate();
 
   const updateOrderMutation = useUpdateOrder();
@@ -154,13 +154,13 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
 
       notifications.show({
         title: "Payment Link Created",
-        message: "Stripe payment link was created successfully.",
+        message: "Payment link was created successfully.",
         color: "green",
       });
     } catch {
       notifications.show({
         title: "Payment Creation Failed",
-        message: "Unable to create a Stripe payment link for this order.",
+        message: "Unable to create a payment link for this order.",
         color: "red",
       });
     }
@@ -199,10 +199,22 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
   function handleViewDelivery() {
     onClose();
 
-    navigate(`/deliveries`);
+    navigate("/deliveries");
   }
 
   async function handleSubmit(values: typeof form.values) {
+    const hasChanges = values.status !== order.status;
+
+    if (!hasChanges) {
+      notifications.show({
+        title: "No Changes",
+        message: "No order information has been changed.",
+        color: "blue",
+      });
+
+      return;
+    }
+
     try {
       await updateOrderMutation.mutateAsync({
         orderId,
@@ -260,6 +272,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
           });
 
           modals.closeAll();
+
           onClose();
         } catch {
           notifications.show({
@@ -273,16 +286,28 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
   }
 
   return (
-    <Drawer
+    <Modal
       opened={opened}
       onClose={onClose}
-      position="right"
-      size="lg"
+      centered
+      size="xl"
       padding="xl"
+      radius="md"
       title={`Order #${orderId}`}
+      closeOnClickOutside={
+        !updateOrderMutation.isPending &&
+        !cancelOrderMutation.isPending &&
+        !createPaymentMutation.isPending
+      }
+      closeOnEscape={
+        !updateOrderMutation.isPending &&
+        !cancelOrderMutation.isPending &&
+        !createPaymentMutation.isPending
+      }
     >
       <Stack gap="lg">
         {/* ORDER SUMMARY */}
+
         <Paper withBorder radius="md" p="md">
           <Group justify="space-between" align="start">
             <div>
@@ -306,6 +331,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
         </Paper>
 
         {/* PAYMENT */}
+
         <Divider label="Payment" labelPosition="center" />
 
         <Paper withBorder radius="md" p="md">
@@ -313,7 +339,16 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
             <Group justify="space-between">
               <Text fw={600}>Order Payment Status</Text>
 
-              <Badge color={order.payment_status === "PAID" ? "green" : "red"}>
+              <Badge
+                color={
+                  order.payment_status === "PAID"
+                    ? "green"
+                    : order.payment_status === "UNPAID"
+                      ? "red"
+                      : "gray"
+                }
+                variant="light"
+              >
                 {order.payment_status}
               </Badge>
             </Group>
@@ -329,7 +364,10 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                     Payment Status
                   </Text>
 
-                  <Badge color={getPaymentStatusColor(payment.status)}>
+                  <Badge
+                    color={getPaymentStatusColor(payment.status)}
+                    variant="light"
+                  >
                     {payment.status}
                   </Badge>
                 </Group>
@@ -352,7 +390,92 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                   </Text>
                 </Group>
 
-                {payment.payment_url && (
+                {/* PAID */}
+
+                {payment.status === "PAID" && (
+                  <Paper withBorder radius="md" p="md">
+                    <Group justify="space-between">
+                      <div>
+                        <Text fw={600}>Payment Completed</Text>
+
+                        <Text size="sm" c="dimmed" mt={4}>
+                          This order has already been paid.
+                        </Text>
+                      </div>
+
+                      <Badge color="green" size="lg" variant="light">
+                        PAID
+                      </Badge>
+                    </Group>
+                  </Paper>
+                )}
+
+                {/* EXPIRED */}
+
+                {payment.status === "EXPIRED" && (
+                  <Paper withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group justify="space-between">
+                        <div>
+                          <Text fw={600}>Payment Link Expired</Text>
+
+                          <Text size="sm" c="dimmed" mt={4}>
+                            This payment link has expired and can no longer be
+                            used.
+                          </Text>
+                        </div>
+
+                        <Badge color="orange" size="lg" variant="light">
+                          EXPIRED
+                        </Badge>
+                      </Group>
+
+                      {order.status !== "CANCELLED" && (
+                        <Button
+                          onClick={handleCreatePayment}
+                          loading={createPaymentMutation.isPending}
+                        >
+                          Generate New Payment Link
+                        </Button>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
+
+                {/* FAILED */}
+
+                {payment.status === "FAILED" && (
+                  <Paper withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group justify="space-between">
+                        <div>
+                          <Text fw={600}>Payment Failed</Text>
+
+                          <Text size="sm" c="dimmed" mt={4}>
+                            The previous payment attempt failed.
+                          </Text>
+                        </div>
+
+                        <Badge color="red" size="lg" variant="light">
+                          FAILED
+                        </Badge>
+                      </Group>
+
+                      {order.status !== "CANCELLED" && (
+                        <Button
+                          onClick={handleCreatePayment}
+                          loading={createPaymentMutation.isPending}
+                        >
+                          Generate Payment Link
+                        </Button>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
+
+                {/* PENDING */}
+
+                {payment.status === "PENDING" && payment.payment_url && (
                   <Stack gap="xs">
                     <Text size="sm" c="dimmed">
                       Payment Link
@@ -367,46 +490,45 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                       {payment.payment_url}
                     </Text>
 
-                    <Group>
-                      {payment.status !== "PAID" &&
-                        order.status !== "CANCELLED" && (
-                          <Button size="sm" onClick={handleOpenPaymentLink}>
-                            Open Payment
-                          </Button>
-                        )}
+                    {order.status !== "CANCELLED" && (
+                      <Group>
+                        <Button size="sm" onClick={handleOpenPaymentLink}>
+                          Open Payment
+                        </Button>
 
-                      {payment.status !== "PAID" &&
-                        order.status !== "CANCELLED" && (
-                          <Button
-                            size="sm"
-                            variant="light"
-                            onClick={handleCopyPaymentLink}
-                          >
-                            Copy Link
-                          </Button>
-                        )}
-                    </Group>
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onClick={handleCopyPaymentLink}
+                        >
+                          Copy Link
+                        </Button>
+                      </Group>
+                    )}
                   </Stack>
                 )}
 
-                {payment.status === "EXPIRED" &&
-                  order.status !== "CANCELLED" && (
-                    <Button
-                      onClick={handleCreatePayment}
-                      loading={createPaymentMutation.isPending}
-                    >
-                      Generate New Payment Link
-                    </Button>
-                  )}
+                {/* OTHER PAYMENT STATES */}
 
-                {payment.status === "FAILED" &&
-                  order.status !== "CANCELLED" && (
-                    <Button
-                      onClick={handleCreatePayment}
-                      loading={createPaymentMutation.isPending}
-                    >
-                      Generate Payment Link
-                    </Button>
+                {payment.status !== "PAID" &&
+                  payment.status !== "EXPIRED" &&
+                  payment.status !== "FAILED" &&
+                  payment.status !== "PENDING" &&
+                  payment.payment_url && (
+                    <Stack gap="xs">
+                      <Text size="sm" c="dimmed">
+                        Payment Link
+                      </Text>
+
+                      <Text
+                        size="sm"
+                        style={{
+                          wordBreak: "break-all",
+                        }}
+                      >
+                        {payment.payment_url}
+                      </Text>
+                    </Stack>
                   )}
               </>
             ) : (
@@ -422,7 +544,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                     onClick={handleCreatePayment}
                     loading={createPaymentMutation.isPending}
                   >
-                    Generate Stripe Payment Link
+                    Generate Payment Link
                   </Button>
                 )}
               </>
@@ -431,6 +553,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
         </Paper>
 
         {/* DELIVERY */}
+
         <Divider label="Delivery" labelPosition="center" />
 
         <Paper withBorder radius="md" p="md">
@@ -439,7 +562,10 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
               <Text fw={600}>Delivery</Text>
 
               {delivery && (
-                <Badge color={getDeliveryStatusColor(delivery.status)}>
+                <Badge
+                  color={getDeliveryStatusColor(delivery.status)}
+                  variant="light"
+                >
                   {delivery.status}
                 </Badge>
               )}
@@ -498,6 +624,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
         </Paper>
 
         {/* ORDER ITEMS */}
+
         <Divider label="Order Items" labelPosition="center" />
 
         {isLoadingItems ? (
@@ -508,7 +635,9 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Product</Table.Th>
+
                   <Table.Th>Qty</Table.Th>
+
                   <Table.Th>Subtotal</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -536,6 +665,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
         )}
 
         {/* ORDER MANAGEMENT */}
+
         <Divider label="Order Management" labelPosition="center" />
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -553,12 +683,13 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
 
             <Group justify="space-between" mt="sm">
               <Group gap="xs">
-                <Badge color={getStatusColor(order.status)}>
+                <Badge color={getStatusColor(order.status)} variant="light">
                   {order.status}
                 </Badge>
 
                 <Badge
                   color={order.payment_status === "PAID" ? "green" : "red"}
+                  variant="light"
                 >
                   {order.payment_status}
                 </Badge>
@@ -586,6 +717,6 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
           </Stack>
         </form>
       </Stack>
-    </Drawer>
+    </Modal>
   );
 }
