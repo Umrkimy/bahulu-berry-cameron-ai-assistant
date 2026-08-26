@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconBuildingWarehouse,
   IconMessageChatbot,
+  IconTruck,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -33,6 +34,12 @@ export default function AppSidebar() {
         title="COMMERCE"
         items={[
           {
+            label: "Customers",
+            link: "/customers",
+            icon: <IconUsers size={18} />,
+          },
+
+          {
             label: "Products",
             link: "/products",
             icon: <IconPackage size={18} />,
@@ -51,9 +58,9 @@ export default function AppSidebar() {
           },
 
           {
-            label: "Customers",
-            link: "/customers",
-            icon: <IconUsers size={18} />,
+            label: "Deliveries",
+            link: "/deliveries",
+            icon: <IconTruck size={18} />,
           },
         ]}
       />

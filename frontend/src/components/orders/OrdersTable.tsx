@@ -13,11 +13,8 @@ interface Props {
 
 function getOrderStatusColor(status: string) {
   if (status === "COMPLETED") return "green";
-
   if (status === "CANCELLED") return "red";
-
   if (status === "SHIPPED") return "blue";
-
   if (status === "PROCESSING") return "violet";
 
   return "yellow";
@@ -43,6 +40,16 @@ export default function OrdersTable({ onEdit }: Props) {
     customers?.map((customer) => [customer.id, customer.full_name]) ?? [],
   );
 
+  if (!orders || orders.length === 0) {
+    return (
+      <Card withBorder radius="md" p="lg">
+        <Text c="dimmed" ta="center">
+          No orders found.
+        </Text>
+      </Card>
+    );
+  }
+
   return (
     <Card withBorder radius="md" p="lg">
       <Table.ScrollContainer minWidth={1000}>
@@ -50,23 +57,17 @@ export default function OrdersTable({ onEdit }: Props) {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Order</Table.Th>
-
               <Table.Th>Customer</Table.Th>
-
               <Table.Th>Total</Table.Th>
-
               <Table.Th>Status</Table.Th>
-
               <Table.Th>Payment</Table.Th>
-
               <Table.Th>Date</Table.Th>
-
               <Table.Th>Action</Table.Th>
             </Table.Tr>
           </Table.Thead>
 
           <Table.Tbody>
-            {orders?.map((order) => (
+            {orders.map((order) => (
               <Table.Tr key={order.id}>
                 <Table.Td>
                   <Text fw={600}>#{order.id}</Text>

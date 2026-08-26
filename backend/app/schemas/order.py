@@ -20,32 +20,10 @@ class OrderCreate(OrderBase):
         min_length=1,
     )
 
-    delivery_name: str | None = None
-    delivery_phone: str | None = None
-    delivery_address: str | None = None
-
-    city: str | None = None
-    state: str | None = None
-    postal_code: str | None = None
-
-    country: str = "Malaysia"
-
 
 class OrderUpdate(BaseModel):
     status: Literal[*ORDER_STATUS] | None = None
     payment_status: Literal[*PAYMENT_STATUS] | None = None
-
-    delivery_name: str | None = None
-    delivery_phone: str | None = None
-    delivery_address: str | None = None
-
-    city: str | None = None
-    state: str | None = None
-    postal_code: str | None = None
-
-    country: str | None = None
-
-    tracking_number: str | None = None
 
 
 class OrderPrivate(BaseModel):
@@ -61,20 +39,6 @@ class OrderPrivate(BaseModel):
     payment_status: str
 
     total_amount: Decimal
-
-    delivery_name: str | None
-    delivery_phone: str | None
-    delivery_address: str | None
-
-    city: str | None
-    state: str | None
-    postal_code: str | None
-    country: str
-
-    tracking_number: str | None
-
-    shipped_at: datetime | None
-    completed_at: datetime | None
 
     created_at: datetime
     updated_at: datetime

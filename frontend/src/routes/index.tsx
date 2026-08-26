@@ -11,6 +11,7 @@ import WhatsApp from "../pages/WhatsApp/Whatsapp";
 import Settings from "../pages/Settings/Settings";
 import Inventory from "../pages/Inventory/Inventory";
 import AIAssistant from "../pages/AIAssistant/AIAssistant";
+import Deliveries from "../pages/Deliveries/Deliveries";
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 
@@ -45,6 +46,8 @@ export default function AppRoutes() {
         <Route path="/whatsapp" element={<WhatsApp />} />
 
         <Route path="/settings" element={<Settings />} />
+
+        <Route path="/deliveries" element={<Deliveries />} />
       </Route>
 
       {/* Default route */}

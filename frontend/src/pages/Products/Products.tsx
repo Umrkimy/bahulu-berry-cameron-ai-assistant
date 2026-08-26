@@ -1,4 +1,5 @@
-import { Button, Card, Group, Text } from "@mantine/core";
+import { Button, Card, Group, Stack, Text } from "@mantine/core";
+import { IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
 
 import ProductTable from "../../components/product/ProductTable";
@@ -23,22 +24,29 @@ export default function ProductsPage() {
   }
 
   return (
-    <Card withBorder radius="md" p="lg">
-      <Group justify="space-between" mb="md">
+    <Stack gap="lg">
+      <Group justify="space-between" align="flex-end">
         <div>
-          <Text fw={700} size="lg">
+          <Text fw={700} size="xl">
             Products Management
           </Text>
 
-          <Text c="dimmed" size="sm">
-            Manage your products, prices, and availability
+          <Text c="dimmed" size="sm" mt={4}>
+            Manage your products, prices, stock, and availability
           </Text>
         </div>
 
-        <Button onClick={() => setCreateOpened(true)}>Add Product</Button>
+        <Button
+          leftSection={<IconPlus size={17} />}
+          onClick={() => setCreateOpened(true)}
+        >
+          Add Product
+        </Button>
       </Group>
 
-      <ProductTable onEdit={openEdit} />
+      <Card withBorder radius="md" p={0}>
+        <ProductTable onEdit={openEdit} />
+      </Card>
 
       <CreateProductModal
         opened={createOpened}
@@ -50,6 +58,6 @@ export default function ProductsPage() {
         onClose={closeEditModal}
         product={selectedProduct}
       />
-    </Card>
+    </Stack>
   );
 }

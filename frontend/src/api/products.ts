@@ -4,6 +4,7 @@ import type {
   PaginatedProducts,
   CreateProductData,
   Product,
+  UpdateProductData,
 } from "../types/product";
 
 export async function getProducts() {
@@ -20,7 +21,7 @@ export async function createProduct(data: CreateProductData) {
 
 export async function updateProduct(
   productId: number,
-  data: Partial<CreateProductData>,
+  data: Partial<UpdateProductData>,
 ) {
   const response = await api.patch<Product>(`/products/${productId}`, data);
 

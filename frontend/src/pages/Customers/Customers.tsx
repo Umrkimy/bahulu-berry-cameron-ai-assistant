@@ -8,13 +8,25 @@ import EditCustomerModal from "../../components/customer/EditCustomerModal";
 
 export default function Customers() {
   const [createOpened, setCreateOpened] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<Customer | null>(null);
+
+  function openEdit(customer: Customer) {
+    setSelectedCustomer(customer);
+  }
+
+  function closeEdit() {
+    setSelectedCustomer(null);
+  }
 
   return (
-    <Card withBorder radius="md" p="lg">
-      <Group justify="space-between" mb="md">
+    <Card
+      withBorder
+      radius="md"
+      p={0}
+      style={{ overflow: "hidden" }}
+    >
+      <Group justify="space-between" p="lg">
         <div>
           <Text fw={700} size="lg">
             Customers Management
@@ -25,10 +37,12 @@ export default function Customers() {
           </Text>
         </div>
 
-        <Button onClick={() => setCreateOpened(true)}>Add Customer</Button>
+        <Button onClick={() => setCreateOpened(true)}>
+          Add Customer
+        </Button>
       </Group>
 
-      <CustomerTable onEdit={setSelectedCustomer} />
+      <CustomerTable onEdit={openEdit} />
 
       <CreateCustomerModal
         opened={createOpened}
@@ -38,7 +52,7 @@ export default function Customers() {
       <EditCustomerModal
         opened={selectedCustomer !== null}
         customer={selectedCustomer}
-        onClose={() => setSelectedCustomer(null)}
+        onClose={closeEdit}
       />
     </Card>
   );

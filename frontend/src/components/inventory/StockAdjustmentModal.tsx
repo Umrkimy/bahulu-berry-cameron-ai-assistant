@@ -3,22 +3,18 @@ import {
   Button,
   Divider,
   Group,
-  Modal,
   NumberInput,
   Paper,
   Stack,
   Text,
 } from "@mantine/core";
-
+import { useEffect } from "react";
+import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 
-import { useEffect } from "react";
-
-import { useForm } from "@mantine/form";
-
 import { useUpdateInventory } from "../../hooks/useInventory";
-
 import type { Inventory } from "../../types/inventory";
+import { FormModal } from "../common/DataTable";
 
 interface Props {
   opened: boolean;
@@ -38,6 +34,14 @@ export default function StockAdjustmentModal({
       quantity: 0,
       low_stock_threshold: 10,
     },
+
+    validate: {
+      quantity: (value) =>
+        value < 0 ? "Stock quantity cannot be negative" : null,
+
+      low_stock_threshold: (value) =>
+        value < 0 ? "Threshold cannot be negative" : null,
+    },
   });
 
   useEffect(() => {
@@ -49,8 +53,10 @@ export default function StockAdjustmentModal({
     });
   }, [inventory]);
 
-  async function handleSubmit(values: typeof form.values) {
+  async function handleSubmit() {
     if (!inventory) return;
+
+    const values = form.values;
 
     try {
       await updateMutation.mutateAsync({
@@ -67,6 +73,7 @@ export default function StockAdjustmentModal({
         color: "green",
       });
 
+      form.reset();
       onClose();
     } catch {
       notifications.show({
@@ -77,10 +84,15 @@ export default function StockAdjustmentModal({
     }
   }
 
-  function adjustQuantity(amount: number) {
-    const currentQuantity = form.values.quantity;
+  function handleClose() {
+    if (updateMutation.isPending) return;
 
-    const newQuantity = Math.max(0, currentQuantity + amount);
+    form.reset();
+    onClose();
+  }
+
+  function adjustQuantity(amount: number) {
+    const newQuantity = Math.max(0, form.values.quantity + amount);
 
     form.setFieldValue("quantity", newQuantity);
   }
@@ -112,141 +124,124 @@ export default function StockAdjustmentModal({
   const stockStatus = getStockStatus();
 
   return (
-    <Modal
+    <FormModal
       opened={opened}
-      onClose={updateMutation.isPending ? () => {} : onClose}
-      title={
-        <div>
-          <Text fw={700}>Manage Inventory</Text>
-
-          {inventory && (
-            <Text size="sm" c="dimmed" fw={400}>
-              {inventory.product_name}
-            </Text>
-          )}
-        </div>
+      onClose={handleClose}
+      title="Manage Inventory"
+      description={
+        inventory
+          ? `Update stock settings for ${inventory.product_name}.`
+          : undefined
       }
-      size="md"
-      centered
-      closeOnEscape={!updateMutation.isPending}
-      closeOnClickOutside={!updateMutation.isPending}
+      submitLabel="Save Changes"
+      loading={updateMutation.isPending}
+      onSubmit={handleSubmit}
     >
       {inventory && (
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="lg">
-            {/* CURRENT STOCK */}
-            <Paper withBorder p="md" radius="md">
-              <Group justify="space-between" align="center">
-                <div>
-                  <Text size="sm" c="dimmed">
-                    Current Stock
-                  </Text>
+        <Stack gap="lg">
+          {/* CURRENT STOCK */}
+          <Paper
+            withBorder
+            p="md"
+            radius="md"
+            style={{
+              background: "var(--mantine-color-gray-0)",
+            }}
+          >
+            <Group justify="space-between" align="center">
+              <div>
+                <Text size="sm" c="dimmed">
+                  Current Stock
+                </Text>
 
-                  <Text fw={700} size="xl">
-                    {form.values.quantity} units
-                  </Text>
-                </div>
+                <Text fw={700} size="xl">
+                  {form.values.quantity} units
+                </Text>
+              </div>
 
-                <Badge color={stockStatus.color} size="lg">
-                  {stockStatus.label}
-                </Badge>
-              </Group>
-            </Paper>
+              <Badge color={stockStatus.color} size="lg" variant="light">
+                {stockStatus.label}
+              </Badge>
+            </Group>
+          </Paper>
 
-            {/* STOCK ADJUSTMENT */}
-            <div>
-              <Text fw={600} mb={4}>
-                Stock Quantity
-              </Text>
+          {/* STOCK QUANTITY */}
+          <div>
+            <Text fw={600} size="sm">
+              Stock Quantity
+            </Text>
 
-              <Text size="sm" c="dimmed" mb="sm">
-                Adjust the number of units currently available.
-              </Text>
+            <Text size="xs" c="dimmed" mb="sm">
+              Adjust the number of units currently available.
+            </Text>
 
-              <NumberInput
-                min={0}
-                allowDecimal={false}
-                disabled={updateMutation.isPending}
-                {...form.getInputProps("quantity")}
-              />
+            <NumberInput
+              min={0}
+              allowDecimal={false}
+              size="md"
+              {...form.getInputProps("quantity")}
+            />
 
-              <Group grow mt="sm">
-                <Button
-                  variant="light"
-                  color="red"
-                  disabled={updateMutation.isPending}
-                  onClick={() => adjustQuantity(-10)}
-                >
-                  -10
-                </Button>
-
-                <Button
-                  variant="light"
-                  color="red"
-                  disabled={updateMutation.isPending}
-                  onClick={() => adjustQuantity(-1)}
-                >
-                  -1
-                </Button>
-
-                <Button
-                  variant="light"
-                  color="green"
-                  disabled={updateMutation.isPending}
-                  onClick={() => adjustQuantity(1)}
-                >
-                  +1
-                </Button>
-
-                <Button
-                  variant="light"
-                  color="green"
-                  disabled={updateMutation.isPending}
-                  onClick={() => adjustQuantity(10)}
-                >
-                  +10
-                </Button>
-              </Group>
-            </div>
-
-            <Divider />
-
-            {/* LOW STOCK SETTINGS */}
-            <div>
-              <Text fw={600} mb={4}>
-                Low Stock Alert
-              </Text>
-
-              <Text size="sm" c="dimmed" mb="sm">
-                Products at or below this quantity will be marked as low stock.
-              </Text>
-
-              <NumberInput
-                label="Low Stock Threshold"
-                min={0}
-                allowDecimal={false}
-                disabled={updateMutation.isPending}
-                {...form.getInputProps("low_stock_threshold")}
-              />
-            </div>
-
-            {/* ACTIONS */}
-            <Group justify="flex-end">
+            <Group grow mt="sm">
               <Button
-                variant="default"
-                onClick={onClose}
+                variant="light"
+                color="red"
+                onClick={() => adjustQuantity(-10)}
                 disabled={updateMutation.isPending}
               >
-                Cancel
+                −10
               </Button>
 
-              <Button type="submit" loading={updateMutation.isPending}>
-                Save Changes
+              <Button
+                variant="light"
+                color="red"
+                onClick={() => adjustQuantity(-1)}
+                disabled={updateMutation.isPending}
+              >
+                −1
+              </Button>
+
+              <Button
+                variant="light"
+                color="green"
+                onClick={() => adjustQuantity(1)}
+                disabled={updateMutation.isPending}
+              >
+                +1
+              </Button>
+
+              <Button
+                variant="light"
+                color="green"
+                onClick={() => adjustQuantity(10)}
+                disabled={updateMutation.isPending}
+              >
+                +10
               </Button>
             </Group>
-          </Stack>
-        </form>
+          </div>
+
+          <Divider />
+
+          {/* LOW STOCK */}
+          <div>
+            <Text fw={600} size="sm">
+              Low Stock Alert
+            </Text>
+
+            <Text size="xs" c="dimmed" mb="sm">
+              Products at or below this quantity will be marked as low stock.
+            </Text>
+
+            <NumberInput
+              label="Low Stock Threshold"
+              min={0}
+              allowDecimal={false}
+              {...form.getInputProps("low_stock_threshold")}
+            />
+          </div>
+        </Stack>
       )}
-    </Modal>
+    </FormModal>
   );
 }
