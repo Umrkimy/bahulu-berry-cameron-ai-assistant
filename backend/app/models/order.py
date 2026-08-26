@@ -20,6 +20,7 @@ from app.db.database import Base
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.order_item import OrderItem
+    from app.models.payment import Payment
 
 
 class Order(Base):
@@ -126,4 +127,9 @@ class Order(Base):
     items: Mapped[list["OrderItem"]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
+    )
+
+    payments: Mapped[list["Payment"]] = relationship(
+    back_populates="order",
+    cascade="all, delete-orphan",
     )

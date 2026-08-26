@@ -9,6 +9,7 @@ from app.api.routes import (
     auth,
     dashboard,
     ai_assistant,
+    payments,
 )
 
 api_router = APIRouter()
@@ -59,4 +60,10 @@ api_router.include_router(
     ai_assistant.router,
     prefix="/ai-assistant",
     tags=["AI Assistant"],
+)
+
+api_router.include_router(
+    payments.router,
+    prefix="/payments",
+    tags=["payments"],
 )
