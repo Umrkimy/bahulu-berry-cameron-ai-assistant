@@ -1,14 +1,15 @@
 import {
-  Button,
-  Modal,
+  Divider,
   SimpleGrid,
   Stack,
+  Text,
   TextInput,
   Textarea,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 
+import { FormModal } from "../common/DataTable";
 import { useCreateCustomer } from "../../hooks/useCustomers";
 
 interface Props {
@@ -37,20 +38,31 @@ export default function CreateCustomerModal({ opened, onClose }: Props) {
 
       phone_number: (value) =>
         value.trim().length < 10 ? "Enter a valid phone number" : null,
+
+      email: (value) =>
+        value && !/^\S+@\S+\.\S+$/.test(value)
+          ? "Enter a valid email address"
+          : null,
     },
   });
 
-  async function handleSubmit(values: typeof form.values) {
+  async function handleSubmit() {
+    const validation = form.validate();
+
+    if (validation.hasErrors) return;
+
     try {
+      const values = form.values;
+
       await createCustomerMutation.mutateAsync({
-        full_name: values.full_name,
-        phone_number: values.phone_number,
-        email: values.email || undefined,
-        address: values.address || undefined,
-        city: values.city || undefined,
-        state: values.state || undefined,
-        postal_code: values.postal_code || undefined,
-        country: values.country,
+        full_name: values.full_name.trim(),
+        phone_number: values.phone_number.trim(),
+        email: values.email.trim() || undefined,
+        address: values.address.trim() || undefined,
+        city: values.city.trim() || undefined,
+        state: values.state.trim() || undefined,
+        postal_code: values.postal_code.trim() || undefined,
+        country: values.country.trim(),
       });
 
       notifications.show({
@@ -70,70 +82,102 @@ export default function CreateCustomerModal({ opened, onClose }: Props) {
     }
   }
 
-  return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title="Add Customer"
-      centered
-      size="lg"
-    >
-      <form onSubmit={form.onSubmit(handleSubmit)}>
-        <Stack>
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput
-              label="Full Name"
-              placeholder="Customer name"
-              {...form.getInputProps("full_name")}
-            />
+  function handleClose() {
+    if (createCustomerMutation.isPending) return;
 
-            <TextInput
-              label="Phone Number"
-              placeholder="012-345 6789"
-              {...form.getInputProps("phone_number")}
-            />
-          </SimpleGrid>
+    form.reset();
+    onClose();
+  }
+
+  return (
+    <FormModal
+      opened={opened}
+      onClose={handleClose}
+      title="Add Customer"
+      description="Add a new customer and their contact information."
+      submitLabel="Add Customer"
+      loading={createCustomerMutation.isPending}
+      onSubmit={handleSubmit}
+    >
+      <Stack gap="md">
+        <div>
+          <Text fw={600} size="sm">
+            Customer Information
+          </Text>
+
+          <Text size="xs" c="dimmed">
+            Enter the customer's basic contact details.
+          </Text>
+        </div>
+
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <TextInput
+            label="Full Name"
+            placeholder="Muhammad Umar"
+            withAsterisk
+            {...form.getInputProps("full_name")}
+          />
 
           <TextInput
-            label="Email Address"
-            placeholder="customer@email.com"
-            {...form.getInputProps("email")}
+            label="Phone Number"
+            placeholder="012-345 6789"
+            withAsterisk
+            {...form.getInputProps("phone_number")}
+          />
+        </SimpleGrid>
+
+        <TextInput
+          label="Email Address"
+          placeholder="customer@example.com"
+          {...form.getInputProps("email")}
+        />
+
+        <Divider />
+
+        <div>
+          <Text fw={600} size="sm">
+            Address Information
+          </Text>
+
+          <Text size="xs" c="dimmed">
+            Add the customer's delivery or billing address.
+          </Text>
+        </div>
+
+        <Textarea
+          label="Address"
+          placeholder="Street address"
+          autosize
+          minRows={2}
+          {...form.getInputProps("address")}
+        />
+
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <TextInput
+            label="City"
+            placeholder="Cameron Highlands"
+            {...form.getInputProps("city")}
           />
 
-          <Textarea
-            label="Address"
-            placeholder="Street address"
-            minRows={2}
-            {...form.getInputProps("address")}
+          <TextInput
+            label="State"
+            placeholder="Pahang"
+            {...form.getInputProps("state")}
           />
 
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput
-              label="City"
-              placeholder="Cameron Highlands"
-              {...form.getInputProps("city")}
-            />
+          <TextInput
+            label="Postal Code"
+            placeholder="39000"
+            {...form.getInputProps("postal_code")}
+          />
 
-            <TextInput
-              label="State"
-              placeholder="Pahang"
-              {...form.getInputProps("state")}
-            />
-
-            <TextInput
-              label="Postal Code"
-              placeholder="39000"
-              {...form.getInputProps("postal_code")}
-            />
-
-            <TextInput label="Country" {...form.getInputProps("country")} />
-          </SimpleGrid>
-
-          <Button type="submit" loading={createCustomerMutation.isPending}>
-            Add Customer
-          </Button>
-        </Stack>
-      </form>
-    </Modal>
+          <TextInput
+            label="Country"
+            placeholder="Malaysia"
+            {...form.getInputProps("country")}
+          />
+        </SimpleGrid>
+      </Stack>
+    </FormModal>
   );
 }

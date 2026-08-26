@@ -21,9 +21,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useEffect } from "react";
 
+import { useNavigate } from "react-router-dom";
+
 import { getCustomers } from "../../api/customers";
 import { getOrderItems } from "../../api/orders";
 import { getProducts } from "../../api/products";
+import { getOrderDelivery } from "../../api/deliveries";
 
 import { useCancelOrder, useUpdateOrder } from "../../hooks/useOrders";
 
@@ -59,7 +62,19 @@ function getPaymentStatusColor(status: string) {
   return "gray";
 }
 
+function getDeliveryStatusColor(status: string) {
+  if (status === "DELIVERED") return "green";
+  if (status === "OUT_FOR_DELIVERY") return "blue";
+  if (status === "IN_TRANSIT") return "cyan";
+  if (status === "SHIPPED") return "violet";
+  if (status === "FAILED") return "red";
+
+  return "yellow";
+}
+
 export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
+  const navigate = useNavigate();
+
   const updateOrderMutation = useUpdateOrder();
 
   const cancelOrderMutation = useCancelOrder();
@@ -104,6 +119,13 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
     order?.id ?? 0,
   );
 
+  const { data: delivery, isLoading: isLoadingDelivery } = useQuery({
+    queryKey: ["delivery", order?.id],
+    queryFn: () => getOrderDelivery(order!.id),
+    enabled: opened && order !== null,
+    retry: false,
+  });
+
   if (!order) {
     return null;
   }
@@ -138,7 +160,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
     } catch {
       notifications.show({
         title: "Payment Creation Failed",
-        message: "Unable to create a payment link for this order.",
+        message: "Unable to create a Stripe payment link for this order.",
         color: "red",
       });
     }
@@ -172,6 +194,12 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
     }
 
     window.open(payment.payment_url, "_blank", "noopener,noreferrer");
+  }
+
+  function handleViewDelivery() {
+    onClose();
+
+    navigate(`/deliveries`);
   }
 
   async function handleSubmit(values: typeof form.values) {
@@ -254,6 +282,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
       title={`Order #${orderId}`}
     >
       <Stack gap="lg">
+        {/* ORDER SUMMARY */}
         <Paper withBorder radius="md" p="md">
           <Group justify="space-between" align="start">
             <div>
@@ -276,6 +305,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
           </Group>
         </Paper>
 
+        {/* PAYMENT */}
         <Divider label="Payment" labelPosition="center" />
 
         <Paper withBorder radius="md" p="md">
@@ -392,7 +422,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
                     onClick={handleCreatePayment}
                     loading={createPaymentMutation.isPending}
                   >
-                    Generate Payment Link
+                    Generate Stripe Payment Link
                   </Button>
                 )}
               </>
@@ -400,6 +430,74 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
           </Stack>
         </Paper>
 
+        {/* DELIVERY */}
+        <Divider label="Delivery" labelPosition="center" />
+
+        <Paper withBorder radius="md" p="md">
+          <Stack gap="md">
+            <Group justify="space-between">
+              <Text fw={600}>Delivery</Text>
+
+              {delivery && (
+                <Badge color={getDeliveryStatusColor(delivery.status)}>
+                  {delivery.status}
+                </Badge>
+              )}
+            </Group>
+
+            {isLoadingDelivery ? (
+              <Text size="sm" c="dimmed">
+                Loading delivery...
+              </Text>
+            ) : delivery ? (
+              <>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">
+                    Recipient
+                  </Text>
+
+                  <Text fw={500}>
+                    {delivery.recipient_name ?? "Not specified"}
+                  </Text>
+                </Group>
+
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">
+                    Courier
+                  </Text>
+
+                  <Text fw={500}>{delivery.courier ?? "Not assigned"}</Text>
+                </Group>
+
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">
+                    Tracking Number
+                  </Text>
+
+                  <Text fw={500}>
+                    {delivery.tracking_number ?? "Not assigned"}
+                  </Text>
+                </Group>
+
+                <Button variant="light" onClick={handleViewDelivery}>
+                  View Delivery
+                </Button>
+              </>
+            ) : (
+              <>
+                <Text size="sm" c="dimmed">
+                  No delivery record found for this order.
+                </Text>
+
+                <Button variant="light" onClick={handleViewDelivery}>
+                  View Delivery
+                </Button>
+              </>
+            )}
+          </Stack>
+        </Paper>
+
+        {/* ORDER ITEMS */}
         <Divider label="Order Items" labelPosition="center" />
 
         {isLoadingItems ? (
@@ -410,9 +508,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Product</Table.Th>
-
                   <Table.Th>Qty</Table.Th>
-
                   <Table.Th>Subtotal</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -439,6 +535,7 @@ export default function OrderDetailsDrawer({ opened, onClose, order }: Props) {
           <Text c="dimmed">No products in this order.</Text>
         )}
 
+        {/* ORDER MANAGEMENT */}
         <Divider label="Order Management" labelPosition="center" />
 
         <form onSubmit={form.onSubmit(handleSubmit)}>

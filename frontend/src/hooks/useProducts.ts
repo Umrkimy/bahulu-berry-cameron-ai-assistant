@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  getProducts,
   createProduct,
-  updateProduct,
   deleteProduct,
+  getProducts,
+  updateProduct,
 } from "../api/products";
 
 import type { UpdateProductData } from "../types/product";
@@ -12,7 +12,6 @@ import type { UpdateProductData } from "../types/product";
 export function useProducts() {
   return useQuery({
     queryKey: ["products"],
-
     queryFn: getProducts,
   });
 }

@@ -1,9 +1,10 @@
-import { Badge, Button, Card, Table, Text } from "@mantine/core";
+import { useMemo, useState } from "react";
+import { Badge, Button, Card, Text } from "@mantine/core";
+import type { ColumnDef } from "@tanstack/react-table";
 
-import { useState } from "react";
+import { DataTable } from "../common/DataTable";
 
 import { useInventories } from "../../hooks/useInventory";
-
 import type { Inventory } from "../../types/inventory";
 
 import StockAdjustmentModal from "./StockAdjustmentModal";
@@ -15,83 +16,109 @@ export default function InventoryTable() {
     null,
   );
 
-  if (isLoading) {
-    return (
-      <Card withBorder p="lg">
-        Loading inventory...
-      </Card>
-    );
-  }
+  const inventories = data ?? [];
+
+  const columns = useMemo<ColumnDef<Inventory, unknown>[]>(
+    () => [
+      {
+        id: "product",
+        accessorKey: "product_name",
+        header: "Product",
+        cell: ({ row }) => <Text fw={600}>{row.original.product_name}</Text>,
+      },
+
+      {
+        id: "category",
+        accessorKey: "product_category",
+        header: "Category",
+        cell: ({ row }) => <Text>{row.original.product_category ?? "-"}</Text>,
+      },
+
+      {
+        id: "quantity",
+        accessorKey: "quantity",
+        header: "Quantity",
+        cell: ({ row }) => <Text fw={600}>{row.original.quantity}</Text>,
+      },
+
+      {
+        id: "threshold",
+        accessorKey: "low_stock_threshold",
+        header: "Threshold",
+        cell: ({ row }) => <Text>{row.original.low_stock_threshold}</Text>,
+      },
+
+      {
+        id: "status",
+        accessorFn: (row) => {
+          if (row.quantity === 0) return "OUT";
+          if (row.quantity <= row.low_stock_threshold) return "LOW";
+          return "GOOD";
+        },
+        header: "Status",
+        cell: ({ row }) => {
+          const quantity = row.original.quantity;
+          const threshold = row.original.low_stock_threshold;
+
+          const status =
+            quantity === 0
+              ? {
+                  label: "OUT",
+                  color: "red",
+                }
+              : quantity <= threshold
+                ? {
+                    label: "LOW",
+                    color: "orange",
+                  }
+                : {
+                    label: "GOOD",
+                    color: "green",
+                  };
+
+          return (
+            <Badge color={status.color} variant="light">
+              {status.label}
+            </Badge>
+          );
+        },
+      },
+
+      {
+        id: "actions",
+        header: "Actions",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Button
+            size="xs"
+            variant="light"
+            onClick={() => setSelectedInventory(row.original)}
+          >
+            Manage
+          </Button>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <Card withBorder radius="md" p="lg">
-      <Table.ScrollContainer minWidth={900}>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Product</Table.Th>
-
-              <Table.Th>Category</Table.Th>
-
-              <Table.Th>Quantity</Table.Th>
-
-              <Table.Th>Threshold</Table.Th>
-
-              <Table.Th>Status</Table.Th>
-
-              <Table.Th>Action</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-
-          <Table.Tbody>
-            {data?.map((item) => (
-              <Table.Tr key={item.id}>
-                <Table.Td>
-                  <Text fw={600}>{item.product_name}</Text>
-                </Table.Td>
-
-                <Table.Td>{item.product_category ?? "-"}</Table.Td>
-
-                <Table.Td>{item.quantity}</Table.Td>
-
-                <Table.Td>{item.low_stock_threshold}</Table.Td>
-
-                <Table.Td>
-                  <Badge
-                    color={
-                      item.quantity === 0
-                        ? "red"
-                        : item.quantity <= item.low_stock_threshold
-                          ? "orange"
-                          : "green"
-                    }
-                  >
-                    {item.quantity === 0
-                      ? "OUT"
-                      : item.quantity <= item.low_stock_threshold
-                        ? "LOW"
-                        : "GOOD"}
-                  </Badge>
-                </Table.Td>
-
-                <Table.Td>
-                  <Button size="xs" onClick={() => setSelectedInventory(item)}>
-                    Edit
-                  </Button>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+    <>
+      <Card withBorder radius="md" p={0} style={{ overflow: "hidden" }}>
+        <DataTable
+          data={inventories}
+          columns={columns}
+          loading={isLoading}
+          searchPlaceholder="Search inventory..."
+          emptyMessage="No inventory found."
+        />
+      </Card>
 
       <StockAdjustmentModal
         opened={selectedInventory !== null}
         inventory={selectedInventory}
-        onClose={() => {
-          setSelectedInventory(null);
-        }}
+        onClose={() => setSelectedInventory(null)}
       />
-    </Card>
+    </>
   );
 }

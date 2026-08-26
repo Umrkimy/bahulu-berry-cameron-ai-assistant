@@ -1,15 +1,9 @@
-import {
-  Button,
-  Modal,
-  NumberInput,
-  Stack,
-  Switch,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
+import { NumberInput, Stack, Switch, TextInput, Textarea } from "@mantine/core";
 
 import { useEffect } from "react";
 import { useForm } from "@mantine/form";
+
+import { FormModal } from "../common/DataTable";
 
 import { useUpdateProduct } from "../../hooks/useProducts";
 
@@ -39,32 +33,28 @@ export default function EditProductModal({
     },
 
     validate: {
-      name: (value) => (value.length < 1 ? "Product name is required" : null),
+      name: (value) =>
+        value.trim().length < 1 ? "Product name is required" : null,
 
       price: (value) => (value <= 0 ? "Price must be greater than 0" : null),
+
+      initial_quantity: (value) =>
+        value < 0 ? "Stock cannot be negative" : null,
     },
   });
 
-  const { setValues } = form;
-
-  // Fill form when product selected
   useEffect(() => {
-    if (product) {
-      setValues({
-        name: product.name,
+    if (!product) return;
 
-        description: product.description ?? "",
-
-        price: Number(product.price),
-
-        category: product.category ?? "",
-
-        is_active: product.is_active,
-
-        initial_quantity: product.inventory?.quantity ?? 0,
-      });
-    }
-  }, [product, setValues]);
+    form.setValues({
+      name: product.name,
+      description: product.description ?? "",
+      price: Number(product.price),
+      category: product.category ?? "",
+      is_active: product.is_active,
+      initial_quantity: product.inventory?.quantity ?? 0,
+    });
+  }, [product]);
 
   function handleSubmit(values: typeof form.values) {
     if (!product) return;
@@ -72,57 +62,92 @@ export default function EditProductModal({
     updateMutation.mutate(
       {
         productId: product.id,
-
-        data: values,
+        data: {
+          name: values.name,
+          description: values.description,
+          price: values.price,
+          category: values.category,
+          is_active: values.is_active,
+        },
       },
       {
-        onSuccess() {
+        onSuccess: () => {
           form.reset();
-
           onClose();
         },
       },
     );
   }
 
+  function handleClose() {
+    if (!updateMutation.isPending) {
+      form.reset();
+      onClose();
+    }
+  }
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Edit Product">
-      <form onSubmit={form.onSubmit(handleSubmit)}>
-        <Stack>
-          <TextInput label="Product Name" {...form.getInputProps("name")} />
+    <FormModal
+      opened={opened}
+      onClose={handleClose}
+      title="Edit Product"
+      description="Update the product information and availability."
+      submitLabel="Save Changes"
+      loading={updateMutation.isPending}
+      onSubmit={() => form.onSubmit(handleSubmit)()}
+    >
+      <Stack gap="md">
+        <TextInput
+          label="Product Name"
+          placeholder="Enter product name"
+          withAsterisk
+          {...form.getInputProps("name")}
+        />
 
-          <Textarea
-            label="Description"
-            {...form.getInputProps("description")}
-          />
+        <Textarea
+          label="Description"
+          placeholder="Enter product description"
+          autosize
+          minRows={3}
+          {...form.getInputProps("description")}
+        />
 
-          <NumberInput
-            label="Price"
-            prefix="RM "
-            min={0}
-            {...form.getInputProps("price")}
-          />
+        <TextInput
+          label="Category"
+          placeholder="Bahulu"
+          {...form.getInputProps("category")}
+        />
 
-          <TextInput label="Category" {...form.getInputProps("category")} />
+        <NumberInput
+          label="Price"
+          placeholder="15.00"
+          prefix="RM "
+          min={0}
+          decimalScale={2}
+          fixedDecimalScale
+          withAsterisk
+          {...form.getInputProps("price")}
+        />
 
-          <NumberInput
-            label="Stock Quantity"
-            min={0}
-            {...form.getInputProps("initial_quantity")}
-          />
+        <NumberInput
+          label="Stock Quantity"
+          min={0}
+          {...form.getInputProps("initial_quantity")}
+        />
 
-          <Switch
-            label="Active Product"
-            {...form.getInputProps("is_active", {
-              type: "checkbox",
-            })}
-          />
-
-          <Button type="submit" loading={updateMutation.isPending}>
-            Update Product
-          </Button>
-        </Stack>
-      </form>
-    </Modal>
+        <Switch
+          label="Active Product"
+          description={
+            form.values.is_active
+              ? "Product is available to customers"
+              : "Product is hidden from customers"
+          }
+          checked={form.values.is_active}
+          onChange={(event) =>
+            form.setFieldValue("is_active", event.currentTarget.checked)
+          }
+        />
+      </Stack>
+    </FormModal>
   );
 }
