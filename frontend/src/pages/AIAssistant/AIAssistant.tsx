@@ -17,6 +17,8 @@ import ChatInput from "../../components/ai/ChatInput";
 import type { ChatMessageData } from "../../types/ai";
 
 import { sendAIMessage } from "../../api/aiAssistant";
+import { getApiError } from "../../api/errors";
+import useAuth from "../../auth/useAuth";
 
 const STORAGE_KEY = "bahulu-cameron-ai-chat";
 const CONVERSATION_ID_KEY = "bahulu-cameron-ai-conversation-id";
@@ -58,6 +60,7 @@ function loadMessages(): ChatMessageData[] {
 }
 
 export default function AIAssistant() {
+  const { admin } = useAuth();
   const [messages, setMessages] = useState<ChatMessageData[]>(loadMessages);
 
   const [conversationId, setConversationId] = useState(loadConversationId);
@@ -116,11 +119,9 @@ export default function AIAssistant() {
 
       setMessages((previous) => [...previous, assistantMessage]);
     } catch (error) {
-      console.error("AI Assistant error:", error);
-
       const errorMessage: ChatMessageData = {
         role: "assistant",
-        content: "Sorry, I couldn't process your request. Please try again.",
+        content: getApiError(error).message,
       };
 
       setMessages((previous) => [...previous, errorMessage]);
@@ -183,6 +184,12 @@ export default function AIAssistant() {
               AI Assistant
             </Text>
 
+            <Text size="xs" c="dimmed" ml="auto" mr="md">
+              {admin?.role === "OWNER"
+                ? "Changes always need your confirmation"
+                : "Read-only help for staff"}
+            </Text>
+
             <Button
               size="sm"
               variant="light"
@@ -208,7 +215,7 @@ export default function AIAssistant() {
             {messages.length === 0 ? (
               <Center h="calc(100vh - 220px)">
                 <Text c="dimmed" size="sm">
-                  Start a conversation
+                  Ask about sales, stock, customers, or orders.
                 </Text>
               </Center>
             ) : (
@@ -248,7 +255,7 @@ export default function AIAssistant() {
             <ChatInput onSend={handleSend} loading={loading} />
 
             <Text ta="center" size="xs" c="dimmed" mt={6}>
-              Bahulu Berry Cameron AI can make mistakes.
+              AI uses live dashboard data. Owners must confirm every change.
             </Text>
           </Box>
         </Box>

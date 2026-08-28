@@ -20,8 +20,8 @@ export default function ActivityPage() {
       <PageHeader title="Activity" description="A safe record of recent staff, AI, and payment actions." />
       <Card withBorder p="xl">
         <Group mb="lg" wrap="wrap">
-          <Select clearable placeholder="All records" aria-label="Filter activity by record type" value={entityType} onChange={setEntityType} data={["customer", "product", "inventory", "discount", "order", "payment", "delivery"]} />
-          <Select clearable placeholder="All actions" aria-label="Filter activity by action" value={action} onChange={setAction} data={["created", "updated", "deleted", "adjusted", "cancelled", "completed", "exported"]} />
+          <Select clearable placeholder="All records" aria-label="Filter activity by record type" value={entityType} onChange={setEntityType} data={["customer", "product", "inventory", "discount", "order", "payment", "delivery", "refund_request"]} />
+          <Select clearable placeholder="All actions" aria-label="Filter activity by action" value={action} onChange={setAction} data={["created", "updated", "deleted", "adjusted", "cancelled", "completed", "exported", "requested", "under_review", "approved", "rejected", "refunded", "paid", "expired"]} />
           {(entityType || action) && <Button variant="subtle" color="gray" onClick={() => { setEntityType(null); setAction(null); }}>Reset filters</Button>}
         </Group>
         {isLoading ? <Text c="dimmed">Loading activity...</Text> : isError ? <Text c="red">Unable to load activity.</Text> : !data?.length ? <Text c="dimmed">No activity recorded yet. New staff actions will appear here.</Text> : (

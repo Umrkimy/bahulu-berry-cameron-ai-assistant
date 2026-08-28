@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createOrderPayment, getOrderPayment } from "../api/payments";
+import {
+  createOrderPayment,
+  getOrderPayment,
+} from "../api/payments";
 
-export function useOrderPayment(orderId: number) {
+export function useOrderPayment(orderId: number, enabled = true) {
   return useQuery({
     queryKey: ["payment", orderId],
     queryFn: () => getOrderPayment(orderId),
-    enabled: orderId > 0,
+    enabled: enabled && orderId > 0,
   });
 }
 

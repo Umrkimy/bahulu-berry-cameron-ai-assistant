@@ -1,7 +1,6 @@
 import {
   Anchor,
   Button,
-  Checkbox,
   Paper,
   PasswordInput,
   Stack,
@@ -16,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import BrandName from "../../components/brand/BrandName";
 
 import { loginRequest } from "../../api/auth";
+import { getApiError } from "../../api/errors";
 
 import useAuth from "../../auth/useAuth";
 
@@ -42,13 +42,13 @@ export default function Login() {
 
       setError("");
 
-      const data = await loginRequest(email, password);
+      await loginRequest(email, password);
 
-      login(data.access_token);
+      login();
 
       navigate("/dashboard");
-    } catch {
-      setError("Invalid email or password");
+    } catch (error) {
+      setError(getApiError(error).message);
     } finally {
       setLoading(false);
     }
@@ -108,8 +108,6 @@ export default function Login() {
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
             />
-
-            <Checkbox label="Remember me" size="md" />
 
             {error && (
               <Text c="red" size="sm">

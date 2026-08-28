@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
 
 import { modals } from "@mantine/modals";
+import { notifications } from "@mantine/notifications";
 
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 
@@ -13,12 +14,16 @@ import { DataTable } from "../common/DataTable";
 import { useDeleteProduct, useProducts } from "../../hooks/useProducts";
 
 import type { Product } from "../../types/product";
+import useAuth from "../../auth/useAuth";
+import { getApiError } from "../../api/errors";
 
 interface ProductTableProps {
   onEdit: (product: Product) => void;
 }
 
 export default function ProductTable({ onEdit }: ProductTableProps) {
+  const { admin } = useAuth();
+  const isOwner = admin?.role === "OWNER";
   const { data, isLoading, isError } = useProducts();
 
   const deleteMutation = useDeleteProduct();
@@ -51,6 +56,13 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         deleteMutation.mutate(product.id, {
           onSuccess: () => {
             modals.closeAll();
+          },
+          onError: (error) => {
+            notifications.show({
+              title: "Unable to delete product",
+              message: getApiError(error).message,
+              color: "red",
+            });
           },
         });
       },
@@ -151,7 +163,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Actions",
         enableSorting: false,
 
-        cell: ({ row }) => (
+        cell: ({ row }) => isOwner ? (
           <Group gap="xs">
             {/* EDIT */}
             <Tooltip label="Edit product" withArrow>
@@ -180,10 +192,10 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
               </ActionIcon>
             </Tooltip>
           </Group>
-        ),
+        ) : <Text c="dimmed">-</Text>,
       },
     ],
-    [deleteMutation.isPending, onEdit],
+    [deleteMutation.isPending, isOwner, onEdit],
   );
 
   if (isError) {

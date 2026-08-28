@@ -119,10 +119,11 @@ CANCELLED
 Use update_order_status for status changes.
 
 CONFIRMATION:
-- COMPLETED requires explicit confirmation before the database-changing tool is executed.
-- CANCELLED requires explicit confirmation before the database-changing tool is executed.
-- Never execute cancel_order without confirmation.
-- Never execute update_order_status with COMPLETED without confirmation.
+- Every database-changing action requires explicit confirmation before execution.
+- Never execute a create, stock adjustment, order status update, or cancellation without confirmation.
+- When an owner asks for a database-changing action and you have the required details, call the relevant write tool immediately.
+- Do not ask for confirmation in plain text before calling a write tool. The backend creates the only valid confirmation preview.
+- After a write tool returns confirmation_required=true, repeat its message without adding another confirmation question.
 - Confirmation can be:
   "yes"
   "yes please"
@@ -154,7 +155,7 @@ CONFIRMATION:
 - When asking for completion confirmation, clearly identify the order.
 
 CREATE ORDERS:
-- Creating an order does not require confirmation.
+- Creating an order requires explicit confirmation after the customer and items are identified.
 - Identify the customer first.
 - Identify every product first.
 - Use IDs returned by the tools.
@@ -670,6 +671,29 @@ TOOL_HANDLERS = {
     "get_dashboard_summary": get_dashboard_summary_tool,
 }
 
+WRITE_TOOLS = {
+    "adjust_product_stock",
+    "create_customer",
+    "create_order",
+    "update_order_status",
+    "cancel_order",
+}
+
+
+def _describe_action(tool_name: str, arguments: dict[str, Any]) -> str:
+    if tool_name == "adjust_product_stock":
+        direction = "add" if arguments.get("quantity_change", 0) > 0 else "remove"
+        return f"{direction.capitalize()} {abs(arguments.get('quantity_change', 0))} stock for {arguments.get('product_name', 'the selected product')}."
+    if tool_name == "create_customer":
+        return f"Create customer {arguments.get('full_name', 'with the supplied details')}."
+    if tool_name == "create_order":
+        return f"Create an order for customer #{arguments.get('customer_id')} with {len(arguments.get('items', []))} item type(s)."
+    if tool_name == "update_order_status":
+        return f"Change order #{arguments.get('order_id')} to {str(arguments.get('new_status', '')).lower()}."
+    if tool_name == "cancel_order":
+        return f"Cancel order #{arguments.get('order_id')} and restore eligible stock."
+    return "Apply the requested business change."
+
 
 CONFIRMATION_WORDS = {
     "yes",
@@ -723,6 +747,37 @@ def _is_confirmation(value: str) -> bool:
     )
 
     return normalized.startswith(prefixes)
+
+
+def _matches_unstored_preview(
+    conversation_history: list[AIChatMessage],
+    current_message: str,
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> bool:
+    if not _is_confirmation(current_message):
+        return False
+
+    previous = next(
+        (item.content for item in reversed(conversation_history) if item.role == "assistant"),
+        "",
+    )
+    preview = _normalize_text(previous)
+    if "confirm" not in preview and "sahkan" not in preview:
+        return False
+
+    if tool_name == "adjust_product_stock":
+        product_name = _normalize_text(str(arguments.get("product_name", "")))
+        quantity = str(abs(int(arguments.get("quantity_change", 0))))
+        return bool(product_name and product_name in preview and quantity in preview and "stock" in preview)
+
+    if tool_name == "create_customer":
+        return _normalize_text(str(arguments.get("full_name", ""))) in preview
+
+    if tool_name in {"update_order_status", "cancel_order"}:
+        return f"{arguments.get('order_id')}" in preview
+
+    return False
 
 
 def _extract_order_id_from_text(
@@ -914,8 +969,8 @@ async def _store_confirmation(
     db: AsyncSession,
     admin_id: int,
     conversation_id: str,
-    action: str,
-    order_id: int,
+    tool_name: str,
+    arguments: dict[str, Any],
 ) -> None:
     existing = await _get_stored_confirmation(db, admin_id, conversation_id)
     if existing is not None:
@@ -926,8 +981,11 @@ async def _store_confirmation(
         AIActionConfirmation(
             admin_id=admin_id,
             conversation_id=conversation_id,
-            action=action,
-            order_id=order_id,
+            action="tool",
+            order_id=int(arguments.get("order_id", 0)),
+            tool_name=tool_name,
+            arguments=arguments,
+            description=_describe_action(tool_name, arguments),
             expires_at=datetime.now(UTC) + CONFIRMATION_TTL,
         )
     )
@@ -949,32 +1007,49 @@ async def _execute_pending_confirmation(
         await db.commit()
         return None
 
-    action = pending.action
-    order_id = pending.order_id
+    tool_name = pending.tool_name
+    arguments = pending.arguments or {}
     await db.delete(pending)
     await db.commit()
 
-    if action == "cancel":
-        result = await cancel_order(db=db, order_id=order_id)
-    else:
-        result = await update_order_status(
+    if tool_name is None:
+        return "This confirmation has expired. Please ask again."
+
+    handler = TOOL_HANDLERS.get(tool_name)
+    if handler is None:
+        return "This action is no longer available. Please ask again."
+
+    if tool_name == "cancel_order":
+        result = await cancel_order(
             db=db,
-            order_id=order_id,
-            new_status="COMPLETED",
+            order_id=arguments.get("order_id"),
+            cancellation_admin_id=admin_id,
         )
+    else:
+        result = await handler(db=db, **arguments)
 
     if result.get("success"):
+        if result.get("refund_request_auto_approved"):
+            await record_activity(
+                db,
+                admin_id=admin_id,
+                action="approved",
+                entity_type="refund_request",
+                entity_id=result["refund_request_id"],
+                description=f"AI-confirmed cancellation automatically approved a refund request for order #{arguments.get('order_id')}.",
+                metadata={"source": "ai_assistant"},
+            )
         await record_activity(
             db,
             admin_id=admin_id,
-            action="cancelled" if action == "cancel" else "completed",
-            entity_type="order",
-            entity_id=order_id,
-            description=(f"AI-confirmed cancellation of order #{order_id}." if action == "cancel" else f"AI-confirmed completion of order #{order_id}."),
-            metadata={"source": "ai_assistant"},
+            action="ai_confirmed",
+            entity_type="ai_action",
+            entity_id=0,
+            description=f"AI-confirmed action: {_describe_action(tool_name, arguments)}",
+            metadata={"source": "ai_assistant", "tool": tool_name},
         )
         await db.commit()
-        return result.get("message", f"Order #{order_id} was updated.")
+        return result.get("message", "The confirmed action was completed.")
 
     return result.get("error", "Unable to complete the confirmed action.")
 
@@ -990,7 +1065,7 @@ async def _execute_tool(
     is_owner: bool,
 ) -> dict[str, Any]:
 
-    if not is_owner and tool_name in {"adjust_product_stock", "create_customer", "create_order", "update_order_status", "cancel_order"}:
+    if not is_owner and tool_name in WRITE_TOOLS:
         return {"success": False, "error": "Only owners can ask the AI to make changes."}
 
     handler = TOOL_HANDLERS.get(tool_name)
@@ -1001,53 +1076,15 @@ async def _execute_tool(
             "error": f"Unknown tool: {tool_name}",
         }
 
-    if tool_name == "cancel_order":
-        order_id = arguments.get("order_id")
-
-        if not isinstance(order_id, int):
-            return {
-                "success": False,
-                "error": "Invalid order ID.",
-            }
-
+    if tool_name in WRITE_TOOLS:
         await _store_confirmation(
             db=db,
             admin_id=admin_id,
             conversation_id=conversation_id,
-            action="cancel",
-            order_id=order_id,
+            tool_name=tool_name,
+            arguments=arguments,
         )
-        return _confirmation_required_response(
-            action="cancel",
-            order_id=order_id,
-        )
-
-    if (
-        tool_name == "update_order_status"
-        and str(
-            arguments.get("new_status", "")
-        ).upper()
-        == "COMPLETED"
-    ):
-        order_id = arguments.get("order_id")
-
-        if not isinstance(order_id, int):
-            return {
-                "success": False,
-                "error": "Invalid order ID.",
-            }
-
-        await _store_confirmation(
-            db=db,
-            admin_id=admin_id,
-            conversation_id=conversation_id,
-            action="complete",
-            order_id=order_id,
-        )
-        return _confirmation_required_response(
-            action="complete",
-            order_id=order_id,
-        )
+        return {"success": False, "confirmation_required": True, "message": f"I am ready to {_describe_action(tool_name, arguments)} Reply Confirm to continue."}
 
     return await handler(
         db=db,

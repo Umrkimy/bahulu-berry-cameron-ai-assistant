@@ -176,6 +176,11 @@ async def update_order(
     update_data = order_data.model_dump(
         exclude_unset=True
     )
+    if "payment_status" in update_data:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Payment status is updated only by verified payment events or refunds.",
+        )
     if current_admin.role != "OWNER" and update_data.get("status") == "CANCELLED":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners can cancel orders.")
 
@@ -227,6 +232,7 @@ async def cancel_order_route(
     result = await cancel_order(
         db=db,
         order_id=order_id,
+        cancellation_admin_id=current_admin.id,
     )
 
     if not result["success"]:
@@ -235,6 +241,8 @@ async def cancel_order_route(
             detail=result["error"],
         )
 
+    if result.get("refund_request_auto_approved"):
+        await record_activity(db, admin=current_admin, action="approved", entity_type="refund_request", entity_id=result["refund_request_id"], description=f"Automatically approved refund request for cancelled order #{order_id}.")
     await record_activity(db, admin=current_admin, action="cancelled", entity_type="order", entity_id=order_id, description=f"Cancelled order #{order_id} and restored eligible stock.")
     await db.commit()
     return result

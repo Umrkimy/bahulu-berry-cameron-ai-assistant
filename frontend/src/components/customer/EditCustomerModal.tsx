@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { notifications } from "@mantine/notifications";
 
 import { useUpdateCustomer } from "../../hooks/useCustomers";
+import { getApiError } from "../../api/errors";
 import type { Customer } from "../../api/customers";
 import { FormModal } from "../common/DataTable";
 
@@ -101,10 +102,12 @@ export default function EditCustomerModal({
 
       form.reset();
       onClose();
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
+      form.setErrors(apiError.fieldErrors);
       notifications.show({
         title: "Update Failed",
-        message: "Unable to update this customer.",
+        message: apiError.message,
         color: "red",
       });
     }

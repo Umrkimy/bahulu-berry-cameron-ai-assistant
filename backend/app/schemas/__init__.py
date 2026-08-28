@@ -45,7 +45,7 @@ from app.schemas.admin import (
     AdminPrivate,
 )
 
-from app.schemas.auth import Token
+from app.schemas.auth import LoginResponse
 
 from app.schemas.dashboard import (
     DashboardCustomers,

@@ -13,6 +13,7 @@ import {
   IconDiscount2,
   IconActivity,
   IconUsersGroup,
+  IconCash,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -49,15 +50,15 @@ export default function AppSidebar() {
           },
 
           {
-            label: "Inventory",
-            link: "/inventory",
-            icon: <IconBuildingWarehouse size={18} />,
-          },
-
-          {
             label: "Orders",
             link: "/orders",
             icon: <IconShoppingCart size={18} />,
+          },
+
+          {
+            label: "Inventory",
+            link: "/inventory",
+            icon: <IconBuildingWarehouse size={18} />,
           },
 
           {
@@ -95,6 +96,11 @@ export default function AppSidebar() {
         title="OPERATIONS"
         items={[
           {
+            label: "Refund Requests",
+            link: "/refund-requests",
+            icon: <IconCash size={18} />,
+          },
+          {
             label: "Activity",
             link: "/activity",
             icon: <IconActivity size={18} />,
@@ -106,11 +112,7 @@ export default function AppSidebar() {
         title="SYSTEM"
         items={[
           ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),
-          {
-            label: "Settings",
-            link: "/settings",
-            icon: <IconSettings size={18} />,
-          },
+          ...(admin?.role === "OWNER" ? [{ label: "Settings", link: "/settings", icon: <IconSettings size={18} /> }] : []),
         ]}
       />
     </Stack>

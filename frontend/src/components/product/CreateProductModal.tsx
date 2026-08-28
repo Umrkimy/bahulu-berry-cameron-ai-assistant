@@ -7,6 +7,7 @@ import { useForm } from "@mantine/form";
 import { FormModal } from "../common/DataTable";
 
 import { useCreateProduct } from "../../hooks/useProducts";
+import { getApiError } from "../../api/errors";
 
 interface ProductModalProps {
   opened: boolean;
@@ -68,10 +69,12 @@ export default function CreateProductModal({
           onClose();
         },
 
-        onError: () => {
+        onError: (error) => {
+          const apiError = getApiError(error);
+          form.setErrors(apiError.fieldErrors);
           notifications.show({
             title: "Create Failed",
-            message: "Unable to create the product.",
+            message: apiError.message,
             color: "red",
           });
         },

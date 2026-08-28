@@ -1,19 +1,20 @@
-import { Card, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconBrandWhatsapp } from "@tabler/icons-react";
+import { useState } from "react";
+import { Badge, Button, Card, Group, Modal, Select, Stack, Table, Text, TextInput, Textarea } from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import { IconBrandWhatsapp, IconPlus } from "@tabler/icons-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import PageHeader from "../../components/common/PageHeader";
+import { createSupportRequest, getSupportRequests, updateSupportRequest } from "../../api/support";
+import { getApiError } from "../../api/errors";
+import type { SupportRequest, SupportStatus } from "../../types/support";
 
 export default function WhatsApp() {
-  return (
-    <Stack gap="lg">
-      <PageHeader title="WhatsApp AI" description="Prepare customer conversations and human handoff in one place." />
-      <Card withBorder p="xl" style={{ borderColor: "#d8eddf", background: "rgba(255, 255, 255, 0.88)" }}>
-        <Stack align="center" gap="sm" py="xl">
-          <ThemeIcon size={56} radius="xl" color="green" variant="light"><IconBrandWhatsapp size={28} /></ThemeIcon>
-          <Title order={3}>WhatsApp connection is planned</Title>
-          <Text c="dimmed" ta="center" maw={500}>Once the business account is ready, this workspace will handle automated customer replies and staff handoff.</Text>
-        </Stack>
-      </Card>
-    </Stack>
-  );
+  const client=useQueryClient();const [opened,setOpened]=useState(false);const [editing,setEditing]=useState<SupportRequest|null>(null);
+  const requests=useQuery({queryKey:["support-requests"],queryFn:getSupportRequests}); const statuses:SupportStatus[]=["NEW","IN_PROGRESS","WAITING_FOR_CUSTOMER","RESOLVED","CLOSED"];
+  const form=useForm({initialValues:{customer_id:null as number|null,customer_name:"",contact:"",source:"MANUAL",subject:"",notes:"",handoff_reason:"",priority:"NORMAL" as "LOW"|"NORMAL"|"HIGH"|"URGENT",status:"NEW" as SupportStatus,assigned_admin_id:null as number|null},validate:{customer_name:v=>v.trim().length>1?null:"Enter customer name",subject:v=>v.trim().length>1?null:"Enter a subject"}});
+  const save=useMutation({mutationFn:()=>editing?updateSupportRequest(editing.id,form.values):createSupportRequest(form.values),onSuccess:()=>{void client.invalidateQueries({queryKey:["support-requests"]});notifications.show({title:"Support request saved",message:"The support queue was updated.",color:"green"});setOpened(false);setEditing(null)},onError:e=>notifications.show({title:"Unable to save request",message:getApiError(e).message,color:"red"})});
+  function open(item?:SupportRequest){setEditing(item??null);form.setValues(item?{customer_id:item.customer_id,customer_name:item.customer_name,contact:item.contact??"",source:item.source,subject:item.subject,notes:item.notes??"",handoff_reason:item.handoff_reason??"",priority:item.priority,status:item.status,assigned_admin_id:item.assigned_admin_id}:{customer_id:null,customer_name:"",contact:"",source:"MANUAL",subject:"",notes:"",handoff_reason:"",priority:"NORMAL",status:"NEW",assigned_admin_id:null});setOpened(true)}
+  return <Stack gap="lg"><PageHeader title="WhatsApp Support" description="Manage manual customer handoffs now; WhatsApp messaging connects later." action={<Button leftSection={<IconPlus size={16}/>} onClick={()=>open()}>New support request</Button>}/><Card withBorder><Group><IconBrandWhatsapp color="#25D366"/><Text fw={600}>Provider not connected</Text><Text size="sm" c="dimmed">This queue is ready for calls, social messages, and future WhatsApp handoff.</Text></Group></Card><Card withBorder p={0}><Table striped highlightOnHover><Table.Thead><Table.Tr><Table.Th>Customer</Table.Th><Table.Th>Subject</Table.Th><Table.Th>Handoff</Table.Th><Table.Th>Priority</Table.Th><Table.Th>Status</Table.Th><Table.Th /></Table.Tr></Table.Thead><Table.Tbody>{(requests.data??[]).map(item=><Table.Tr key={item.id}><Table.Td>{item.customer_name}<Text size="xs" c="dimmed">{item.contact}</Text></Table.Td><Table.Td>{item.subject}</Table.Td><Table.Td>{item.handoff_reason??"—"}</Table.Td><Table.Td><Badge variant="light">{item.priority}</Badge></Table.Td><Table.Td><Badge variant="light">{item.status.replaceAll("_"," ")}</Badge></Table.Td><Table.Td><Button size="xs" variant="subtle" onClick={()=>open(item)}>Update</Button></Table.Td></Table.Tr>)}{!requests.isLoading&&requests.data?.length===0&&<Table.Tr><Table.Td colSpan={6}><Text ta="center" c="dimmed" py="xl">No support requests yet.</Text></Table.Td></Table.Tr>}</Table.Tbody></Table></Card><Modal opened={opened} onClose={()=>setOpened(false)} title={editing?"Update support request":"New support request"} centered><form onSubmit={form.onSubmit(()=>save.mutate())}><Stack><TextInput label="Customer name" withAsterisk {...form.getInputProps("customer_name")}/><TextInput label="Contact" {...form.getInputProps("contact")}/><TextInput label="Subject" withAsterisk {...form.getInputProps("subject")}/><Select label="Handoff reason" clearable data={["Human requested","Payment or refund","Order issue","Delivery issue","Complaint","Unclear or sensitive question"]} {...form.getInputProps("handoff_reason")}/><Group grow><Select label="Priority" data={["LOW","NORMAL","HIGH","URGENT"]} {...form.getInputProps("priority")}/><Select label="Status" data={statuses} {...form.getInputProps("status")}/></Group><Textarea label="Internal notes" minRows={3} {...form.getInputProps("notes")}/><Group justify="flex-end"><Button variant="default" onClick={()=>setOpened(false)}>Cancel</Button><Button type="submit" loading={save.isPending}>Save request</Button></Group></Stack></form></Modal></Stack>;
 }

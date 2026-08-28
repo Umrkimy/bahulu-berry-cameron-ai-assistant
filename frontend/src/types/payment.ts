@@ -15,6 +15,9 @@ export interface Payment {
   status: PaymentStatus;
   payment_url: string | null;
   paid_at: string | null;
+  provider_refund_id: string | null;
+  refund_reason: string | null;
+  refunded_at: string | null;
   created_at: string;
   updated_at: string;
 }

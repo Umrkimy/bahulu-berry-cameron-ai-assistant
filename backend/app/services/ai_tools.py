@@ -316,6 +316,7 @@ async def update_order_status(
 async def cancel_order(
     db: AsyncSession,
     order_id: int,
+    cancellation_admin_id: int | None = None,
 ) -> dict:
     """
     Cancel an order and restore inventory.
@@ -324,6 +325,7 @@ async def cancel_order(
     return await service_cancel_order(
         db=db,
         order_id=order_id,
+        cancellation_admin_id=cancellation_admin_id,
     )
 
 

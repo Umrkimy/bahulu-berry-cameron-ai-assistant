@@ -141,6 +141,8 @@ async def _sync_order_status(
             order.status = "PROCESSING"
 
     elif delivery_status == "DELIVERED":
+        if order.payment_status != "PAID":
+            raise ValueError("Only paid orders can be marked as delivered.")
         order.status = "COMPLETED"
 
         if hasattr(order, "completed_at"):

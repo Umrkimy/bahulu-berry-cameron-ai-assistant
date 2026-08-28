@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.core.config import settings
+from app.core.rate_limit import PAYMENT_LIMIT, rate_limiter
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.order import Order
@@ -33,15 +34,17 @@ router = APIRouter()
 )
 async def create_order_payment(
     order_id: int,
+    request: Request,
     db: Annotated[
         AsyncSession,
         Depends(get_db),
     ],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_superuser),
+        Depends(get_current_admin),
     ],
 ):
+    await rate_limiter.check(request, "payment-link", PAYMENT_LIMIT)
     result = await db.execute(
         select(Order).where(
             Order.id == order_id
@@ -68,20 +71,22 @@ async def create_order_payment(
             detail="Order is already paid.",
         )
 
-    payment = await create_payment(
+    payment, created = await create_payment(
         db=db,
         order=order,
     )
 
-    await record_activity(db, admin=current_admin, action="created", entity_type="payment", entity_id=payment.id, description=f"Created Stripe test payment for order #{order_id}.")
-    await db.commit()
+    if created:
+        await record_activity(db, admin=current_admin, action="created", entity_type="payment", entity_id=payment.id, description=f"Created Stripe test payment for order #{order_id}.")
+        await db.commit()
+        await db.refresh(payment)
 
     return payment
 
 
 @router.get(
     "/orders/{order_id}",
-    response_model=PaymentResponse,
+    response_model=PaymentResponse | None,
 )
 async def get_order_payment(
     order_id: int,
@@ -119,12 +124,6 @@ async def get_order_payment(
     )
 
     payment = payment_result.scalars().first()
-
-    if payment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No payment found for this order.",
-        )
 
     return payment
 

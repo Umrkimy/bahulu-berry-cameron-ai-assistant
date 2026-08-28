@@ -11,6 +11,7 @@ import { notifications } from "@mantine/notifications";
 
 import { FormModal } from "../common/DataTable";
 import { useCreateCustomer } from "../../hooks/useCustomers";
+import { getApiError } from "../../api/errors";
 
 interface Props {
   opened: boolean;
@@ -73,10 +74,12 @@ export default function CreateCustomerModal({ opened, onClose }: Props) {
 
       form.reset();
       onClose();
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
+      form.setErrors(apiError.fieldErrors);
       notifications.show({
         title: "Create Failed",
-        message: "Unable to create this customer.",
+        message: apiError.message,
         color: "red",
       });
     }

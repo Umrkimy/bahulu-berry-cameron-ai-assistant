@@ -66,8 +66,6 @@ async def get_order_delivery(
             detail="Delivery not found for this order.",
         )
 
-    await record_activity(db, admin=current_admin, action="updated", entity_type="delivery", entity_id=delivery.id, description=f"Updated delivery for order #{order_id}.")
-    await db.commit()
     return delivery
 
 
@@ -116,4 +114,14 @@ async def update_order_delivery(
             detail="Delivery not found for this order.",
         )
 
+    await record_activity(
+        db,
+        admin=current_admin,
+        action="updated",
+        entity_type="delivery",
+        entity_id=delivery.id,
+        description=f"Updated delivery for order #{order_id}.",
+    )
+    await db.commit()
+    await db.refresh(delivery)
     return delivery

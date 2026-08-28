@@ -12,6 +12,8 @@ import PageHeader from "../../components/common/PageHeader";
 import { useProducts } from "../../hooks/useProducts";
 import { useCreateDiscount, useDeleteDiscount, useDiscounts, useUpdateDiscount } from "../../hooks/useDiscounts";
 import type { Discount, DiscountInput, DiscountType } from "../../types/discount";
+import useAuth from "../../auth/useAuth";
+import { getApiError } from "../../api/errors";
 
 interface DiscountFormValues {
   product_id: string;
@@ -59,6 +61,8 @@ function formatSchedule(value: string) {
 }
 
 export default function Discounts() {
+  const { admin } = useAuth();
+  const isOwner = admin?.role === "OWNER";
   const { data: discounts, isLoading } = useDiscounts();
   const { data: productsData } = useProducts();
   const createMutation = useCreateDiscount();
@@ -89,11 +93,11 @@ export default function Discounts() {
   }
 
   useEffect(() => {
-    if (searchParams.get("create") === "1") {
+    if (isOwner && searchParams.get("create") === "1") {
       openCreate();
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [isOwner, searchParams, setSearchParams]);
 
   function openEdit(discount: Discount) {
     setEditingDiscount(discount);
@@ -118,8 +122,10 @@ export default function Discounts() {
       else await createMutation.mutateAsync(payload);
       notifications.show({ title: editingDiscount ? "Promotion updated" : "Promotion created", message: "The product promotion has been saved.", color: "green" });
       setOpened(false);
-    } catch (error: any) {
-      notifications.show({ title: "Unable to save promotion", message: error?.response?.data?.detail ?? "Please review the details and try again.", color: "red" });
+    } catch (error) {
+      const apiError = getApiError(error);
+      form.setErrors(apiError.fieldErrors);
+      notifications.show({ title: "Unable to save promotion", message: apiError.message, color: "red" });
     }
   }
 
@@ -127,8 +133,8 @@ export default function Discounts() {
     try {
       await deleteMutation.mutateAsync(discount.id);
       notifications.show({ title: "Promotion deleted", message: discount.name, color: "green" });
-    } catch {
-      notifications.show({ title: "Unable to delete promotion", message: "Please try again.", color: "red" });
+    } catch (error) {
+      notifications.show({ title: "Unable to delete promotion", message: getApiError(error).message, color: "red" });
     }
   }
 
@@ -150,9 +156,9 @@ export default function Discounts() {
       { id: "start", accessorKey: "start_at", header: "Starts", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.start_at)}</Text> },
       { id: "end", accessorKey: "end_at", header: "Ends", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.end_at)}</Text> },
       { id: "status", accessorFn: (row) => getStatus(row).label, header: "Status", cell: ({ row }) => { const status = getStatus(row.original); return <Badge color={status.color} variant="light">{status.label}</Badge>; } },
-      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="light" color="orange" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="light" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> },
+      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="light" color="orange" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="light" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> : <Text c="dimmed">-</Text> },
     ],
-    [deleteMutation.isPending, productNames],
+    [deleteMutation.isPending, isOwner, productNames],
   );
 
   const saving = createMutation.isPending || updateMutation.isPending;
@@ -162,10 +168,10 @@ export default function Discounts() {
       <PageHeader
         title="Discounts"
         description="Schedule product promotions and sale prices."
-        action={<Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Create Discount</Button>}
+        action={isOwner ? <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Create Discount</Button> : undefined}
       />
       <DataTable data={discounts ?? []} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage="No promotions created yet." />
-      <Modal opened={opened} onClose={() => setOpened(false)} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
+      <Modal opened={isOwner && opened} onClose={() => setOpened(false)} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
         <form onSubmit={form.onSubmit(submit)}><Stack>
           <Select label="Product" searchable data={productsData?.items.map((product) => ({ value: String(product.id), label: product.name })) ?? []} {...form.getInputProps("product_id")} />
           <TextInput label="Promotion Name" {...form.getInputProps("name")} />

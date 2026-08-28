@@ -1,8 +1,7 @@
 import api from "./axios";
 
 export interface LoginResponse {
-  access_token: string;
-  token_type: string;
+  authenticated: boolean;
 }
 
 export interface Admin {
@@ -21,6 +20,7 @@ export async function getCurrentAdmin() {
 }
 
 export async function loginRequest(email: string, password: string) {
+  await ensureCsrfToken();
   const formData = new URLSearchParams();
 
   formData.append("username", email);
@@ -34,4 +34,12 @@ export async function loginRequest(email: string, password: string) {
   });
 
   return response.data;
+}
+
+export async function ensureCsrfToken() {
+  await api.get("/auth/csrf");
+}
+
+export async function logoutRequest() {
+  await api.post("/auth/logout");
 }

@@ -16,6 +16,7 @@ from app.models.delivery import Delivery
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
+from app.models.refund_request import RefundRequest
 from app.services.inventory_services import adjust_inventory
 from app.services.pricing_services import calculate_order_pricing
 
@@ -532,6 +533,7 @@ async def update_order_status(
 async def cancel_order(
     db: AsyncSession,
     order_id: int,
+    cancellation_admin_id: int | None = None,
 ) -> dict:
     result = await db.execute(
         _order_query().where(
@@ -571,12 +573,18 @@ async def cancel_order(
             ),
         }
 
-    if order.payment_status == "PAID":
+    if order.payment_status == "PAID" and order.status not in {"PENDING", "PROCESSING"}:
         return {
             "success": False,
             "error": (
-                "This order is paid. Record a refund before cancelling it."
+                "Only paid orders that are pending or processing can be cancelled and refunded."
             ),
+        }
+
+    if order.payment_status == "PAID" and cancellation_admin_id is None:
+        return {
+            "success": False,
+            "error": "A paid order cancellation requires an authenticated owner.",
         }
 
     # Validate all inventory records before changing anything.
@@ -607,6 +615,38 @@ async def cancel_order(
         )
 
     order.status = "CANCELLED"
+
+    refund_request_id = None
+    refund_request_auto_approved = False
+
+    if order.payment_status == "PAID":
+        existing_refund_request = await db.scalar(
+            select(RefundRequest).where(RefundRequest.order_id == order.id)
+        )
+
+        if existing_refund_request is None:
+            refund_request = RefundRequest(
+                order_id=order.id,
+                requested_by_admin_id=cancellation_admin_id,
+                reviewed_by_admin_id=cancellation_admin_id,
+                status="APPROVED",
+                reason="Order cancelled before shipment.",
+                internal_note="Automatically approved after cancelling a paid order before shipment.",
+                reviewed_at=datetime.now(UTC),
+            )
+            db.add(refund_request)
+            await db.flush()
+            refund_request_id = refund_request.id
+            refund_request_auto_approved = True
+        elif existing_refund_request.status != "REFUNDED":
+            existing_refund_request.status = "APPROVED"
+            existing_refund_request.reviewed_by_admin_id = cancellation_admin_id
+            existing_refund_request.reviewed_at = datetime.now(UTC)
+            existing_refund_request.internal_note = "Automatically approved after cancelling a paid order before shipment."
+            refund_request_id = existing_refund_request.id
+            refund_request_auto_approved = True
+        else:
+            refund_request_id = existing_refund_request.id
 
     try:
         await db.commit()
@@ -639,6 +679,8 @@ async def cancel_order(
             f"Order #{order_id} cancelled successfully."
         ),
         "order": _serialize_order(cancelled_order),
+        "refund_request_id": refund_request_id,
+        "refund_request_auto_approved": refund_request_auto_approved,
     }
 
 

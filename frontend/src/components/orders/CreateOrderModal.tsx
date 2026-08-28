@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { getCustomers } from "../../api/customers";
 import { quoteOrder } from "../../api/orders";
 import { getProducts } from "../../api/products";
+import { getApiError } from "../../api/errors";
 import { useCreateOrder } from "../../hooks/useOrders";
 import type { OrderQuote } from "../../types/order";
 import type { Product } from "../../types/product";
@@ -76,11 +77,10 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
           })),
         );
         setQuote(nextQuote);
-      } catch (error: any) {
+      } catch (error) {
+        const apiError = getApiError(error);
         setQuote(null);
-        setQuoteError(
-          error?.response?.data?.detail ?? "Unable to calculate this order.",
-        );
+        setQuoteError(apiError.message);
       } finally {
         setQuoteLoading(false);
       }
@@ -155,10 +155,11 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
       notifications.show({ title: "Order created", message: "Pricing and inventory have been updated.", color: "green" });
       resetForm();
       onClose();
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = getApiError(error);
       notifications.show({
         title: "Create failed",
-        message: error?.response?.data?.detail ?? "The stock or promotion may have changed.",
+        message: apiError.message,
         color: "red",
       });
     }

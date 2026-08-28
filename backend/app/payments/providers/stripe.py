@@ -57,3 +57,27 @@ class StripeProvider(PaymentProvider):
             "provider_payment_id": checkout_session.id,
             "payment_url": checkout_session.url,
         }
+
+    async def refund_payment(self, provider_payment_id: str, payment_id: int) -> dict:
+        checkout_session = await asyncio.to_thread(
+            self.client.v1.checkout.sessions.retrieve,
+            provider_payment_id,
+        )
+        payment_intent = checkout_session.payment_intent
+
+        if not payment_intent:
+            raise ValueError("Stripe payment intent is not available for this payment.")
+
+        refund = await asyncio.to_thread(
+            self.client.v1.refunds.create,
+            {
+                "payment_intent": payment_intent,
+                "metadata": {"payment_id": str(payment_id)},
+            },
+            {"idempotency_key": f"bahulu-payment-refund-{payment_id}"},
+        )
+
+        return {
+            "provider_refund_id": refund.id,
+            "status": refund.status,
+        }

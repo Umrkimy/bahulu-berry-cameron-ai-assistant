@@ -15,6 +15,8 @@ from app.api.routes import (
     activity,
     exports,
     team,
+    refund_requests,
+    support,
 )
 
 api_router = APIRouter()
@@ -56,9 +58,21 @@ api_router.include_router(
 )
 
 api_router.include_router(
+    support.router,
+    prefix="/support",
+    tags=["support"],
+)
+
+api_router.include_router(
     team.router,
     prefix="/team",
     tags=["team"],
+)
+
+api_router.include_router(
+    refund_requests.router,
+    prefix="/refund-requests",
+    tags=["refund requests"],
 )
 
 api_router.include_router(

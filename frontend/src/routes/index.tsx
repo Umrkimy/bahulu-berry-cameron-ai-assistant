@@ -15,6 +15,7 @@ import Deliveries from "../pages/Deliveries/Deliveries";
 import Discounts from "../pages/Discounts/Discounts";
 import Activity from "../pages/Activity/Activity";
 import Team from "../pages/Team/Team";
+import RefundRequests from "../pages/RefundRequests/RefundRequests";
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -49,13 +50,15 @@ export default function AppRoutes() {
 
         <Route path="/whatsapp" element={<WhatsApp />} />
 
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings" element={<OwnerRoute><Settings /></OwnerRoute>} />
 
         <Route path="/deliveries" element={<Deliveries />} />
 
         <Route path="/discounts" element={<Discounts />} />
 
         <Route path="/activity" element={<Activity />} />
+
+        <Route path="/refund-requests" element={<RefundRequests />} />
 
         <Route path="/team" element={<OwnerRoute><Team /></OwnerRoute>} />
       </Route>

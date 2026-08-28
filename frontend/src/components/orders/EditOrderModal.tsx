@@ -19,8 +19,10 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 
 import { useCancelOrder, useUpdateOrder } from "../../hooks/useOrders";
+import { getApiError } from "../../api/errors";
 
 import type { Order, OrderStatus } from "../../types/order";
+import useAuth from "../../auth/useAuth";
 
 interface Props {
   opened: boolean;
@@ -28,12 +30,16 @@ interface Props {
   order: Order | null;
 }
 
-const ORDER_STATUSES: OrderStatus[] = [
-  "PENDING",
-  "PROCESSING",
-  "SHIPPED",
-  "COMPLETED",
-];
+function getStatusOptions(status: OrderStatus, paymentStatus: string): OrderStatus[] {
+  const nextStatuses: Record<OrderStatus, OrderStatus[]> = {
+    PENDING: ["PENDING", "PROCESSING"],
+    PROCESSING: ["PROCESSING", "SHIPPED"],
+    SHIPPED: paymentStatus === "PAID" ? ["SHIPPED", "COMPLETED"] : ["SHIPPED"],
+    COMPLETED: ["COMPLETED"],
+    CANCELLED: ["CANCELLED"],
+  };
+  return nextStatuses[status];
+}
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -60,6 +66,7 @@ function formatStatus(status: OrderStatus) {
 }
 
 export default function EditOrderModal({ opened, onClose, order }: Props) {
+  const { admin } = useAuth();
   const updateOrderMutation = useUpdateOrder();
 
   const cancelOrderMutation = useCancelOrder();
@@ -87,9 +94,11 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
   }
 
   const orderId = order.id;
+  const isPaidOrder = order.payment_status === "PAID";
 
   const isFinalOrder =
     order.status === "COMPLETED" || order.status === "CANCELLED";
+  const statusOptions = getStatusOptions(order.status, order.payment_status);
 
   const isLoading =
     updateOrderMutation.isPending || cancelOrderMutation.isPending;
@@ -126,10 +135,11 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
       });
 
       onClose();
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
       notifications.show({
         title: "Update Failed",
-        message: "Unable to update this order.",
+        message: apiError.message,
         color: "red",
       });
     }
@@ -143,6 +153,9 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
         <Text size="sm">
           Are you sure you want to cancel this order? The ordered products will
           be returned to inventory.
+          {isPaidOrder
+            ? " A refund request will be approved automatically, then an Owner must confirm the Stripe refund."
+            : ""}
         </Text>
       ),
 
@@ -163,17 +176,21 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
 
           notifications.show({
             title: "Order Cancelled",
-            message: "Order cancelled and inventory restored successfully.",
+            message:
+              isPaidOrder
+                ? "Order cancelled, stock restored, and the refund is ready for Owner confirmation."
+                : "Order cancelled and inventory restored successfully.",
             color: "green",
           });
 
           modals.closeAll();
 
           onClose();
-        } catch {
+        } catch (error) {
+          const apiError = getApiError(error);
           notifications.show({
             title: "Cancellation Failed",
-            message: "Unable to cancel this order.",
+            message: apiError.message,
             color: "red",
           });
         }
@@ -237,7 +254,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
             <Select
               label="Order Status"
               placeholder="Select order status"
-              data={ORDER_STATUSES.map((status) => ({
+              data={statusOptions.map((status) => ({
                 value: status,
                 label: formatStatus(status),
               }))}
@@ -256,7 +273,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
 
             <Group justify="space-between" mt="sm">
               <div>
-                {!isFinalOrder && (
+                {!isFinalOrder && admin?.role === "OWNER" && (
                   <Button
                     color="red"
                     variant="light"
