@@ -294,13 +294,6 @@ async def create_order_tool(
         db=db,
         customer_id=customer_id,
         items=items,
-        delivery_name=delivery_name,
-        delivery_phone=delivery_phone,
-        delivery_address=delivery_address,
-        city=city,
-        state=state,
-        postal_code=postal_code,
-        country=country,
     )
 
 

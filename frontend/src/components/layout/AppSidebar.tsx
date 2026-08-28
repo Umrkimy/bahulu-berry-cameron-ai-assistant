@@ -10,14 +10,18 @@ import {
   IconBuildingWarehouse,
   IconMessageChatbot,
   IconTruck,
+  IconDiscount2,
+  IconActivity,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
+import useAuth from "../../auth/useAuth";
 
 export default function AppSidebar() {
+  const { admin } = useAuth();
   return (
-    <Stack p="md" gap="md">
-      {/* OVERVIEW */}
+    <Stack p="md" gap="sm">
       <NavSection
         title="OVERVIEW"
         items={[
@@ -29,7 +33,6 @@ export default function AppSidebar() {
         ]}
       />
 
-      {/* COMMERCE */}
       <NavSection
         title="COMMERCE"
         items={[
@@ -62,10 +65,15 @@ export default function AppSidebar() {
             link: "/deliveries",
             icon: <IconTruck size={18} />,
           },
+
+          {
+            label: "Discounts",
+            link: "/discounts",
+            icon: <IconDiscount2 size={18} />,
+          },
         ]}
       />
 
-      {/* AI ASSISTANT */}
       <NavSection
         title="AI ASSISTANT"
         items={[
@@ -83,10 +91,21 @@ export default function AppSidebar() {
         ]}
       />
 
-      {/* SYSTEM */}
+      <NavSection
+        title="OPERATIONS"
+        items={[
+          {
+            label: "Activity",
+            link: "/activity",
+            icon: <IconActivity size={18} />,
+          },
+        ]}
+      />
+
       <NavSection
         title="SYSTEM"
         items={[
+          ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),
           {
             label: "Settings",
             link: "/settings",

@@ -10,6 +10,8 @@ export interface Admin {
   username: string;
   email: string;
   is_superuser: boolean;
+  role: "OWNER" | "STAFF";
+  is_active: boolean;
 }
 
 export async function getCurrentAdmin() {

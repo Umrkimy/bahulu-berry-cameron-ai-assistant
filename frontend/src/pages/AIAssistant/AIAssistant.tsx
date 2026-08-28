@@ -19,6 +19,23 @@ import type { ChatMessageData } from "../../types/ai";
 import { sendAIMessage } from "../../api/aiAssistant";
 
 const STORAGE_KEY = "bahulu-cameron-ai-chat";
+const CONVERSATION_ID_KEY = "bahulu-cameron-ai-conversation-id";
+
+function createConversationId() {
+  return crypto.randomUUID();
+}
+
+function loadConversationId() {
+  const savedId = localStorage.getItem(CONVERSATION_ID_KEY);
+
+  if (savedId) {
+    return savedId;
+  }
+
+  const conversationId = createConversationId();
+  localStorage.setItem(CONVERSATION_ID_KEY, conversationId);
+  return conversationId;
+}
 
 function loadMessages(): ChatMessageData[] {
   const savedMessages = localStorage.getItem(STORAGE_KEY);
@@ -42,6 +59,8 @@ function loadMessages(): ChatMessageData[] {
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<ChatMessageData[]>(loadMessages);
+
+  const [conversationId, setConversationId] = useState(loadConversationId);
 
   const [loading, setLoading] = useState(false);
 
@@ -84,7 +103,11 @@ export default function AIAssistant() {
     try {
       const conversationHistory = messages.slice(-20);
 
-      const response = await sendAIMessage(message, conversationHistory);
+      const response = await sendAIMessage(
+        message,
+        conversationId,
+        conversationHistory,
+      );
 
       const assistantMessage: ChatMessageData = {
         role: "assistant",
@@ -113,7 +136,12 @@ export default function AIAssistant() {
   const handleNewChat = () => {
     localStorage.removeItem(STORAGE_KEY);
 
+    const nextConversationId = createConversationId();
+    localStorage.setItem(CONVERSATION_ID_KEY, nextConversationId);
+
     setMessages([]);
+
+    setConversationId(nextConversationId);
 
     setResetOpened(false);
   };
@@ -220,7 +248,7 @@ export default function AIAssistant() {
             <ChatInput onSend={handleSend} loading={loading} />
 
             <Text ta="center" size="xs" c="dimmed" mt={6}>
-              Bahulu Cameron AI can make mistakes.
+              Bahulu Berry Cameron AI can make mistakes.
             </Text>
           </Box>
         </Box>

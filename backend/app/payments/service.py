@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.order import Order
 from app.models.payment import Payment
@@ -43,11 +44,23 @@ async def create_payment(
     await db.flush()
 
 
+    order_result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.customer))
+        .where(Order.id == order.id)
+    )
+    order_with_customer = order_result.scalar_one()
+
     provider = StripeProvider()
 
     stripe_result = await provider.create_payment(
-        payment=payment,
-        order=order,
+        payment_id=payment.id,
+        amount=payment.amount,
+        currency=payment.currency,
+        description=f"Bahulu Berry Cameron Order #{order.id}",
+        customer_name=order_with_customer.customer.full_name,
+        customer_email=order_with_customer.customer.email,
+        customer_phone=order_with_customer.customer.phone_number,
     )
 
     payment.provider_payment_id = (

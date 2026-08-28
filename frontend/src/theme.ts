@@ -7,6 +7,11 @@ export const theme = createTheme({
 
   fontFamily: "Inter, sans-serif",
 
+  headings: {
+    fontFamily: "Inter, sans-serif",
+    fontWeight: "700",
+  },
+
   colors: {
     bahulu: [
       "#fff5f5",
@@ -26,12 +31,19 @@ export const theme = createTheme({
     Button: {
       defaultProps: {
         radius: "lg",
+        fw: 600,
       },
     },
 
     Paper: {
       defaultProps: {
-        radius: "xl",
+        radius: "lg",
+      },
+    },
+
+    Card: {
+      defaultProps: {
+        radius: "lg",
       },
     },
 
@@ -42,6 +54,18 @@ export const theme = createTheme({
     },
 
     PasswordInput: {
+      defaultProps: {
+        radius: "lg",
+      },
+    },
+
+    Select: {
+      defaultProps: {
+        radius: "lg",
+      },
+    },
+
+    NumberInput: {
       defaultProps: {
         radius: "lg",
       },

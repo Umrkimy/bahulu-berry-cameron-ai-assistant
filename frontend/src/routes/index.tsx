@@ -12,8 +12,12 @@ import Settings from "../pages/Settings/Settings";
 import Inventory from "../pages/Inventory/Inventory";
 import AIAssistant from "../pages/AIAssistant/AIAssistant";
 import Deliveries from "../pages/Deliveries/Deliveries";
+import Discounts from "../pages/Discounts/Discounts";
+import Activity from "../pages/Activity/Activity";
+import Team from "../pages/Team/Team";
 
 import ProtectedRoute from "../auth/ProtectedRoute";
+import OwnerRoute from "../auth/OwnerRoute";
 
 import AppLayout from "../components/layout/AppLayout";
 
@@ -48,6 +52,12 @@ export default function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
 
         <Route path="/deliveries" element={<Deliveries />} />
+
+        <Route path="/discounts" element={<Discounts />} />
+
+        <Route path="/activity" element={<Activity />} />
+
+        <Route path="/team" element={<OwnerRoute><Team /></OwnerRoute>} />
       </Route>
 
       {/* Default route */}

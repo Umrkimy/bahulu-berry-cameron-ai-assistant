@@ -21,7 +21,7 @@ export default function OrderStatusCard() {
     );
   }
 
-  const totalOrders = data.orders.total;
+  const totalOrders = data.orders.total - data.orders.cancelled;
   const completedOrders = data.orders.completed;
 
   const completionRate =
@@ -53,7 +53,7 @@ export default function OrderStatusCard() {
       </Group>
 
       <Text ta="center" c="dimmed" mt="md">
-        {completedOrders} completed out of {totalOrders} orders
+        {completedOrders} completed out of {totalOrders} active orders
       </Text>
     </Card>
   );

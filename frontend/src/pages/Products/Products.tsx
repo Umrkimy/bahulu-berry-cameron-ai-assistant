@@ -1,9 +1,11 @@
-import { Button, Card, Group, Text } from "@mantine/core";
-import { useState } from "react";
+import { Button } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import CreateProductModal from "../../components/product/CreateProductModal";
 import EditProductModal from "../../components/product/EditProductModal";
 import ProductTable from "../../components/product/ProductTable";
+import PageHeader from "../../components/common/PageHeader";
 
 import type { Product } from "../../types/product";
 
@@ -11,6 +13,14 @@ export default function ProductsPage() {
   const [createOpened, setCreateOpened] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateOpened(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   function openEdit(product: Product) {
     setSelectedProduct(product);
@@ -21,20 +31,12 @@ export default function ProductsPage() {
   }
 
   return (
-    <Card withBorder radius="md" p={0} style={{ overflow: "hidden" }}>
-      <Group justify="space-between" p="lg">
-        <div>
-          <Text fw={700} size="lg">
-            Products Management
-          </Text>
-
-          <Text c="dimmed" size="sm">
-            Manage your products, prices, stock, and availability
-          </Text>
-        </div>
-
-        <Button onClick={() => setCreateOpened(true)}>Add Product</Button>
-      </Group>
+    <>
+      <PageHeader
+        title="Products"
+        description="Manage products, prices, promotions, and availability."
+        action={<Button onClick={() => setCreateOpened(true)}>Add Product</Button>}
+      />
 
       <ProductTable onEdit={openEdit} />
 
@@ -48,6 +50,6 @@ export default function ProductsPage() {
         product={selectedProduct}
         onClose={closeEdit}
       />
-    </Card>
+    </>
   );
 }

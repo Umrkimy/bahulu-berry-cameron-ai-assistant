@@ -13,7 +13,7 @@ export default function BrandName({ showDescription = true }: BrandNameProps) {
 
       <Stack gap={0}>
         <Text fw={700} size="lg">
-          Bahulu Cameron
+          Bahulu Berry Cameron
         </Text>
 
         {showDescription && (

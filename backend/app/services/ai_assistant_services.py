@@ -1,12 +1,16 @@
 import json
 import re
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.schemas.ai_assistant import AIChatMessage
+from app.models.ai_action_confirmation import AIActionConfirmation
+from app.services.activity_services import record_activity
 
 from app.services.ai_tools import (
     adjust_product_stock,
@@ -35,6 +39,7 @@ client = AsyncOpenAI(
 
 MAX_TOOL_ROUNDS = 5
 MAX_HISTORY_MESSAGES = 12
+CONFIRMATION_TTL = timedelta(minutes=10)
 
 
 SYSTEM_PROMPT = """
@@ -877,13 +882,116 @@ def _confirmation_required_response(
     }
 
 
+async def _get_stored_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+) -> AIActionConfirmation | None:
+    result = await db.execute(
+        select(AIActionConfirmation).where(
+            AIActionConfirmation.admin_id == admin_id,
+            AIActionConfirmation.conversation_id == conversation_id,
+        )
+    )
+    confirmation = result.scalar_one_or_none()
+
+    if confirmation is None:
+        return None
+
+    expires_at = confirmation.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+
+    if expires_at <= datetime.now(UTC):
+        await db.delete(confirmation)
+        await db.commit()
+        return None
+
+    return confirmation
+
+
+async def _store_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+    action: str,
+    order_id: int,
+) -> None:
+    existing = await _get_stored_confirmation(db, admin_id, conversation_id)
+    if existing is not None:
+        await db.delete(existing)
+        await db.flush()
+
+    db.add(
+        AIActionConfirmation(
+            admin_id=admin_id,
+            conversation_id=conversation_id,
+            action=action,
+            order_id=order_id,
+            expires_at=datetime.now(UTC) + CONFIRMATION_TTL,
+        )
+    )
+    await db.commit()
+
+
+async def _execute_pending_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+    message: str,
+) -> str | None:
+    pending = await _get_stored_confirmation(db, admin_id, conversation_id)
+    if pending is None:
+        return None
+
+    if not _is_confirmation(message):
+        await db.delete(pending)
+        await db.commit()
+        return None
+
+    action = pending.action
+    order_id = pending.order_id
+    await db.delete(pending)
+    await db.commit()
+
+    if action == "cancel":
+        result = await cancel_order(db=db, order_id=order_id)
+    else:
+        result = await update_order_status(
+            db=db,
+            order_id=order_id,
+            new_status="COMPLETED",
+        )
+
+    if result.get("success"):
+        await record_activity(
+            db,
+            admin_id=admin_id,
+            action="cancelled" if action == "cancel" else "completed",
+            entity_type="order",
+            entity_id=order_id,
+            description=(f"AI-confirmed cancellation of order #{order_id}." if action == "cancel" else f"AI-confirmed completion of order #{order_id}."),
+            metadata={"source": "ai_assistant"},
+        )
+        await db.commit()
+        return result.get("message", f"Order #{order_id} was updated.")
+
+    return result.get("error", "Unable to complete the confirmed action.")
+
+
 async def _execute_tool(
     db: AsyncSession,
     tool_name: str,
     arguments: dict[str, Any],
     conversation_history: list[AIChatMessage],
     current_message: str,
+    admin_id: int,
+    conversation_id: str,
+    is_owner: bool,
 ) -> dict[str, Any]:
+
+    if not is_owner and tool_name in {"adjust_product_stock", "create_customer", "create_order", "update_order_status", "cancel_order"}:
+        return {"success": False, "error": "Only owners can ask the AI to make changes."}
 
     handler = TOOL_HANDLERS.get(tool_name)
 
@@ -902,20 +1010,17 @@ async def _execute_tool(
                 "error": "Invalid order ID.",
             }
 
-        confirmed = (
-            _confirmation_matches_pending_action(
-                conversation_history=conversation_history,
-                current_message=current_message,
-                action="cancel",
-                order_id=order_id,
-            )
+        await _store_confirmation(
+            db=db,
+            admin_id=admin_id,
+            conversation_id=conversation_id,
+            action="cancel",
+            order_id=order_id,
         )
-
-        if not confirmed:
-            return _confirmation_required_response(
-                action="cancel",
-                order_id=order_id,
-            )
+        return _confirmation_required_response(
+            action="cancel",
+            order_id=order_id,
+        )
 
     if (
         tool_name == "update_order_status"
@@ -932,20 +1037,17 @@ async def _execute_tool(
                 "error": "Invalid order ID.",
             }
 
-        confirmed = (
-            _confirmation_matches_pending_action(
-                conversation_history=conversation_history,
-                current_message=current_message,
-                action="complete",
-                order_id=order_id,
-            )
+        await _store_confirmation(
+            db=db,
+            admin_id=admin_id,
+            conversation_id=conversation_id,
+            action="complete",
+            order_id=order_id,
         )
-
-        if not confirmed:
-            return _confirmation_required_response(
-                action="complete",
-                order_id=order_id,
-            )
+        return _confirmation_required_response(
+            action="complete",
+            order_id=order_id,
+        )
 
     return await handler(
         db=db,
@@ -956,8 +1058,20 @@ async def _execute_tool(
 async def generate_ai_response(
     db: AsyncSession,
     message: str,
+    conversation_id: str,
+    admin_id: int,
     conversation_history: list[AIChatMessage],
+    is_owner: bool,
 ) -> str:
+
+    confirmed_response = await _execute_pending_confirmation(
+        db=db,
+        admin_id=admin_id,
+        conversation_id=conversation_id,
+        message=message,
+    ) if is_owner else None
+    if confirmed_response is not None:
+        return confirmed_response
 
     messages: list[dict[str, Any]] = [
         {
@@ -1033,6 +1147,9 @@ async def generate_ai_response(
                     arguments=arguments,
                     conversation_history=conversation_history,
                     current_message=message,
+                    admin_id=admin_id,
+                    conversation_id=conversation_id,
+                    is_owner=is_owner,
                 )
 
             except Exception as exc:

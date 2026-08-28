@@ -97,6 +97,7 @@ export default function CreateCustomerModal({ opened, onClose }: Props) {
       description="Add a new customer and their contact information."
       submitLabel="Add Customer"
       loading={createCustomerMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={handleSubmit}
     >
       <Stack gap="md">

@@ -36,5 +36,13 @@ class Settings(BaseSettings):
     def parse_allowed_origins(cls, v: str) -> List[str]:
         return v.split(",") if v else []
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, v: str | bool) -> bool:
+        if isinstance(v, bool):
+            return v
+
+        return v.strip().lower() in {"1", "true", "yes", "on", "debug"}
+
 
 settings = Settings()

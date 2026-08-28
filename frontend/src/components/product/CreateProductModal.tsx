@@ -97,6 +97,7 @@ export default function CreateProductModal({
       description="Create a new product and configure its availability."
       submitLabel="Create Product"
       loading={createMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={() => form.onSubmit(handleSubmit)()}
     >
       <Stack gap="md">

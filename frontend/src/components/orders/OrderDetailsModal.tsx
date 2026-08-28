@@ -143,6 +143,8 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const isFinalOrder =
     order.status === "COMPLETED" || order.status === "CANCELLED";
 
+  const statusOptions = getStatusOptions(order.status, order.payment_status);
+
   const canGeneratePayment =
     order.payment_status !== "PAID" &&
     order.status !== "CANCELLED" &&
@@ -203,7 +205,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   }
 
   async function handleSubmit(values: typeof form.values) {
-    const hasChanges = values.status !== order.status;
+    const hasChanges = values.status !== order?.status;
 
     if (!hasChanges) {
       notifications.show({
@@ -230,10 +232,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       });
 
       onClose();
-    } catch {
+    } catch (error: any) {
       notifications.show({
         title: "Update Failed",
-        message: "Unable to update this order.",
+        message:
+          error?.response?.data?.detail ?? "Unable to update this order.",
         color: "red",
       });
     }
@@ -274,10 +277,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
           modals.closeAll();
 
           onClose();
-        } catch {
+        } catch (error: any) {
           notifications.show({
             title: "Cancellation Failed",
-            message: "Unable to cancel this order.",
+            message:
+              error?.response?.data?.detail ?? "Unable to cancel this order.",
             color: "red",
           });
         }
@@ -318,15 +322,19 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
               <Text fw={700}>{customerName}</Text>
             </div>
 
-            <div>
-              <Text size="sm" c="dimmed">
-                Total
-              </Text>
+            <Stack gap={2} align="flex-end">
+              <Group gap="xs">
+                <Text size="sm" c="dimmed">Subtotal</Text>
+                <Text size="sm">RM {Number(order.subtotal).toFixed(2)}</Text>
+              </Group>
 
-              <Text fw={700} size="lg">
-                RM {Number(order.total_amount).toFixed(2)}
-              </Text>
-            </div>
+              <Group gap="xs">
+                <Text size="sm" c="red">Discount</Text>
+                <Text size="sm" c="red">-RM {Number(order.discount_amount).toFixed(2)}</Text>
+              </Group>
+
+              <Text fw={700} size="lg">RM {Number(order.total_amount).toFixed(2)}</Text>
+            </Stack>
           </Group>
         </Paper>
 
@@ -638,7 +646,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                   <Table.Th>Qty</Table.Th>
 
-                  <Table.Th>Subtotal</Table.Th>
+                  <Table.Th>Regular Total</Table.Th>
+
+                  <Table.Th>Discount</Table.Th>
+
+                  <Table.Th>Final Total</Table.Th>
                 </Table.Tr>
               </Table.Thead>
 
@@ -654,6 +666,21 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                     <Table.Td fw={600}>
                       RM {Number(item.subtotal).toFixed(2)}
+                    </Table.Td>
+
+                    <Table.Td>
+                      {item.discount_name ? (
+                        <>
+                          <Text c="red">-RM {Number(item.discount_amount).toFixed(2)}</Text>
+                          <Text size="xs" c="dimmed">{item.discount_name}</Text>
+                        </>
+                      ) : (
+                        "-"
+                      )}
+                    </Table.Td>
+
+                    <Table.Td fw={700}>
+                      RM {Number(item.total_amount).toFixed(2)}
                     </Table.Td>
                   </Table.Tr>
                 ))}
@@ -672,7 +699,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
           <Stack>
             <Select
               label="Order Status"
-              data={["PENDING", "PROCESSING", "SHIPPED", "COMPLETED"]}
+              data={statusOptions}
               disabled={
                 updateOrderMutation.isPending ||
                 cancelOrderMutation.isPending ||
@@ -680,6 +707,12 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
               }
               {...form.getInputProps("status")}
             />
+
+            {order.status === "SHIPPED" && order.payment_status !== "PAID" && (
+              <Text size="xs" c="dimmed">
+                Mark the payment as paid before completing this order.
+              </Text>
+            )}
 
             <Group justify="space-between" mt="sm">
               <Group gap="xs">
@@ -719,4 +752,16 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       </Stack>
     </Modal>
   );
+}
+
+function getStatusOptions(status: OrderStatus, paymentStatus: string) {
+  const nextStatuses: Record<OrderStatus, OrderStatus[]> = {
+    PENDING: ["PENDING", "PROCESSING"],
+    PROCESSING: ["PROCESSING", "SHIPPED"],
+    SHIPPED: paymentStatus === "PAID" ? ["SHIPPED", "COMPLETED"] : ["SHIPPED"],
+    COMPLETED: ["COMPLETED"],
+    CANCELLED: ["CANCELLED"],
+  };
+
+  return nextStatuses[status];
 }

@@ -56,7 +56,7 @@ async def login(
     access_token = create_access_token(
         data={
             "sub": str(admin.id),
-            "is_superuser": admin.is_superuser,
+            "is_superuser": admin.role == "OWNER",
         },
         expires_delta=timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -121,7 +121,8 @@ async def create_admin(
         username=admin_data.username,
         email=admin_data.email.lower(),
         password_hash=hash_password(admin_data.password),
-        is_superuser=admin_data.is_superuser,
+        role=admin_data.role.upper(),
+        is_superuser=admin_data.role.upper() == "OWNER",
     )
 
     db.add(admin)

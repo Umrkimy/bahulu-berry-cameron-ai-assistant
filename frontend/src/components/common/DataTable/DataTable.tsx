@@ -5,6 +5,7 @@ import {
   Select,
   Text,
   TextInput,
+  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
 import {
@@ -12,6 +13,7 @@ import {
   IconChevronUp,
   IconSearch,
   IconSelector,
+  IconRefresh,
 } from "@tabler/icons-react";
 import {
   flexRender,
@@ -24,6 +26,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 interface DataTableProps<TData extends object> {
   data: TData[];
@@ -32,6 +35,7 @@ interface DataTableProps<TData extends object> {
   searchPlaceholder?: string;
   emptyMessage?: string;
   pageSizeOptions?: string[];
+  toolbar?: ReactNode;
 }
 
 export default function DataTable<TData extends object>({
@@ -41,6 +45,7 @@ export default function DataTable<TData extends object>({
   searchPlaceholder = "Search...",
   emptyMessage = "No records found.",
   pageSizeOptions = ["10", "20", "30", "50"],
+  toolbar,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -84,12 +89,20 @@ export default function DataTable<TData extends object>({
     totalRows,
   );
 
+  const resetTable = () => {
+    setGlobalFilter("");
+    setSorting([]);
+    table.setPageIndex(0);
+  };
+
   return (
     <Paper
       withBorder
       radius="md"
       style={{
         overflow: "hidden",
+        background: "rgba(255, 255, 255, 0.88)",
+        borderColor: "#f0dcd8",
       }}
     >
       {/* SEARCH */}
@@ -98,23 +111,28 @@ export default function DataTable<TData extends object>({
         p="md"
         style={{
           borderBottom:
-            "1px solid var(--mantine-color-gray-2)",
+            "1px solid #f1e1de",
         }}
       >
-        <TextInput
-          placeholder={searchPlaceholder}
-          leftSection={<IconSearch size={16} />}
-          value={globalFilter}
-          onChange={(event) => {
-            setGlobalFilter(event.currentTarget.value);
-
-            setPagination((current) => ({
-              ...current,
-              pageIndex: 0,
-            }));
-          }}
-          w={280}
-        />
+        <Group gap="xs" wrap="wrap">
+          <TextInput
+            placeholder={searchPlaceholder}
+            leftSection={<IconSearch size={16} />}
+            value={globalFilter}
+            onChange={(event) => {
+              setGlobalFilter(event.currentTarget.value);
+              setPagination((current) => ({ ...current, pageIndex: 0 }));
+            }}
+            w={280}
+          />
+          <Tooltip label="Reset search and sorting">
+            <ActionIcon variant="subtle" color="gray" onClick={resetTable} aria-label="Reset table controls">
+              <IconRefresh size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Text size="sm" c="dimmed">{totalRows} visible</Text>
+        </Group>
+        {toolbar}
       </Group>
 
       {/* TABLE */}
@@ -146,10 +164,9 @@ export default function DataTable<TData extends object>({
                         fontSize: "13px",
                         fontWeight: 600,
                         whiteSpace: "nowrap",
-                        background:
-                          "var(--mantine-color-gray-0)",
+                        background: "#fff7f4",
                         borderBottom:
-                          "1px solid var(--mantine-color-gray-2)",
+                          "1px solid #f1e1de",
                       }}
                     >
                       {header.isPlaceholder ? null : canSort ? (
@@ -233,8 +250,7 @@ export default function DataTable<TData extends object>({
                 <tr
                   key={row.id}
                   style={{
-                    borderBottom:
-                      "1px solid var(--mantine-color-gray-2)",
+                    borderBottom: "1px solid #f6e8e5",
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -264,7 +280,7 @@ export default function DataTable<TData extends object>({
         p="md"
         style={{
           borderTop:
-            "1px solid var(--mantine-color-gray-2)",
+            "1px solid #f1e1de",
         }}
       >
         <Group gap="xs">

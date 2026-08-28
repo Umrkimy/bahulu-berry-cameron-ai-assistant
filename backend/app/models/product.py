@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
 if TYPE_CHECKING:
+    from app.models.discount import Discount
     from app.models.order_item import OrderItem
     from app.models.inventory import Inventory
 
@@ -51,3 +52,26 @@ class Product(Base):
     inventory: Mapped["Inventory"] = relationship(
         back_populates="product", uselist=False, lazy="selectin"
     )
+    discounts: Mapped[list["Discount"]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    @property
+    def active_discounts(self):
+        now = datetime.now(UTC)
+
+        return [
+            discount
+            for discount in self.discounts
+            if discount.is_active
+            and (discount.start_at.replace(tzinfo=UTC) if discount.start_at.tzinfo is None else discount.start_at) <= now
+            and now < (discount.end_at.replace(tzinfo=UTC) if discount.end_at.tzinfo is None else discount.end_at)
+        ]
+
+    @property
+    def active_discount(self):
+        for discount in self.active_discounts:
+            return discount
+        return None

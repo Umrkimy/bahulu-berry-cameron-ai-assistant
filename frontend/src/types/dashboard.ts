@@ -35,7 +35,8 @@ export interface DashboardResponse {
     total: number;
     pending: number;
     paid: number;
-    completed: number;
+  completed: number;
+  cancelled: number;
   };
 
   sales: {

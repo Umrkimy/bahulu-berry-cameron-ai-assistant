@@ -132,6 +132,7 @@ export default function EditProductModal({
       description="Update the product information and availability."
       submitLabel="Save Changes"
       loading={updateMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={() => form.onSubmit(handleSubmit)()}
     >
       <Stack gap="md">

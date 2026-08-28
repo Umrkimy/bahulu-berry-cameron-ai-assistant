@@ -1,57 +1,56 @@
+import asyncio
 import time
 from decimal import Decimal
 
 import stripe
 
 from app.core.config import settings
-from app.models.order import Order
-from app.models.payment import Payment
+from app.payments.base import PaymentProvider
 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY.get_secret_value()
-
-
-class StripeProvider:
+class StripeProvider(PaymentProvider):
+    def __init__(self) -> None:
+        self.client = stripe.StripeClient(
+            settings.STRIPE_SECRET_KEY.get_secret_value(),
+        )
 
     async def create_payment(
         self,
-        payment: Payment,
-        order: Order,
+        *,
+        payment_id: int,
+        amount: Decimal,
+        currency: str,
+        description: str,
+        customer_name: str,
+        customer_email: str | None,
+        customer_phone: str | None,
     ) -> dict:
-
-        amount = int(
-            Decimal(str(payment.amount)) * 100
-        )
-
-        checkout_session = stripe.checkout.Session.create(
-            mode="payment",
-
-            line_items=[
+        amount_in_sen = int(Decimal(str(amount)) * 100)
+        parameters = {
+            "mode": "payment",
+            "line_items": [
                 {
                     "price_data": {
-                        "currency": payment.currency.lower(),
-
-                        "product_data": {
-                            "name": f"Bahulu Cameron Order #{order.id}",
-                        },
-
-                        "unit_amount": amount,
+                        "currency": currency.lower(),
+                        "product_data": {"name": description},
+                        "unit_amount": amount_in_sen,
                     },
-
                     "quantity": 1,
                 }
             ],
+            "expires_at": int(time.time()) + 1800,
+            "success_url": settings.STRIPE_SUCCESS_URL,
+            "cancel_url": settings.STRIPE_CANCEL_URL,
+            "client_reference_id": str(payment_id),
+            "metadata": {"payment_id": str(payment_id)},
+        }
 
-            expires_at=int(time.time()) + 1800,
+        if customer_email:
+            parameters["customer_email"] = customer_email
 
-            success_url=settings.STRIPE_SUCCESS_URL,
-
-            cancel_url=settings.STRIPE_CANCEL_URL,
-
-            metadata={
-                "order_id": str(order.id),
-                "payment_id": str(payment.id),
-            },
+        checkout_session = await asyncio.to_thread(
+            self.client.v1.checkout.sessions.create,
+            parameters,
         )
 
         return {

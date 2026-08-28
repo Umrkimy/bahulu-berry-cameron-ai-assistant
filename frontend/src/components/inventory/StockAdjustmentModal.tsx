@@ -135,6 +135,7 @@ export default function StockAdjustmentModal({
       }
       submitLabel="Save Changes"
       loading={updateMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={handleSubmit}
     >
       {inventory && (

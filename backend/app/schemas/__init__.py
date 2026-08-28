@@ -59,3 +59,10 @@ from app.schemas.dashboard import (
 from app.schemas.pagination import (
     PaginatedResponse,
 )
+
+from app.schemas.discount import (
+    DiscountCreate,
+    DiscountPublic,
+    DiscountSummary,
+    DiscountUpdate,
+)

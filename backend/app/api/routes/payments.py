@@ -12,7 +12,7 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_admin
+from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.admin import Admin
@@ -20,6 +20,7 @@ from app.models.order import Order
 from app.models.payment import Payment
 from app.payments.service import create_payment
 from app.schemas.payment import PaymentResponse
+from app.services.activity_services import record_activity
 
 
 router = APIRouter()
@@ -38,7 +39,7 @@ async def create_order_payment(
     ],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
     result = await db.execute(
@@ -71,6 +72,9 @@ async def create_order_payment(
         db=db,
         order=order,
     )
+
+    await record_activity(db, admin=current_admin, action="created", entity_type="payment", entity_id=payment.id, description=f"Created Stripe test payment for order #{order_id}.")
+    await db.commit()
 
     return payment
 
@@ -168,6 +172,7 @@ async def stripe_webhook(
 
     if event_type not in {
         "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
         "checkout.session.expired",
     }:
         return {
@@ -185,9 +190,7 @@ async def stripe_webhook(
         }
 
     payment_id = metadata.get("payment_id")
-    order_id = metadata.get("order_id")
-
-    if not payment_id or not order_id:
+    if not payment_id:
         return {
             "received": True,
             "message": "Webhook metadata missing.",
@@ -195,8 +198,6 @@ async def stripe_webhook(
 
     try:
         payment_id = int(payment_id)
-        order_id = int(order_id)
-
     except (TypeError, ValueError):
         return {
             "received": True,
@@ -217,6 +218,15 @@ async def stripe_webhook(
             "message": "Payment not found.",
         }
 
+    if (
+        payment.provider != "stripe"
+        or payment.provider_payment_id != session.get("id")
+    ):
+        return {
+            "received": True,
+            "message": "Payment does not match this Stripe session.",
+        }
+
     if event_type == "checkout.session.expired":
         if payment.status == "PAID":
             return {
@@ -226,6 +236,8 @@ async def stripe_webhook(
 
         payment.status = "EXPIRED"
 
+        await record_activity(db, admin=None, action="expired", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} expired.")
+
         await db.commit()
 
         return {
@@ -233,16 +245,25 @@ async def stripe_webhook(
             "message": "Payment expired.",
         }
 
-    if event_type == "checkout.session.completed":
+    if event_type in {
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+    }:
         if payment.status == "PAID":
             return {
                 "received": True,
                 "message": "Payment already processed.",
             }
 
+        if session.get("payment_status") != "paid":
+            return {
+                "received": True,
+                "message": "Checkout session is not paid.",
+            }
+
         result = await db.execute(
             select(Order).where(
-                Order.id == order_id
+                Order.id == payment.order_id
             )
         )
 
@@ -258,6 +279,8 @@ async def stripe_webhook(
         payment.paid_at = datetime.now(UTC)
 
         order.payment_status = "PAID"
+
+        await record_activity(db, admin=None, action="paid", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} was confirmed.")
 
         await db.commit()
 

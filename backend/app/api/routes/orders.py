@@ -14,6 +14,8 @@ from app.models.order import Order
 from app.schemas.order import (
     OrderCreate,
     OrderPrivate,
+    OrderQuoteRequest,
+    OrderQuoteResponse,
     OrderUpdate,
 )
 from app.services.order_services import (
@@ -21,8 +23,28 @@ from app.services.order_services import (
     create_order as service_create_order,
     update_order as service_update_order,
 )
+from app.services.pricing_services import calculate_order_pricing
+from app.services.activity_services import record_activity
 
 router = APIRouter()
+
+
+@router.post(
+    "/quote",
+    response_model=OrderQuoteResponse,
+)
+async def quote_order(
+    quote_data: OrderQuoteRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    try:
+        return await calculate_order_pricing(
+            db,
+            [item.model_dump() for item in quote_data.items],
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get(
@@ -130,6 +152,8 @@ async def create_order(
             detail="Order was created but could not be retrieved.",
         )
 
+    await record_activity(db, admin=current_admin, action="created", entity_type="order", entity_id=order.id, description=f"Created order #{order.id}.")
+    await db.commit()
     return order
 
 
@@ -152,6 +176,8 @@ async def update_order(
     update_data = order_data.model_dump(
         exclude_unset=True
     )
+    if current_admin.role != "OWNER" and update_data.get("status") == "CANCELLED":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners can cancel orders.")
 
     result = await service_update_order(
         db=db,
@@ -179,6 +205,8 @@ async def update_order(
             detail="Order was updated but could not be retrieved.",
         )
 
+    await record_activity(db, admin=current_admin, action="updated", entity_type="order", entity_id=order.id, description=f"Updated order #{order.id}.")
+    await db.commit()
     return order
 
 
@@ -193,7 +221,7 @@ async def cancel_order_route(
     ],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
     result = await cancel_order(
@@ -207,12 +235,13 @@ async def cancel_order_route(
             detail=result["error"],
         )
 
+    await record_activity(db, admin=current_admin, action="cancelled", entity_type="order", entity_id=order_id, description=f"Cancelled order #{order_id} and restored eligible stock.")
+    await db.commit()
     return result
 
 
 @router.delete(
     "/{order_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_order(
     order_id: int,
@@ -225,19 +254,7 @@ async def delete_order(
         Depends(get_current_superuser),
     ],
 ):
-    result = await db.execute(
-        select(Order).where(
-            Order.id == order_id
-        )
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Orders are retained for business records. Cancel an eligible order instead.",
     )
-
-    order = result.scalars().first()
-
-    if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found",
-        )
-
-    await db.delete(order)
-    await db.commit()

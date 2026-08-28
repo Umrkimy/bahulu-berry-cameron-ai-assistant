@@ -125,6 +125,7 @@ export default function EditCustomerModal({
       description="Update the customer's contact and address information."
       submitLabel="Save Changes"
       loading={updateCustomerMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={handleSubmit}
     >
       <Stack gap="lg">

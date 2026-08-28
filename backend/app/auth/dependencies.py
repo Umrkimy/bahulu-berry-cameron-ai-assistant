@@ -40,7 +40,7 @@ async def get_current_admin(
 
     admin = result.scalar_one_or_none()
 
-    if admin is None:
+    if admin is None or not admin.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin not found",
@@ -53,7 +53,7 @@ async def get_current_admin(
 async def get_current_superuser(
     current_admin: Annotated[Admin, Depends(get_current_admin)],
 ) -> Admin:
-    if not current_admin.is_superuser:
+    if current_admin.role != "OWNER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permission denied",

@@ -54,15 +54,15 @@ export default function InventoryCard() {
         <Badge variant="light">{data.length} Products</Badge>
       </Group>
 
-      {lowStockItems.length > 0 && (
+      {(lowStockItems.length > 0 || outOfStockItems.length > 0) && (
         <Alert
           variant="light"
           color="orange"
-          title="Low Stock Alert"
+          title="Inventory attention needed"
           icon={<IconAlertTriangle size={18} />}
           mb="md"
         >
-          <Text size="sm">{lowStockItems.length} products need restocking</Text>
+          <Text size="sm">{outOfStockItems.length} out of stock and {lowStockItems.length} low-stock products need attention.</Text>
         </Alert>
       )}
 
@@ -111,7 +111,9 @@ export default function InventoryCard() {
           </Table.Thead>
 
           <Table.Tbody>
-            {sortedInventory.map((item) => {
+            {!sortedInventory.length ? (
+              <Table.Tr><Table.Td colSpan={3}><Text ta="center" c="dimmed" py="md">No inventory records yet.</Text></Table.Td></Table.Tr>
+            ) : sortedInventory.map((item) => {
               const percentage = Math.min(
                 (item.quantity / item.low_stock_threshold) * 100,
                 100,

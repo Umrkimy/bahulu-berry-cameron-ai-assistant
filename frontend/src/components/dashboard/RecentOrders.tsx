@@ -38,9 +38,12 @@ export default function RecentOrders() {
 
   return (
     <Card withBorder radius="md" p="lg">
-      <Text fw={700} mb="md">
-        Recent Orders
-      </Text>
+      <Group justify="space-between" mb="md">
+        <div>
+          <Text fw={700}>Recent Orders</Text>
+          <Text size="sm" c="dimmed">Latest orders across the business</Text>
+        </div>
+      </Group>
 
       <Table.ScrollContainer minWidth={900}>
         <Table>
@@ -63,7 +66,11 @@ export default function RecentOrders() {
           </Table.Thead>
 
           <Table.Tbody>
-            {orders.map((order) => (
+            {!orders.length ? (
+              <Table.Tr>
+                <Table.Td colSpan={7}><Text ta="center" c="dimmed" py="md">No orders yet.</Text></Table.Td>
+              </Table.Tr>
+            ) : orders.map((order) => (
               <Table.Tr key={order.id}>
                 <Table.Td>
                   <Text fw={600}>#{order.id}</Text>

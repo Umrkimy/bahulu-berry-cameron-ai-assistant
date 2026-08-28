@@ -79,14 +79,7 @@ async def update_delivery(
             delivery_status=new_status,
         )
 
-    try:
-        await db.commit()
-
-    except Exception:
-        await db.rollback()
-        raise
-
-    await db.refresh(delivery)
+    await db.flush()
 
     return delivery
 
