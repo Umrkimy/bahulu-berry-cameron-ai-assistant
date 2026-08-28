@@ -1,23 +1,19 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.jwt import verify_access_token
+from app.core.config import settings
 from app.db.database import get_db
 from app.models.admin import Admin
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/auth/token",
-)
-
-
 async def get_current_admin(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> Admin:
+    token = request.cookies.get(settings.SESSION_COOKIE_NAME)
     admin_id = verify_access_token(token)
 
     if admin_id is None:
@@ -40,7 +36,7 @@ async def get_current_admin(
 
     admin = result.scalar_one_or_none()
 
-    if admin is None:
+    if admin is None or not admin.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin not found",
@@ -53,7 +49,7 @@ async def get_current_admin(
 async def get_current_superuser(
     current_admin: Annotated[Admin, Depends(get_current_admin)],
 ) -> Admin:
-    if not current_admin.is_superuser:
+    if current_admin.role != "OWNER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permission denied",

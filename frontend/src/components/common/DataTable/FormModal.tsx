@@ -7,6 +7,7 @@ import {
   Text,
 } from "@mantine/core";
 import type { ReactNode } from "react";
+import { modals } from "@mantine/modals";
 
 interface FormModalProps {
   opened: boolean;
@@ -16,6 +17,7 @@ interface FormModalProps {
   children: ReactNode;
   submitLabel: string;
   loading?: boolean;
+  isDirty?: boolean;
   onSubmit: () => void;
 }
 
@@ -27,12 +29,27 @@ export default function FormModal({
   children,
   submitLabel,
   loading = false,
+  isDirty = false,
   onSubmit,
 }: FormModalProps) {
+  const requestClose = () => {
+    if (isDirty) {
+      modals.openConfirmModal({
+        title: "Discard unsaved changes?",
+        children: <Text size="sm">Your changes have not been saved.</Text>,
+        labels: { confirm: "Discard", cancel: "Keep editing" },
+        confirmProps: { color: "red" },
+        onConfirm: onClose,
+      });
+      return;
+    }
+    onClose();
+  };
+
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={requestClose}
       title={
         <Stack gap={2}>
           <Text fw={700} size="lg">
@@ -67,7 +84,7 @@ export default function FormModal({
           <Group justify="flex-end">
             <Button
               variant="default"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={loading}
             >
               Cancel

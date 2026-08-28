@@ -8,13 +8,13 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children }: Props) {
-  const { token, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return null;
   }
 
-  if (!token) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 

@@ -9,6 +9,7 @@ import { useForm } from "@mantine/form";
 import { FormModal } from "../common/DataTable";
 
 import { useUpdateProduct } from "../../hooks/useProducts";
+import { getApiError } from "../../api/errors";
 
 import type { Product } from "../../types/product";
 
@@ -103,10 +104,12 @@ export default function EditProductModal({
           onClose();
         },
 
-        onError: () => {
+        onError: (error) => {
+          const apiError = getApiError(error);
+          form.setErrors(apiError.fieldErrors);
           notifications.show({
             title: "Update Failed",
-            message: "Unable to update the product.",
+            message: apiError.message,
             color: "red",
           });
         },
@@ -132,6 +135,7 @@ export default function EditProductModal({
       description="Update the product information and availability."
       submitLabel="Save Changes"
       loading={updateMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={() => form.onSubmit(handleSubmit)()}
     >
       <Stack gap="md">

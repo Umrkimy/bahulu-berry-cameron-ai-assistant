@@ -294,13 +294,6 @@ async def create_order_tool(
         db=db,
         customer_id=customer_id,
         items=items,
-        delivery_name=delivery_name,
-        delivery_phone=delivery_phone,
-        delivery_address=delivery_address,
-        city=city,
-        state=state,
-        postal_code=postal_code,
-        country=country,
     )
 
 
@@ -323,6 +316,7 @@ async def update_order_status(
 async def cancel_order(
     db: AsyncSession,
     order_id: int,
+    cancellation_admin_id: int | None = None,
 ) -> dict:
     """
     Cancel an order and restore inventory.
@@ -331,6 +325,7 @@ async def cancel_order(
     return await service_cancel_order(
         db=db,
         order_id=order_id,
+        cancellation_admin_id=cancellation_admin_id,
     )
 
 

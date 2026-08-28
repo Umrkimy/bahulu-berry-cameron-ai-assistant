@@ -90,3 +90,15 @@ class Order(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    subtotal: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        default=Decimal("0.00"),
+        nullable=False,
+    )
+
+    discount_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        default=Decimal("0.00"),
+        nullable=False,
+    )

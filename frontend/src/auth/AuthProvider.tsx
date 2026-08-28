@@ -2,67 +2,60 @@ import { createContext, useEffect, useState, useCallback } from "react";
 
 import type { ReactNode } from "react";
 
-import { getCurrentAdmin } from "../api/auth";
+import { ensureCsrfToken, getCurrentAdmin, logoutRequest } from "../api/auth";
 
 interface Admin {
   id: number;
   username: string;
   email: string;
   is_superuser: boolean;
+  role: "OWNER" | "STAFF";
+  is_active: boolean;
 }
 
 interface AuthContextType {
-  token: string | null;
+  isAuthenticated: boolean;
   admin: Admin | null;
   loading: boolean;
 
-  login: (token: string) => void;
+  login: () => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("access_token"),
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [admin, setAdmin] = useState<Admin | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("access_token");
-
-    setToken(null);
-
+    void logoutRequest().catch(() => undefined);
+    setIsAuthenticated(false);
     setAdmin(null);
   }, []);
 
-  const login = useCallback((newToken: string) => {
-    localStorage.setItem("access_token", newToken);
-
-    setToken(newToken);
-  }, []);
+  const login = useCallback(() => setIsAuthenticated(true), []);
 
   useEffect(() => {
     let ignore = false;
 
     async function checkAuth() {
-      if (!token) {
-        setLoading(false);
-
-        return;
-      }
-
       try {
+        await ensureCsrfToken();
         const user = await getCurrentAdmin();
 
         if (!ignore) {
           setAdmin(user);
+          setIsAuthenticated(true);
         }
       } catch {
-        logout();
+        if (!ignore) {
+          setIsAuthenticated(false);
+          setAdmin(null);
+        }
       } finally {
         if (!ignore) {
           setLoading(false);
@@ -75,12 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       ignore = true;
     };
-  }, [token, logout]);
+  }, []);
 
   return (
     <AuthContext.Provider
       value={{
-        token,
+        isAuthenticated,
 
         admin,
 

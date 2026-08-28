@@ -65,6 +65,8 @@ backend/static/
 # =====================
 
 .DS_Store
+__pycache__/
+*.py[cod]
 
 
 # =====================
@@ -72,3 +74,10 @@ backend/static/
 # =====================
 
 backend/scripts/
+
+# =====================
+# Codex Agents
+# =====================
+
+AGENTS.md
+md/

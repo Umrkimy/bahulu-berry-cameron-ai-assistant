@@ -45,7 +45,7 @@ from app.schemas.admin import (
     AdminPrivate,
 )
 
-from app.schemas.auth import Token
+from app.schemas.auth import LoginResponse
 
 from app.schemas.dashboard import (
     DashboardCustomers,
@@ -58,4 +58,11 @@ from app.schemas.dashboard import (
 
 from app.schemas.pagination import (
     PaginatedResponse,
+)
+
+from app.schemas.discount import (
+    DiscountCreate,
+    DiscountPublic,
+    DiscountSummary,
+    DiscountUpdate,
 )

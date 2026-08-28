@@ -13,6 +13,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 
 import { useUpdateInventory } from "../../hooks/useInventory";
+import { getApiError } from "../../api/errors";
 import type { Inventory } from "../../types/inventory";
 import { FormModal } from "../common/DataTable";
 
@@ -75,10 +76,12 @@ export default function StockAdjustmentModal({
 
       form.reset();
       onClose();
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
+      form.setErrors(apiError.fieldErrors);
       notifications.show({
         title: "Update Failed",
-        message: "Failed to update inventory.",
+        message: apiError.message,
         color: "red",
       });
     }
@@ -135,6 +138,7 @@ export default function StockAdjustmentModal({
       }
       submitLabel="Save Changes"
       loading={updateMutation.isPending}
+      isDirty={form.isDirty()}
       onSubmit={handleSubmit}
     >
       {inventory && (

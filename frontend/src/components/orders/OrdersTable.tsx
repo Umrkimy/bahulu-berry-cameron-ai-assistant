@@ -1,373 +1,127 @@
 import { useMemo, useState } from "react";
-
-import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
-
+import { ActionIcon, Badge, Group, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
-
+import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 
 import { getCustomers } from "../../api/customers";
-
+import { DataTable } from "../common/DataTable";
 import { useOrders } from "../../hooks/useOrders";
-
 import type { Order } from "../../types/order";
-
 import OrderDetailsModal from "./OrderDetailsModal";
 import EditOrderModal from "./EditOrderModal";
 
 function getOrderStatusColor(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "green";
-
-    case "CANCELLED":
-      return "red";
-
-    case "SHIPPED":
-      return "blue";
-
-    case "PROCESSING":
-      return "violet";
-
-    case "PENDING":
-    default:
-      return "yellow";
-  }
+  if (status === "COMPLETED") return "green";
+  if (status === "CANCELLED") return "red";
+  if (status === "SHIPPED") return "blue";
+  if (status === "PROCESSING") return "violet";
+  return "yellow";
 }
 
 function getPaymentStatusColor(status: string) {
-  switch (status) {
-    case "PAID":
-      return "green";
+  if (status === "PAID") return "green";
+  if (status === "FAILED") return "red";
+  if (status === "REFUNDED") return "violet";
+  return "yellow";
+}
 
-    case "FAILED":
-      return "red";
-
-    case "REFUNDED":
-      return "violet";
-
-    case "UNPAID":
-    default:
-      return "yellow";
-  }
+function formatOrderDate(value: string) {
+  return new Date(value).toLocaleDateString("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function OrdersTable() {
   const { data: orders, isLoading: isLoadingOrders } = useOrders();
-
   const { data: customers, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
   });
-
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
   const [viewOpened, setViewOpened] = useState(false);
-
   const [editOpened, setEditOpened] = useState(false);
 
   const customerNames = useMemo(
-    () =>
-      new Map(
-        customers?.map((customer) => [customer.id, customer.full_name]) ?? [],
-      ),
+    () => new Map(customers?.map((customer) => [customer.id, customer.full_name]) ?? []),
     [customers],
   );
 
-  function handleView(order: Order) {
-    setSelectedOrder(order);
-    setViewOpened(true);
-  }
-
-  function handleEdit(order: Order) {
-    setSelectedOrder(order);
-    setEditOpened(true);
-  }
-
-  function handleCloseView() {
-    setViewOpened(false);
-    setSelectedOrder(null);
-  }
-
-  function handleCloseEdit() {
-    setEditOpened(false);
-    setSelectedOrder(null);
-  }
-
-  if (isLoadingOrders || isLoadingCustomers) {
-    return (
-      <Card withBorder radius="md" p="lg">
-        <Text c="dimmed">Loading orders...</Text>
-      </Card>
-    );
-  }
-
-  if (!orders || orders.length === 0) {
-    return (
-      <Card withBorder radius="md" p="lg">
-        <Text c="dimmed" ta="center">
-          No orders found.
-        </Text>
-      </Card>
-    );
-  }
+  const columns = useMemo<ColumnDef<Order, unknown>[]>(
+    () => [
+      {
+        id: "order",
+        accessorKey: "id",
+        header: "Order",
+        cell: ({ row }) => <Text fw={600}>#{row.original.id}</Text>,
+      },
+      {
+        id: "customer",
+        accessorFn: (row) => customerNames.get(row.customer_id) ?? `Customer #${row.customer_id}`,
+        header: "Customer",
+        cell: ({ row }) => <Text>{customerNames.get(row.original.customer_id) ?? `Customer #${row.original.customer_id}`}</Text>,
+      },
+      {
+        id: "total",
+        accessorFn: (row) => Number(row.total_amount),
+        header: "Total",
+        cell: ({ row }) => <Text fw={600}>RM {Number(row.original.total_amount).toFixed(2)}</Text>,
+      },
+      {
+        id: "status",
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <Badge variant="light" color={getOrderStatusColor(row.original.status)}>{row.original.status}</Badge>,
+      },
+      {
+        id: "payment",
+        accessorKey: "payment_status",
+        header: "Payment",
+        cell: ({ row }) => <Badge variant="light" color={getPaymentStatusColor(row.original.payment_status)}>{row.original.payment_status}</Badge>,
+      },
+      {
+        id: "date",
+        accessorKey: "created_at",
+        header: "Date",
+        cell: ({ row }) => <Text size="sm">{formatOrderDate(row.original.created_at)}</Text>,
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Group gap="xs">
+            <Tooltip label="View order" withArrow>
+              <ActionIcon size="lg" variant="light" color="blue" onClick={() => { setSelectedOrder(row.original); setViewOpened(true); }} aria-label="View order">
+                <IconEye size={20} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Edit order" withArrow>
+              <ActionIcon size="lg" variant="light" color="orange" onClick={() => { setSelectedOrder(row.original); setEditOpened(true); }} aria-label="Edit order">
+                <IconEdit size={20} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        ),
+      },
+    ],
+    [customerNames],
+  );
 
   return (
     <>
-      <Card
-        withBorder
-        radius="md"
-        p={0}
-        style={{
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              minWidth: 1000,
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead>
-              <tr>
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Order
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Customer
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Total
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Status
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Payment
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Date
-                </th>
-
-                <th
-                  style={{
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: "var(--mantine-color-gray-0)",
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  style={{
-                    borderBottom: "1px solid var(--mantine-color-gray-2)",
-                  }}
-                >
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Text fw={600}>#{order.id}</Text>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Text>
-                      {customerNames.get(order.customer_id) ??
-                        `Customer #${order.customer_id}`}
-                    </Text>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Text fw={600}>
-                      RM {Number(order.total_amount).toFixed(2)}
-                    </Text>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Badge
-                      variant="light"
-                      color={getOrderStatusColor(order.status)}
-                    >
-                      {order.status}
-                    </Badge>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Badge
-                      variant="light"
-                      color={getPaymentStatusColor(order.payment_status)}
-                    >
-                      {order.payment_status}
-                    </Badge>
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    {new Date(order.created_at).toLocaleDateString("en-MY", {
-                      timeZone: "Asia/Kuala_Lumpur",
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </td>
-
-                  <td
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 14,
-                    }}
-                  >
-                    <Group gap="xs">
-                      <Tooltip label="View order" withArrow>
-                        <ActionIcon
-                          size="lg"
-                          variant="light"
-                          color="blue"
-                          onClick={() => handleView(order)}
-                          aria-label="View order"
-                        >
-                          <IconEye size={20} />
-                        </ActionIcon>
-                      </Tooltip>
-
-                      <Tooltip label="Edit order" withArrow>
-                        <ActionIcon
-                          size="lg"
-                          variant="light"
-                          color="orange"
-                          onClick={() => handleEdit(order)}
-                          aria-label="Edit order"
-                        >
-                          <IconEdit size={20} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <OrderDetailsModal
-        opened={viewOpened}
-        order={selectedOrder}
-        onClose={handleCloseView}
+      <DataTable
+        data={orders ?? []}
+        columns={columns}
+        loading={isLoadingOrders || isLoadingCustomers}
+        searchPlaceholder="Search orders, customers, statuses..."
+        emptyMessage="No orders found."
       />
-
-      <EditOrderModal
-        opened={editOpened}
-        order={selectedOrder}
-        onClose={handleCloseEdit}
-      />
+      <OrderDetailsModal opened={viewOpened} order={selectedOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); }} />
+      <EditOrderModal opened={editOpened} order={selectedOrder} onClose={() => { setEditOpened(false); setSelectedOrder(null); }} />
     </>
   );
 }

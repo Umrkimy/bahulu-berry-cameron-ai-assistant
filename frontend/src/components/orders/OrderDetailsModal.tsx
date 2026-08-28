@@ -5,21 +5,14 @@ import {
   Group,
   Modal,
   Paper,
-  Select,
   Stack,
   Text,
   Table,
 } from "@mantine/core";
 
-import { modals } from "@mantine/modals";
-
-import { useForm } from "@mantine/form";
-
 import { notifications } from "@mantine/notifications";
 
 import { useQuery } from "@tanstack/react-query";
-
-import { useEffect } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -27,29 +20,20 @@ import { getCustomers } from "../../api/customers";
 import { getOrderItems } from "../../api/orders";
 import { getProducts } from "../../api/products";
 import { getOrderDelivery } from "../../api/deliveries";
-
-import { useCancelOrder, useUpdateOrder } from "../../hooks/useOrders";
+import { getApiError } from "../../api/errors";
 
 import {
   useCreateOrderPayment,
   useOrderPayment,
 } from "../../hooks/usePayments";
+import { useOrderRefundRequest } from "../../hooks/useRefundRequests";
 
-import type { Order, OrderStatus } from "../../types/order";
+import type { Order } from "../../types/order";
 
 interface Props {
   opened: boolean;
   onClose: () => void;
   order: Order | null;
-}
-
-function getStatusColor(status: string) {
-  if (status === "COMPLETED") return "green";
-  if (status === "CANCELLED") return "red";
-  if (status === "SHIPPED") return "blue";
-  if (status === "PROCESSING") return "violet";
-
-  return "yellow";
 }
 
 function getPaymentStatusColor(status: string) {
@@ -74,30 +58,7 @@ function getDeliveryStatusColor(status: string) {
 
 export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const navigate = useNavigate();
-
-  const updateOrderMutation = useUpdateOrder();
-
-  const cancelOrderMutation = useCancelOrder();
-
   const createPaymentMutation = useCreateOrderPayment();
-
-  const form = useForm<{
-    status: OrderStatus;
-  }>({
-    initialValues: {
-      status: "PENDING",
-    },
-  });
-
-  useEffect(() => {
-    if (!order) {
-      return;
-    }
-
-    form.setValues({
-      status: order.status,
-    });
-  }, [order]);
 
   const { data: customers } = useQuery({
     queryKey: ["customers"],
@@ -117,7 +78,9 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
   const { data: payment, isLoading: isLoadingPayment } = useOrderPayment(
     order?.id ?? 0,
+    opened && order !== null,
   );
+  const { data: refundRequest } = useOrderRefundRequest(order?.id ?? 0);
 
   const { data: delivery, isLoading: isLoadingDelivery } = useQuery({
     queryKey: ["delivery", order?.id],
@@ -131,7 +94,6 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   }
 
   const orderId = order.id;
-
   const customerName =
     customers?.find((customer) => customer.id === order.customer_id)
       ?.full_name ?? `Customer #${order.customer_id}`;
@@ -139,9 +101,6 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const productNames = new Map(
     productsData?.items.map((product) => [product.id, product.name]) ?? [],
   );
-
-  const isFinalOrder =
-    order.status === "COMPLETED" || order.status === "CANCELLED";
 
   const canGeneratePayment =
     order.payment_status !== "PAID" &&
@@ -157,10 +116,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
         message: "Payment link was created successfully.",
         color: "green",
       });
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
       notifications.show({
         title: "Payment Creation Failed",
-        message: "Unable to create a payment link for this order.",
+        message: apiError.message,
         color: "red",
       });
     }
@@ -202,89 +162,6 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
     navigate("/deliveries");
   }
 
-  async function handleSubmit(values: typeof form.values) {
-    const hasChanges = values.status !== order.status;
-
-    if (!hasChanges) {
-      notifications.show({
-        title: "No Changes",
-        message: "No order information has been changed.",
-        color: "blue",
-      });
-
-      return;
-    }
-
-    try {
-      await updateOrderMutation.mutateAsync({
-        orderId,
-        data: {
-          status: values.status,
-        },
-      });
-
-      notifications.show({
-        title: "Order Updated",
-        message: "Order status was updated successfully.",
-        color: "green",
-      });
-
-      onClose();
-    } catch {
-      notifications.show({
-        title: "Update Failed",
-        message: "Unable to update this order.",
-        color: "red",
-      });
-    }
-  }
-
-  function handleCancelOrder() {
-    modals.openConfirmModal({
-      title: `Cancel Order #${orderId}`,
-
-      children: (
-        <Text size="sm">
-          Are you sure you want to cancel this order? The ordered products will
-          be returned to inventory.
-        </Text>
-      ),
-
-      labels: {
-        confirm: "Cancel Order",
-        cancel: "Keep Order",
-      },
-
-      confirmProps: {
-        color: "red",
-      },
-
-      closeOnConfirm: false,
-
-      onConfirm: async () => {
-        try {
-          await cancelOrderMutation.mutateAsync(orderId);
-
-          notifications.show({
-            title: "Order Cancelled",
-            message: "Order cancelled and inventory restored successfully.",
-            color: "green",
-          });
-
-          modals.closeAll();
-
-          onClose();
-        } catch {
-          notifications.show({
-            title: "Cancellation Failed",
-            message: "Unable to cancel this order.",
-            color: "red",
-          });
-        }
-      },
-    });
-  }
-
   return (
     <Modal
       opened={opened}
@@ -294,16 +171,8 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       padding="xl"
       radius="md"
       title={`Order #${orderId}`}
-      closeOnClickOutside={
-        !updateOrderMutation.isPending &&
-        !cancelOrderMutation.isPending &&
-        !createPaymentMutation.isPending
-      }
-      closeOnEscape={
-        !updateOrderMutation.isPending &&
-        !cancelOrderMutation.isPending &&
-        !createPaymentMutation.isPending
-      }
+      closeOnClickOutside={!createPaymentMutation.isPending}
+      closeOnEscape={!createPaymentMutation.isPending}
     >
       <Stack gap="lg">
         {/* ORDER SUMMARY */}
@@ -318,15 +187,27 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
               <Text fw={700}>{customerName}</Text>
             </div>
 
-            <div>
-              <Text size="sm" c="dimmed">
-                Total
-              </Text>
+            <Stack gap={2} align="flex-end">
+              <Group gap="xs">
+                <Text size="sm" c="dimmed">
+                  Subtotal
+                </Text>
+                <Text size="sm">RM {Number(order.subtotal).toFixed(2)}</Text>
+              </Group>
+
+              <Group gap="xs">
+                <Text size="sm" c="red">
+                  Discount
+                </Text>
+                <Text size="sm" c="red">
+                  -RM {Number(order.discount_amount).toFixed(2)}
+                </Text>
+              </Group>
 
               <Text fw={700} size="lg">
                 RM {Number(order.total_amount).toFixed(2)}
               </Text>
-            </div>
+            </Stack>
           </Group>
         </Paper>
 
@@ -343,9 +224,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 color={
                   order.payment_status === "PAID"
                     ? "green"
-                    : order.payment_status === "UNPAID"
-                      ? "red"
-                      : "gray"
+                    : order.payment_status === "REFUNDED"
+                      ? "violet"
+                      : order.payment_status === "UNPAID"
+                        ? "red"
+                        : "gray"
                 }
                 variant="light"
               >
@@ -394,19 +277,58 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                 {payment.status === "PAID" && (
                   <Paper withBorder radius="md" p="md">
-                    <Group justify="space-between">
-                      <div>
-                        <Text fw={600}>Payment Completed</Text>
+                    <Stack gap="sm">
+                      <Group justify="space-between">
+                        <div>
+                          <Text fw={600}>Payment Completed</Text>
 
-                        <Text size="sm" c="dimmed" mt={4}>
-                          This order has already been paid.
+                          <Text size="sm" c="dimmed" mt={4}>
+                            This order has already been paid.
+                          </Text>
+                        </div>
+
+                        <Badge color="green" size="lg" variant="light">
+                          PAID
+                        </Badge>
+                      </Group>
+                      {!refundRequest &&
+                        ["PENDING", "PROCESSING"].includes(order.status) && (
+                          <Button
+                            color="red"
+                            variant="light"
+                            onClick={() =>
+                              navigate(`/refund-requests?order=${orderId}`)
+                            }
+                          >
+                            Record Refund Request
+                          </Button>
+                        )}
+                    </Stack>
+                  </Paper>
+                )}
+
+                {payment.status === "REFUNDED" && (
+                  <Paper withBorder radius="md" p="md">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={600}>Payment Refunded</Text>
+                        <Badge color="violet" size="lg" variant="light">
+                          REFUNDED
+                        </Badge>
+                      </Group>
+                      <Text size="sm" c="dimmed">
+                        Reason: {payment.refund_reason ?? "Not recorded"}
+                      </Text>
+                      {payment.refunded_at && (
+                        <Text size="sm" c="dimmed">
+                          Refunded{" "}
+                          {new Date(payment.refunded_at).toLocaleString(
+                            "en-MY",
+                            { timeZone: "Asia/Kuala_Lumpur" },
+                          )}
                         </Text>
-                      </div>
-
-                      <Badge color="green" size="lg" variant="light">
-                        PAID
-                      </Badge>
-                    </Group>
+                      )}
+                    </Stack>
                   </Paper>
                 )}
 
@@ -430,7 +352,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                         </Badge>
                       </Group>
 
-                      {order.status !== "CANCELLED" && (
+                      {canGeneratePayment && (
                         <Button
                           onClick={handleCreatePayment}
                           loading={createPaymentMutation.isPending}
@@ -461,7 +383,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                         </Badge>
                       </Group>
 
-                      {order.status !== "CANCELLED" && (
+                      {canGeneratePayment && (
                         <Button
                           onClick={handleCreatePayment}
                           loading={createPaymentMutation.isPending}
@@ -552,6 +474,67 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
           </Stack>
         </Paper>
 
+        <Divider label="Refund Request" labelPosition="center" />
+
+        <Paper withBorder radius="md" p="md">
+          {refundRequest ? (
+            <Stack gap="xs">
+              <Group justify="space-between">
+                <Text fw={600}>Refund request</Text>
+                <Badge
+                  color={
+                    refundRequest.status === "REFUNDED"
+                      ? "green"
+                      : refundRequest.status === "REJECTED"
+                        ? "red"
+                        : refundRequest.status === "APPROVED"
+                          ? "violet"
+                          : "yellow"
+                  }
+                  variant="light"
+                >
+                  {refundRequest.status.replaceAll("_", " ")}
+                </Badge>
+              </Group>
+              <Text size="sm" c="dimmed">
+                Customer reason: {refundRequest.reason}
+              </Text>
+              {refundRequest.internal_note && (
+                <Text size="sm" c="dimmed">
+                  Internal note: {refundRequest.internal_note}
+                </Text>
+              )}
+              <Button
+                variant="light"
+                onClick={() => navigate("/refund-requests")}
+              >
+                View Refund Requests
+              </Button>
+            </Stack>
+          ) : (
+            <Stack gap="xs">
+              <Text size="sm" c="dimmed">
+                {order.payment_status === "PAID" &&
+                !["PENDING", "PROCESSING"].includes(order.status)
+                  ? "Refunds can only be requested while a paid order is pending or processing."
+                  : "No refund request has been recorded for this order."}
+              </Text>
+              {order.payment_status === "PAID" &&
+                ["PENDING", "PROCESSING"].includes(order.status) && (
+                  <Button
+                    variant="light"
+                    color="red"
+                    onClick={() =>
+                      navigate(`/refund-requests?order=${orderId}`)
+                    }
+                  >
+                    Record Refund Request
+                  </Button>
+                )}
+            </Stack>
+          )}
+        </Paper>
+
         {/* DELIVERY */}
 
         <Divider label="Delivery" labelPosition="center" />
@@ -638,7 +621,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                   <Table.Th>Qty</Table.Th>
 
-                  <Table.Th>Subtotal</Table.Th>
+                  <Table.Th>Regular Total</Table.Th>
+
+                  <Table.Th>Discount</Table.Th>
+
+                  <Table.Th>Final Total</Table.Th>
                 </Table.Tr>
               </Table.Thead>
 
@@ -655,6 +642,25 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                     <Table.Td fw={600}>
                       RM {Number(item.subtotal).toFixed(2)}
                     </Table.Td>
+
+                    <Table.Td>
+                      {item.discount_name ? (
+                        <>
+                          <Text c="red">
+                            -RM {Number(item.discount_amount).toFixed(2)}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {item.discount_name}
+                          </Text>
+                        </>
+                      ) : (
+                        "-"
+                      )}
+                    </Table.Td>
+
+                    <Table.Td fw={700}>
+                      RM {Number(item.total_amount).toFixed(2)}
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -664,58 +670,6 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
           <Text c="dimmed">No products in this order.</Text>
         )}
 
-        {/* ORDER MANAGEMENT */}
-
-        <Divider label="Order Management" labelPosition="center" />
-
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack>
-            <Select
-              label="Order Status"
-              data={["PENDING", "PROCESSING", "SHIPPED", "COMPLETED"]}
-              disabled={
-                updateOrderMutation.isPending ||
-                cancelOrderMutation.isPending ||
-                isFinalOrder
-              }
-              {...form.getInputProps("status")}
-            />
-
-            <Group justify="space-between" mt="sm">
-              <Group gap="xs">
-                <Badge color={getStatusColor(order.status)} variant="light">
-                  {order.status}
-                </Badge>
-
-                <Badge
-                  color={order.payment_status === "PAID" ? "green" : "red"}
-                  variant="light"
-                >
-                  {order.payment_status}
-                </Badge>
-              </Group>
-
-              <Group>
-                {!isFinalOrder && (
-                  <Button
-                    color="red"
-                    variant="light"
-                    onClick={handleCancelOrder}
-                    loading={cancelOrderMutation.isPending}
-                  >
-                    Cancel Order
-                  </Button>
-                )}
-
-                {!isFinalOrder && (
-                  <Button type="submit" loading={updateOrderMutation.isPending}>
-                    Save Changes
-                  </Button>
-                )}
-              </Group>
-            </Group>
-          </Stack>
-        </form>
       </Stack>
     </Modal>
   );

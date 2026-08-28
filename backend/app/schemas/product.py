@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.schemas.inventory import InventoryNested
+from app.schemas.discount import DiscountSummary
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -35,6 +36,8 @@ class ProductPublic(BaseModel):
     image_path: str
     category: str | None
     inventory: InventoryNested | None
+    active_discount: DiscountSummary | None = None
+    active_discounts: list[DiscountSummary] = []
 
 
 class ProductPrivate(ProductPublic):

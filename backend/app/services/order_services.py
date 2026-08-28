@@ -6,13 +6,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.constants.order import ORDER_STATUS, PAYMENT_STATUS
+from app.constants.order import (
+    ORDER_STATUS,
+    ORDER_STATUS_TRANSITIONS,
+    PAYMENT_STATUS,
+)
 from app.models.customer import Customer
 from app.models.delivery import Delivery
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
+from app.models.refund_request import RefundRequest
 from app.services.inventory_services import adjust_inventory
+from app.services.pricing_services import calculate_order_pricing
 
 
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
@@ -277,110 +283,22 @@ async def create_order(
             ),
         }
 
-    combined_items: dict[int, int] = {}
-
-    for item in items:
-        product_id = item.get("product_id")
-        quantity = item.get("quantity")
-
-        if not isinstance(product_id, int):
-            return {
-                "success": False,
-                "error": "Invalid product ID.",
-            }
-
-        if (
-            not isinstance(quantity, int)
-            or quantity <= 0
-        ):
-            return {
-                "success": False,
-                "error": (
-                    "Product quantity must be a positive integer."
-                ),
-            }
-
-        combined_items[product_id] = (
-            combined_items.get(product_id, 0)
-            + quantity
-        )
-
-    validated_items = []
-
-    for product_id, quantity in combined_items.items():
-        result = await db.execute(
-            select(Product)
-            .options(
-                selectinload(Product.inventory)
-            )
-            .where(
-                Product.id == product_id,
-                Product.is_active.is_(True),
-            )
-        )
-
-        product = result.scalar_one_or_none()
-
-        if product is None:
-            return {
-                "success": False,
-                "error": (
-                    f"Product #{product_id} "
-                    "was not found or is inactive."
-                ),
-            }
-
-        if product.inventory is None:
-            return {
-                "success": False,
-                "error": (
-                    "No inventory record exists "
-                    f"for product '{product.name}'."
-                ),
-            }
-
-        available_stock = product.inventory.quantity
-
-        if available_stock < quantity:
-            return {
-                "success": False,
-                "error": (
-                    f"Insufficient stock for "
-                    f"'{product.name}'. "
-                    f"Available: {available_stock}, "
-                    f"requested: {quantity}."
-                ),
-            }
-
-        unit_price = Decimal(
-            str(product.price)
-        )
-
-        subtotal = unit_price * quantity
-
-        validated_items.append(
-            {
-                "product": product,
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "subtotal": subtotal,
-            }
-        )
-
-    total_amount = sum(
-        (
-            item["subtotal"]
-            for item in validated_items
-        ),
-        Decimal("0.00"),
-    )
+    try:
+        pricing = await calculate_order_pricing(db, items)
+    except ValueError as error:
+        return {
+            "success": False,
+            "error": str(error),
+        }
 
     # Create the Order.
     order = Order(
         customer_id=customer.id,
         status="PENDING",
         payment_status="UNPAID",
-        total_amount=total_amount,
+        subtotal=pricing["subtotal"],
+        discount_amount=pricing["discount_amount"],
+        total_amount=pricing["total_amount"],
     )
 
     db.add(order)
@@ -405,7 +323,7 @@ async def create_order(
     db.add(delivery)
 
     # Create OrderItems and reduce inventory.
-    for item in validated_items:
+    for item in pricing["items"]:
         product = item["product"]
         quantity = item["quantity"]
 
@@ -414,6 +332,13 @@ async def create_order(
             quantity=quantity,
             unit_price=item["unit_price"],
             subtotal=item["subtotal"],
+            discount_id=item["discount_id"],
+            discount_name=item["discount_name"],
+            discount_type=item["discount_type"],
+            discount_value=item["discount_value"],
+            discount_bundle_quantity=item["discount_bundle_quantity"],
+            discount_amount=item["discount_amount"],
+            total_amount=item["total_amount"],
         )
 
         order.items.append(order_item)
@@ -495,7 +420,15 @@ async def update_order(
                 ),
             }
 
-        # Completed and cancelled orders are final.
+        if normalized_status == "CANCELLED":
+            return {
+                "success": False,
+                "error": (
+                    "Use the cancel order action so inventory "
+                    "is restored safely."
+                ),
+            }
+
         if order.status in {
             "COMPLETED",
             "CANCELLED",
@@ -506,6 +439,26 @@ async def update_order(
                     f"Order #{order_id} is already "
                     f"{order.status.lower()} and cannot be changed."
                 ),
+            }
+
+        if normalized_status != order.status and normalized_status not in (
+            ORDER_STATUS_TRANSITIONS[order.status]
+        ):
+            return {
+                "success": False,
+                "error": (
+                    f"Order #{order_id} cannot move from "
+                    f"{order.status} to {normalized_status}."
+                ),
+            }
+
+        if (
+            normalized_status == "COMPLETED"
+            and order.payment_status != "PAID"
+        ):
+            return {
+                "success": False,
+                "error": "Only paid orders can be marked as completed.",
             }
 
         order.status = normalized_status
@@ -580,6 +533,7 @@ async def update_order_status(
 async def cancel_order(
     db: AsyncSession,
     order_id: int,
+    cancellation_admin_id: int | None = None,
 ) -> dict:
     result = await db.execute(
         _order_query().where(
@@ -601,17 +555,36 @@ async def cancel_order(
             ),
         }
 
-    # Completed and already cancelled orders are final.
-    if order.status in {
-        "COMPLETED",
-        "CANCELLED",
-    }:
+    if order.status in {"COMPLETED", "CANCELLED"}:
         return {
             "success": False,
             "error": (
                 f"Order #{order_id} is already "
                 f"{order.status.lower()} and cannot be cancelled."
             ),
+        }
+
+    if order.status not in {"PENDING", "PROCESSING"}:
+        return {
+            "success": False,
+            "error": (
+                "Only pending or processing orders can be cancelled. "
+                "Shipped orders need a separate return process."
+            ),
+        }
+
+    if order.payment_status == "PAID" and order.status not in {"PENDING", "PROCESSING"}:
+        return {
+            "success": False,
+            "error": (
+                "Only paid orders that are pending or processing can be cancelled and refunded."
+            ),
+        }
+
+    if order.payment_status == "PAID" and cancellation_admin_id is None:
+        return {
+            "success": False,
+            "error": "A paid order cancellation requires an authenticated owner.",
         }
 
     # Validate all inventory records before changing anything.
@@ -642,6 +615,38 @@ async def cancel_order(
         )
 
     order.status = "CANCELLED"
+
+    refund_request_id = None
+    refund_request_auto_approved = False
+
+    if order.payment_status == "PAID":
+        existing_refund_request = await db.scalar(
+            select(RefundRequest).where(RefundRequest.order_id == order.id)
+        )
+
+        if existing_refund_request is None:
+            refund_request = RefundRequest(
+                order_id=order.id,
+                requested_by_admin_id=cancellation_admin_id,
+                reviewed_by_admin_id=cancellation_admin_id,
+                status="APPROVED",
+                reason="Order cancelled before shipment.",
+                internal_note="Automatically approved after cancelling a paid order before shipment.",
+                reviewed_at=datetime.now(UTC),
+            )
+            db.add(refund_request)
+            await db.flush()
+            refund_request_id = refund_request.id
+            refund_request_auto_approved = True
+        elif existing_refund_request.status != "REFUNDED":
+            existing_refund_request.status = "APPROVED"
+            existing_refund_request.reviewed_by_admin_id = cancellation_admin_id
+            existing_refund_request.reviewed_at = datetime.now(UTC)
+            existing_refund_request.internal_note = "Automatically approved after cancelling a paid order before shipment."
+            refund_request_id = existing_refund_request.id
+            refund_request_auto_approved = True
+        else:
+            refund_request_id = existing_refund_request.id
 
     try:
         await db.commit()
@@ -674,6 +679,8 @@ async def cancel_order(
             f"Order #{order_id} cancelled successfully."
         ),
         "order": _serialize_order(cancelled_order),
+        "refund_request_id": refund_request_id,
+        "refund_request_auto_approved": refund_request_auto_approved,
     }
 
 
@@ -712,6 +719,8 @@ def _serialize_order(
         },
         "status": order.status,
         "payment_status": order.payment_status,
+        "subtotal": float(order.subtotal),
+        "discount_amount": float(order.discount_amount),
         "total_amount": float(order.total_amount),
         "created_at": created_at_malaysia.isoformat(),
         "updated_at": updated_at_malaysia.isoformat(),
@@ -726,6 +735,17 @@ def _serialize_order(
                 "quantity": item.quantity,
                 "unit_price": float(item.unit_price),
                 "subtotal": float(item.subtotal),
+                "discount_id": item.discount_id,
+                "discount_name": item.discount_name,
+                "discount_type": item.discount_type,
+                "discount_value": (
+                    float(item.discount_value)
+                    if item.discount_value is not None
+                    else None
+                ),
+                "discount_bundle_quantity": item.discount_bundle_quantity,
+                "discount_amount": float(item.discount_amount),
+                "total_amount": float(item.total_amount),
             }
             for item in order.items
         ],

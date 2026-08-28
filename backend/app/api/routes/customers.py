@@ -5,10 +5,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.auth.dependencies import get_current_admin
+from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.models.admin import Admin
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerPrivate, CustomerUpdate
+from app.services.activity_services import record_activity
 
 router = APIRouter()
 
@@ -61,6 +62,8 @@ async def create_customer(
     customer = Customer(**customer_data.model_dump())
 
     db.add(customer)
+    await db.flush()
+    await record_activity(db, admin=current_admin, action="created", entity_type="customer", entity_id=customer.id, description=f"Created customer {customer.full_name}.")
     await db.commit()
     await db.refresh(customer)
 
@@ -118,6 +121,7 @@ async def update_customer(
 
         setattr(customer, field, value)
 
+    await record_activity(db, admin=current_admin, action="updated", entity_type="customer", entity_id=customer.id, description=f"Updated customer {customer.full_name}.")
     await db.commit()
     await db.refresh(customer)
 
@@ -130,7 +134,7 @@ async def delete_customer(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
@@ -143,5 +147,6 @@ async def delete_customer(
             detail="Customer not found",
         )
 
+    await record_activity(db, admin=current_admin, action="deleted", entity_type="customer", entity_id=customer.id, description=f"Deleted customer {customer.full_name}.")
     await db.delete(customer)
     await db.commit()

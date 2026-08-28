@@ -32,3 +32,10 @@ class OrderItemPublic(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
+    discount_id: int | None
+    discount_name: str | None
+    discount_type: str | None
+    discount_value: Decimal | None
+    discount_bundle_quantity: int | None
+    discount_amount: Decimal
+    total_amount: Decimal

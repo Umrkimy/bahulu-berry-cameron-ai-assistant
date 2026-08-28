@@ -9,7 +9,7 @@ export default function Logo({ size = 42 }: LogoProps) {
     <ThemeIcon size={size} radius="xl" variant="light">
       <img
         src="/logo.jpeg"
-        alt="Bahulu Cameron"
+        alt="Bahulu Berry Cameron"
         width={size}
         height={size}
         style={{

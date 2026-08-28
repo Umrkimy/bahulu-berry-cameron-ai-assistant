@@ -1,12 +1,16 @@
 import json
 import re
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.schemas.ai_assistant import AIChatMessage
+from app.models.ai_action_confirmation import AIActionConfirmation
+from app.services.activity_services import record_activity
 
 from app.services.ai_tools import (
     adjust_product_stock,
@@ -35,6 +39,7 @@ client = AsyncOpenAI(
 
 MAX_TOOL_ROUNDS = 5
 MAX_HISTORY_MESSAGES = 12
+CONFIRMATION_TTL = timedelta(minutes=10)
 
 
 SYSTEM_PROMPT = """
@@ -114,10 +119,11 @@ CANCELLED
 Use update_order_status for status changes.
 
 CONFIRMATION:
-- COMPLETED requires explicit confirmation before the database-changing tool is executed.
-- CANCELLED requires explicit confirmation before the database-changing tool is executed.
-- Never execute cancel_order without confirmation.
-- Never execute update_order_status with COMPLETED without confirmation.
+- Every database-changing action requires explicit confirmation before execution.
+- Never execute a create, stock adjustment, order status update, or cancellation without confirmation.
+- When an owner asks for a database-changing action and you have the required details, call the relevant write tool immediately.
+- Do not ask for confirmation in plain text before calling a write tool. The backend creates the only valid confirmation preview.
+- After a write tool returns confirmation_required=true, repeat its message without adding another confirmation question.
 - Confirmation can be:
   "yes"
   "yes please"
@@ -149,7 +155,7 @@ CONFIRMATION:
 - When asking for completion confirmation, clearly identify the order.
 
 CREATE ORDERS:
-- Creating an order does not require confirmation.
+- Creating an order requires explicit confirmation after the customer and items are identified.
 - Identify the customer first.
 - Identify every product first.
 - Use IDs returned by the tools.
@@ -665,6 +671,29 @@ TOOL_HANDLERS = {
     "get_dashboard_summary": get_dashboard_summary_tool,
 }
 
+WRITE_TOOLS = {
+    "adjust_product_stock",
+    "create_customer",
+    "create_order",
+    "update_order_status",
+    "cancel_order",
+}
+
+
+def _describe_action(tool_name: str, arguments: dict[str, Any]) -> str:
+    if tool_name == "adjust_product_stock":
+        direction = "add" if arguments.get("quantity_change", 0) > 0 else "remove"
+        return f"{direction.capitalize()} {abs(arguments.get('quantity_change', 0))} stock for {arguments.get('product_name', 'the selected product')}."
+    if tool_name == "create_customer":
+        return f"Create customer {arguments.get('full_name', 'with the supplied details')}."
+    if tool_name == "create_order":
+        return f"Create an order for customer #{arguments.get('customer_id')} with {len(arguments.get('items', []))} item type(s)."
+    if tool_name == "update_order_status":
+        return f"Change order #{arguments.get('order_id')} to {str(arguments.get('new_status', '')).lower()}."
+    if tool_name == "cancel_order":
+        return f"Cancel order #{arguments.get('order_id')} and restore eligible stock."
+    return "Apply the requested business change."
+
 
 CONFIRMATION_WORDS = {
     "yes",
@@ -718,6 +747,37 @@ def _is_confirmation(value: str) -> bool:
     )
 
     return normalized.startswith(prefixes)
+
+
+def _matches_unstored_preview(
+    conversation_history: list[AIChatMessage],
+    current_message: str,
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> bool:
+    if not _is_confirmation(current_message):
+        return False
+
+    previous = next(
+        (item.content for item in reversed(conversation_history) if item.role == "assistant"),
+        "",
+    )
+    preview = _normalize_text(previous)
+    if "confirm" not in preview and "sahkan" not in preview:
+        return False
+
+    if tool_name == "adjust_product_stock":
+        product_name = _normalize_text(str(arguments.get("product_name", "")))
+        quantity = str(abs(int(arguments.get("quantity_change", 0))))
+        return bool(product_name and product_name in preview and quantity in preview and "stock" in preview)
+
+    if tool_name == "create_customer":
+        return _normalize_text(str(arguments.get("full_name", ""))) in preview
+
+    if tool_name in {"update_order_status", "cancel_order"}:
+        return f"{arguments.get('order_id')}" in preview
+
+    return False
 
 
 def _extract_order_id_from_text(
@@ -877,13 +937,136 @@ def _confirmation_required_response(
     }
 
 
+async def _get_stored_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+) -> AIActionConfirmation | None:
+    result = await db.execute(
+        select(AIActionConfirmation).where(
+            AIActionConfirmation.admin_id == admin_id,
+            AIActionConfirmation.conversation_id == conversation_id,
+        )
+    )
+    confirmation = result.scalar_one_or_none()
+
+    if confirmation is None:
+        return None
+
+    expires_at = confirmation.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+
+    if expires_at <= datetime.now(UTC):
+        await db.delete(confirmation)
+        await db.commit()
+        return None
+
+    return confirmation
+
+
+async def _store_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> None:
+    existing = await _get_stored_confirmation(db, admin_id, conversation_id)
+    if existing is not None:
+        await db.delete(existing)
+        await db.flush()
+
+    db.add(
+        AIActionConfirmation(
+            admin_id=admin_id,
+            conversation_id=conversation_id,
+            action="tool",
+            order_id=int(arguments.get("order_id", 0)),
+            tool_name=tool_name,
+            arguments=arguments,
+            description=_describe_action(tool_name, arguments),
+            expires_at=datetime.now(UTC) + CONFIRMATION_TTL,
+        )
+    )
+    await db.commit()
+
+
+async def _execute_pending_confirmation(
+    db: AsyncSession,
+    admin_id: int,
+    conversation_id: str,
+    message: str,
+) -> str | None:
+    pending = await _get_stored_confirmation(db, admin_id, conversation_id)
+    if pending is None:
+        return None
+
+    if not _is_confirmation(message):
+        await db.delete(pending)
+        await db.commit()
+        return None
+
+    tool_name = pending.tool_name
+    arguments = pending.arguments or {}
+    await db.delete(pending)
+    await db.commit()
+
+    if tool_name is None:
+        return "This confirmation has expired. Please ask again."
+
+    handler = TOOL_HANDLERS.get(tool_name)
+    if handler is None:
+        return "This action is no longer available. Please ask again."
+
+    if tool_name == "cancel_order":
+        result = await cancel_order(
+            db=db,
+            order_id=arguments.get("order_id"),
+            cancellation_admin_id=admin_id,
+        )
+    else:
+        result = await handler(db=db, **arguments)
+
+    if result.get("success"):
+        if result.get("refund_request_auto_approved"):
+            await record_activity(
+                db,
+                admin_id=admin_id,
+                action="approved",
+                entity_type="refund_request",
+                entity_id=result["refund_request_id"],
+                description=f"AI-confirmed cancellation automatically approved a refund request for order #{arguments.get('order_id')}.",
+                metadata={"source": "ai_assistant"},
+            )
+        await record_activity(
+            db,
+            admin_id=admin_id,
+            action="ai_confirmed",
+            entity_type="ai_action",
+            entity_id=0,
+            description=f"AI-confirmed action: {_describe_action(tool_name, arguments)}",
+            metadata={"source": "ai_assistant", "tool": tool_name},
+        )
+        await db.commit()
+        return result.get("message", "The confirmed action was completed.")
+
+    return result.get("error", "Unable to complete the confirmed action.")
+
+
 async def _execute_tool(
     db: AsyncSession,
     tool_name: str,
     arguments: dict[str, Any],
     conversation_history: list[AIChatMessage],
     current_message: str,
+    admin_id: int,
+    conversation_id: str,
+    is_owner: bool,
 ) -> dict[str, Any]:
+
+    if not is_owner and tool_name in WRITE_TOOLS:
+        return {"success": False, "error": "Only owners can ask the AI to make changes."}
 
     handler = TOOL_HANDLERS.get(tool_name)
 
@@ -893,59 +1076,15 @@ async def _execute_tool(
             "error": f"Unknown tool: {tool_name}",
         }
 
-    if tool_name == "cancel_order":
-        order_id = arguments.get("order_id")
-
-        if not isinstance(order_id, int):
-            return {
-                "success": False,
-                "error": "Invalid order ID.",
-            }
-
-        confirmed = (
-            _confirmation_matches_pending_action(
-                conversation_history=conversation_history,
-                current_message=current_message,
-                action="cancel",
-                order_id=order_id,
-            )
+    if tool_name in WRITE_TOOLS:
+        await _store_confirmation(
+            db=db,
+            admin_id=admin_id,
+            conversation_id=conversation_id,
+            tool_name=tool_name,
+            arguments=arguments,
         )
-
-        if not confirmed:
-            return _confirmation_required_response(
-                action="cancel",
-                order_id=order_id,
-            )
-
-    if (
-        tool_name == "update_order_status"
-        and str(
-            arguments.get("new_status", "")
-        ).upper()
-        == "COMPLETED"
-    ):
-        order_id = arguments.get("order_id")
-
-        if not isinstance(order_id, int):
-            return {
-                "success": False,
-                "error": "Invalid order ID.",
-            }
-
-        confirmed = (
-            _confirmation_matches_pending_action(
-                conversation_history=conversation_history,
-                current_message=current_message,
-                action="complete",
-                order_id=order_id,
-            )
-        )
-
-        if not confirmed:
-            return _confirmation_required_response(
-                action="complete",
-                order_id=order_id,
-            )
+        return {"success": False, "confirmation_required": True, "message": f"I am ready to {_describe_action(tool_name, arguments)} Reply Confirm to continue."}
 
     return await handler(
         db=db,
@@ -956,8 +1095,20 @@ async def _execute_tool(
 async def generate_ai_response(
     db: AsyncSession,
     message: str,
+    conversation_id: str,
+    admin_id: int,
     conversation_history: list[AIChatMessage],
+    is_owner: bool,
 ) -> str:
+
+    confirmed_response = await _execute_pending_confirmation(
+        db=db,
+        admin_id=admin_id,
+        conversation_id=conversation_id,
+        message=message,
+    ) if is_owner else None
+    if confirmed_response is not None:
+        return confirmed_response
 
     messages: list[dict[str, Any]] = [
         {
@@ -1033,6 +1184,9 @@ async def generate_ai_response(
                     arguments=arguments,
                     conversation_history=conversation_history,
                     current_message=message,
+                    admin_id=admin_id,
+                    conversation_id=conversation_id,
+                    is_owner=is_owner,
                 )
 
             except Exception as exc:

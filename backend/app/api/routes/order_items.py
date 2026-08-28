@@ -109,6 +109,10 @@ async def create_order_item(
         Depends(get_current_admin),
     ],
 ):
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Order items are created only through the order workflow so pricing and stock stay accurate.",
+    )
 
     # Check order
     order = await db.get(Order, order_id)
@@ -150,10 +154,13 @@ async def create_order_item(
         quantity=item_data.quantity,
         unit_price=unit_price,
         subtotal=subtotal,
+        discount_amount=Decimal("0.00"),
+        total_amount=subtotal,
     )
     db.add(order_item)
 
     # Update order total
+    order.subtotal += subtotal
     order.total_amount += subtotal
 
     # Reduce stock
@@ -183,6 +190,10 @@ async def update_order_item(
         Depends(get_current_admin),
     ],
 ):
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Order item changes are not supported after an order is created.",
+    )
 
     result = await db.execute(
         select(OrderItem).where(
@@ -223,11 +234,16 @@ async def update_order_item(
             inventory.quantity += abs(difference)
 
         # Recalculate total
-        order.total_amount -= order_item.subtotal
+        order.subtotal -= order_item.subtotal
+        order.discount_amount -= order_item.discount_amount
+        order.total_amount -= order_item.total_amount
         order_item.quantity = item_data.quantity
         order_item.subtotal = Decimal(order_item.unit_price) * order_item.quantity
+        order_item.discount_amount = Decimal("0.00")
+        order_item.total_amount = order_item.subtotal
 
-        order.total_amount += order_item.subtotal
+        order.subtotal += order_item.subtotal
+        order.total_amount += order_item.total_amount
 
     await db.commit()
     await db.refresh(order_item)
@@ -252,6 +268,10 @@ async def delete_order_item(
         Depends(get_current_superuser),
     ],
 ):
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Order item changes are not supported after an order is created.",
+    )
 
     result = await db.execute(
         select(OrderItem).where(
@@ -279,7 +299,9 @@ async def delete_order_item(
     inventory.quantity += order_item.quantity
 
     # Remove amount
-    order.total_amount -= order_item.subtotal
+    order.subtotal -= order_item.subtotal
+    order.discount_amount -= order_item.discount_amount
+    order.total_amount -= order_item.total_amount
 
     await db.delete(order_item)
 

@@ -40,6 +40,14 @@ export default function NavSection({ title, items }: NavSectionProps) {
           label={item.label}
           leftSection={item.icon}
           active={location.pathname === item.link}
+          variant="light"
+          color="bahulu"
+          styles={{
+            root: {
+              borderRadius: 12,
+              fontWeight: location.pathname === item.link ? 700 : 500,
+            },
+          }}
         />
       ))}
     </Stack>

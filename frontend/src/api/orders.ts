@@ -5,12 +5,19 @@ import type {
   Order,
   OrderItem,
   UpdateOrderData,
+  OrderQuote,
 } from "../types/order";
 
 interface CancelOrderResponse {
   success: boolean;
   message: string;
   order: Order;
+}
+
+export async function quoteOrder(items: CreateOrderData["items"]) {
+  const response = await api.post<OrderQuote>("/orders/quote", { items });
+
+  return response.data;
 }
 
 export async function getOrders() {

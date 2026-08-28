@@ -29,7 +29,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def verify_access_token(token: str) -> str | None:
+def verify_access_token(token: str | None) -> str | None:
     try:
         payload = jwt.decode(
             token,

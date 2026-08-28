@@ -10,14 +10,19 @@ import {
   IconBuildingWarehouse,
   IconMessageChatbot,
   IconTruck,
+  IconDiscount2,
+  IconActivity,
+  IconUsersGroup,
+  IconCash,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
+import useAuth from "../../auth/useAuth";
 
 export default function AppSidebar() {
+  const { admin } = useAuth();
   return (
-    <Stack p="md" gap="md">
-      {/* OVERVIEW */}
+    <Stack p="md" gap="sm">
       <NavSection
         title="OVERVIEW"
         items={[
@@ -29,7 +34,6 @@ export default function AppSidebar() {
         ]}
       />
 
-      {/* COMMERCE */}
       <NavSection
         title="COMMERCE"
         items={[
@@ -46,15 +50,15 @@ export default function AppSidebar() {
           },
 
           {
-            label: "Inventory",
-            link: "/inventory",
-            icon: <IconBuildingWarehouse size={18} />,
-          },
-
-          {
             label: "Orders",
             link: "/orders",
             icon: <IconShoppingCart size={18} />,
+          },
+
+          {
+            label: "Inventory",
+            link: "/inventory",
+            icon: <IconBuildingWarehouse size={18} />,
           },
 
           {
@@ -62,10 +66,15 @@ export default function AppSidebar() {
             link: "/deliveries",
             icon: <IconTruck size={18} />,
           },
+
+          {
+            label: "Discounts",
+            link: "/discounts",
+            icon: <IconDiscount2 size={18} />,
+          },
         ]}
       />
 
-      {/* AI ASSISTANT */}
       <NavSection
         title="AI ASSISTANT"
         items={[
@@ -83,15 +92,27 @@ export default function AppSidebar() {
         ]}
       />
 
-      {/* SYSTEM */}
+      <NavSection
+        title="OPERATIONS"
+        items={[
+          {
+            label: "Refund Requests",
+            link: "/refund-requests",
+            icon: <IconCash size={18} />,
+          },
+          {
+            label: "Activity",
+            link: "/activity",
+            icon: <IconActivity size={18} />,
+          },
+        ]}
+      />
+
       <NavSection
         title="SYSTEM"
         items={[
-          {
-            label: "Settings",
-            link: "/settings",
-            icon: <IconSettings size={18} />,
-          },
+          ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),
+          ...(admin?.role === "OWNER" ? [{ label: "Settings", link: "/settings", icon: <IconSettings size={18} /> }] : []),
         ]}
       />
     </Stack>
