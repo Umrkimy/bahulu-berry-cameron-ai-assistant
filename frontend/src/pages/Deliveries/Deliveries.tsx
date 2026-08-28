@@ -1,23 +1,15 @@
-import { Card, Group, Text } from "@mantine/core";
+import { Card } from "@mantine/core";
 
 import DeliveriesTable from "../../components/delivery/DeliveriesTable";
+import PageHeader from "../../components/common/PageHeader";
 
 export default function DeliveryPage() {
   return (
-    <Card withBorder radius="md" p="lg">
-      <Group justify="space-between" mb="md">
-        <div>
-          <Text fw={700} size="lg">
-            Delivery Management
-          </Text>
-
-          <Text c="dimmed" size="sm">
-            Manage and track customer deliveries
-          </Text>
-        </div>
-      </Group>
-
+    <>
+      <PageHeader title="Deliveries" description="Manage and track customer delivery progress." />
+      <Card withBorder p="md">
       <DeliveriesTable />
-    </Card>
+      </Card>
+    </>
   );
 }

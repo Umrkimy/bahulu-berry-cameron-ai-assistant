@@ -12,3 +12,11 @@ PAYMENT_STATUS = [
     "FAILED",
     "REFUNDED",
 ]
+
+ORDER_STATUS_TRANSITIONS = {
+    "PENDING": {"PROCESSING"},
+    "PROCESSING": {"SHIPPED"},
+    "SHIPPED": {"COMPLETED"},
+    "COMPLETED": set(),
+    "CANCELLED": set(),
+}

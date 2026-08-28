@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, Numeric
+from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -58,4 +58,41 @@ class OrderItem(Base):
 
     product: Mapped["Product"] = relationship(
         back_populates="order_items",
+    )
+
+    discount_id: Mapped[int | None] = mapped_column(
+        ForeignKey("discounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    discount_name: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    discount_type: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+
+    discount_value: Mapped[Decimal | None] = mapped_column(
+        Numeric(10, 2),
+        nullable=True,
+    )
+
+    discount_bundle_quantity: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    discount_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        default=Decimal("0.00"),
+        nullable=False,
+    )
+
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
     )

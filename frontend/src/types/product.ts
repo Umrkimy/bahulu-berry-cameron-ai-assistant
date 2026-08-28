@@ -16,6 +16,18 @@ export interface Product {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  active_discount: ActiveDiscount | null;
+  active_discounts: ActiveDiscount[];
+}
+
+export interface ActiveDiscount {
+  id: number;
+  name: string;
+  discount_type: "PERCENTAGE" | "FIXED_AMOUNT" | "BUNDLE_PRICE";
+  discount_value: number | string;
+  bundle_quantity: number | null;
+  start_at: string;
+  end_at: string;
 }
 
 export interface PaginatedProducts {

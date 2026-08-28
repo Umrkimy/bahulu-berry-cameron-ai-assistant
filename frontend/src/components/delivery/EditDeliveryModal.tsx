@@ -19,6 +19,7 @@ import {
   useOrderDelivery,
   useUpdateOrderDelivery,
 } from "../../hooks/useDeliveries";
+import { getApiError } from "../../api/errors";
 
 import type { Delivery, DeliveryStatus } from "../../types/delivery";
 
@@ -123,10 +124,12 @@ export default function EditDeliveryModal({
       });
 
       onClose();
-    } catch {
+    } catch (error) {
+      const apiError = getApiError(error);
+      form.setErrors(apiError.fieldErrors);
       notifications.show({
         title: "Update Failed",
-        message: "Unable to update the delivery information.",
+        message: apiError.message,
         color: "red",
       });
     }

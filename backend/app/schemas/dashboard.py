@@ -18,6 +18,7 @@ class DashboardOrders(BaseModel):
     pending: int
     paid: int
     completed: int
+    cancelled: int
 
 
 class DashboardSales(BaseModel):

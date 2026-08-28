@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Button, Group, Text } from "@mantine/core";
+import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
+import { IconEdit } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "../common/DataTable";
@@ -70,13 +71,15 @@ export default function CustomerTable({ onEdit }: Props) {
         enableSorting: false,
         cell: ({ row }) => (
           <Group gap="xs">
-            <Button
-              size="xs"
+            <Tooltip label="Edit customer">
+              <ActionIcon
+              aria-label="Edit customer"
               variant="light"
               onClick={() => onEdit(row.original)}
-            >
-              Edit
-            </Button>
+              >
+                <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
           </Group>
         ),
       },

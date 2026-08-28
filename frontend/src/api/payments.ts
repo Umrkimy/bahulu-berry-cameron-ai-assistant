@@ -7,8 +7,8 @@ export const createOrderPayment = async (orderId: number): Promise<Payment> => {
   return response.data;
 };
 
-export const getOrderPayment = async (orderId: number): Promise<Payment> => {
-  const response = await api.get<Payment>(`/payments/orders/${orderId}`);
+export const getOrderPayment = async (orderId: number): Promise<Payment | null> => {
+  const response = await api.get<Payment | null>(`/payments/orders/${orderId}`);
 
   return response.data;
 };

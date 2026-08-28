@@ -1,15 +1,25 @@
-import { Button, Card, Group, Text } from "@mantine/core";
-import { useState } from "react";
+import { Button, Card } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { Customer } from "../../api/customers";
 import CreateCustomerModal from "../../components/customer/CreateCustomerModal";
 import CustomerTable from "../../components/customer/CustomerTable";
 import EditCustomerModal from "../../components/customer/EditCustomerModal";
+import PageHeader from "../../components/common/PageHeader";
 
 export default function Customers() {
   const [createOpened, setCreateOpened] = useState(false);
   const [selectedCustomer, setSelectedCustomer] =
     useState<Customer | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateOpened(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   function openEdit(customer: Customer) {
     setSelectedCustomer(customer);
@@ -20,29 +30,16 @@ export default function Customers() {
   }
 
   return (
-    <Card
-      withBorder
-      radius="md"
-      p={0}
-      style={{ overflow: "hidden" }}
-    >
-      <Group justify="space-between" p="lg">
-        <div>
-          <Text fw={700} size="lg">
-            Customers Management
-          </Text>
+    <>
+      <PageHeader
+        title="Customers"
+        description="Manage customer details and contact information."
+        action={<Button onClick={() => setCreateOpened(true)}>Add Customer</Button>}
+      />
 
-          <Text c="dimmed" size="sm">
-            Manage customer details and contact information
-          </Text>
-        </div>
-
-        <Button onClick={() => setCreateOpened(true)}>
-          Add Customer
-        </Button>
-      </Group>
-
-      <CustomerTable onEdit={openEdit} />
+      <Card withBorder p={0} style={{ overflow: "hidden" }}>
+        <CustomerTable onEdit={openEdit} />
+      </Card>
 
       <CreateCustomerModal
         opened={createOpened}
@@ -54,6 +51,6 @@ export default function Customers() {
         customer={selectedCustomer}
         onClose={closeEdit}
       />
-    </Card>
+    </>
   );
 }

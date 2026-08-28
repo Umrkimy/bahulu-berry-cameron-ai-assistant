@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import desc, extract, func, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,6 +26,16 @@ from app.schemas.dashboard import (
 
 
 router = APIRouter()
+MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+def _malaysia_day_range(target_date: date) -> tuple[datetime, datetime]:
+    start = datetime.combine(target_date, time.min, tzinfo=MALAYSIA_TZ)
+    return start.astimezone(UTC), (start + timedelta(days=1)).astimezone(UTC)
 
 
 def group_order_items(items):
@@ -70,9 +81,7 @@ async def get_dashboard_stats(
         .where(Product.is_active)
     )
 
-    total_orders = await db.scalar(
-        select(func.count(Order.id))
-    )
+    total_orders = await db.scalar(select(func.count(Order.id)))
 
     pending_orders = await db.scalar(
         select(func.count(Order.id))
@@ -84,6 +93,10 @@ async def get_dashboard_stats(
         .where(Order.status == "COMPLETED")
     )
 
+    cancelled_orders = await db.scalar(
+        select(func.count(Order.id)).where(Order.status == "CANCELLED")
+    )
+
     paid_orders = await db.scalar(
         select(func.count(Order.id))
         .where(Order.payment_status == "PAID")
@@ -91,21 +104,23 @@ async def get_dashboard_stats(
 
     total_revenue = await db.scalar(
         select(func.sum(Order.total_amount))
-        .where(Order.payment_status == "PAID")
+        .where(Order.payment_status == "PAID", Order.status != "CANCELLED")
     )
 
     if total_revenue is None:
         total_revenue = Decimal("0.00")
 
-    today = date.today()
-
+    today = datetime.now(MALAYSIA_TZ).date()
     month_start = today.replace(day=1)
+    month_start_utc, _ = _malaysia_day_range(month_start)
+    today_start_utc, tomorrow_start_utc = _malaysia_day_range(today)
 
     monthly_revenue = await db.scalar(
         select(func.sum(Order.total_amount))
         .where(
             Order.payment_status == "PAID",
-            Order.created_at >= month_start,
+            Order.status != "CANCELLED",
+            Order.created_at >= month_start_utc,
         )
     )
 
@@ -116,7 +131,9 @@ async def get_dashboard_stats(
         select(func.sum(Order.total_amount))
         .where(
             Order.payment_status == "PAID",
-            func.date(Order.created_at) == today,
+            Order.status != "CANCELLED",
+            Order.created_at >= today_start_utc,
+            Order.created_at < tomorrow_start_utc,
         )
     )
 
@@ -140,7 +157,8 @@ async def get_dashboard_stats(
     low_stock_products = await db.scalar(
         select(func.count(Inventory.id))
         .where(
-            Inventory.quantity <= Inventory.low_stock_threshold
+            Inventory.quantity <= Inventory.low_stock_threshold,
+            Inventory.quantity > 0,
         )
     )
 
@@ -176,6 +194,8 @@ async def get_dashboard_stats(
                 customer_id=order.customer_id,
                 status=order.status,
                 payment_status=order.payment_status,
+                subtotal=order.subtotal,
+                discount_amount=order.discount_amount,
                 total_amount=order.total_amount,
                 delivery_name=(
                     delivery.recipient_name
@@ -257,6 +277,7 @@ async def get_dashboard_stats(
             "pending": pending_orders,
             "paid": paid_orders,
             "completed": completed_orders,
+            "cancelled": cancelled_orders,
         },
         "sales": {
             "revenue": total_revenue,
@@ -286,70 +307,36 @@ async def sales_chart(
         Depends(get_current_admin),
     ],
 ):
+    now = datetime.now(MALAYSIA_TZ)
+    month_starts = []
+    for offset in range(5, -1, -1):
+        month = now.month - offset
+        year = now.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        month_starts.append(datetime(year, month, 1, tzinfo=MALAYSIA_TZ))
+
     result = await db.execute(
-        select(
-            extract(
-                "month",
-                Order.created_at,
-            ).label("month"),
-            func.sum(
-                Order.total_amount
-            ).label("revenue"),
-        )
-        .where(
-            Order.payment_status == "PAID"
-        )
-        .group_by(
-            extract(
-                "month",
-                Order.created_at,
-            )
-        )
-        .order_by(
-            extract(
-                "month",
-                Order.created_at,
-            )
+        select(Order.created_at, Order.total_amount).where(
+            Order.payment_status == "PAID",
+            Order.status != "CANCELLED",
+            Order.created_at >= month_starts[0].astimezone(UTC),
         )
     )
+    monthly_sales: dict[tuple[int, int], Decimal] = {}
+    for created_at, total_amount in result.all():
+        local_date = _as_utc(created_at).astimezone(MALAYSIA_TZ)
+        key = (local_date.year, local_date.month)
+        monthly_sales[key] = monthly_sales.get(key, Decimal("0.00")) + total_amount
 
-    rows = result.all()
-
-    monthly_sales = {
-        int(row.month): row.revenue or Decimal("0.00")
-        for row in rows
-    }
-
-    months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+    sales = [
+        {
+            "month": month_start.strftime("%b"),
+            "revenue": monthly_sales.get((month_start.year, month_start.month), Decimal("0.00")),
+        }
+        for month_start in month_starts
     ]
-
-    sales = []
-
-    for index, month in enumerate(
-        months,
-        start=1,
-    ):
-        sales.append(
-            {
-                "month": month,
-                "revenue": monthly_sales.get(
-                    index,
-                    Decimal("0.00"),
-                ),
-            }
-        )
 
     return sales
 

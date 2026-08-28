@@ -1,7 +1,9 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.order import Order
 from app.models.payment import Payment
@@ -11,7 +13,7 @@ from app.payments.providers.stripe import StripeProvider
 async def create_payment(
     db: AsyncSession,
     order: Order,
-) -> Payment:
+) -> tuple[Payment, bool]:
 
     result = await db.execute(
         select(Payment)
@@ -27,7 +29,7 @@ async def create_payment(
     existing_payment = result.scalars().first()
 
     if existing_payment is not None:
-        return existing_payment
+        return existing_payment, False
 
 
     payment = Payment(
@@ -43,11 +45,23 @@ async def create_payment(
     await db.flush()
 
 
+    order_result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.customer))
+        .where(Order.id == order.id)
+    )
+    order_with_customer = order_result.scalar_one()
+
     provider = StripeProvider()
 
     stripe_result = await provider.create_payment(
-        payment=payment,
-        order=order,
+        payment_id=payment.id,
+        amount=payment.amount,
+        currency=payment.currency,
+        description=f"Bahulu Berry Cameron Order #{order.id}",
+        customer_name=order_with_customer.customer.full_name,
+        customer_email=order_with_customer.customer.email,
+        customer_phone=order_with_customer.customer.phone_number,
     )
 
     payment.provider_payment_id = (
@@ -58,8 +72,41 @@ async def create_payment(
         stripe_result["payment_url"]
     )
 
-    await db.commit()
+    return payment, True
 
-    await db.refresh(payment)
 
+async def refund_payment(
+    db: AsyncSession,
+    payment: Payment,
+    reason: str,
+) -> Payment:
+    if payment.status == "REFUNDED":
+        raise ValueError("This payment has already been refunded.")
+
+    if payment.status != "PAID":
+        raise ValueError("Only paid payments can be refunded.")
+
+    if payment.provider != "stripe" or not payment.provider_payment_id:
+        raise ValueError("This payment cannot be refunded through Stripe.")
+
+    provider = StripeProvider()
+    stripe_result = await provider.refund_payment(
+        payment.provider_payment_id,
+        payment.id,
+    )
+
+    if stripe_result["status"] != "succeeded":
+        raise ValueError("Stripe has not confirmed this refund yet.")
+
+    order = await db.get(Order, payment.order_id)
+    if order is None:
+        raise ValueError("The order for this payment could not be found.")
+
+    payment.status = "REFUNDED"
+    payment.provider_refund_id = stripe_result["provider_refund_id"]
+    payment.refund_reason = reason.strip()
+    payment.refunded_at = datetime.now(UTC)
+    order.payment_status = "REFUNDED"
+
+    await db.flush()
     return payment

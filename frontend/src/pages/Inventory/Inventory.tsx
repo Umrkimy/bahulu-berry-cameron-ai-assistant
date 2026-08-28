@@ -1,22 +1,14 @@
-import { Card, Group, Text } from "@mantine/core";
+import { Card } from "@mantine/core";
 import InventoryTable from "../../components/inventory/InventoryTable";
+import PageHeader from "../../components/common/PageHeader";
 
 export default function InventoryPage() {
   return (
-    <Card withBorder radius="md" p="lg">
-      <Group justify="space-between" mb="md">
-        <div>
-          <Text fw={700} size="lg">
-            Inventory Management
-          </Text>
-
-          <Text c="dimmed" size="sm">
-            Monitor stock levels and manage inventory
-          </Text>
-        </div>
-      </Group>
-
+    <>
+      <PageHeader title="Inventory" description="Monitor stock levels and keep products available." />
+      <Card withBorder p="md">
       <InventoryTable />
-    </Card>
+      </Card>
+    </>
   );
 }

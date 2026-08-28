@@ -11,6 +11,12 @@ from app.api.routes import (
     ai_assistant,
     payments,
     deliveries,
+    discounts,
+    activity,
+    exports,
+    team,
+    refund_requests,
+    support,
 )
 
 api_router = APIRouter()
@@ -52,9 +58,45 @@ api_router.include_router(
 )
 
 api_router.include_router(
+    support.router,
+    prefix="/support",
+    tags=["support"],
+)
+
+api_router.include_router(
+    team.router,
+    prefix="/team",
+    tags=["team"],
+)
+
+api_router.include_router(
+    refund_requests.router,
+    prefix="/refund-requests",
+    tags=["refund requests"],
+)
+
+api_router.include_router(
     deliveries.router,
     prefix="/deliveries",
     tags=["deliveries"],
+)
+
+api_router.include_router(
+    discounts.router,
+    prefix="/discounts",
+    tags=["discounts"],
+)
+
+api_router.include_router(
+    activity.router,
+    prefix="/activity",
+    tags=["activity"],
+)
+
+api_router.include_router(
+    exports.router,
+    prefix="/exports",
+    tags=["exports"],
 )
 
 api_router.include_router(

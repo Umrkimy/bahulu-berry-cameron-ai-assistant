@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -10,6 +11,7 @@ class AIChatMessage(BaseModel):
 
 class AIChatRequest(BaseModel):
     message: str
+    conversation_id: UUID
     conversation_history: list[AIChatMessage] = []
 
 

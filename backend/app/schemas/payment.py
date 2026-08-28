@@ -20,6 +20,9 @@ class PaymentResponse(BaseModel):
     status: str
     payment_url: str | None
     paid_at: datetime | None
+    provider_refund_id: str | None
+    refund_reason: str | None
+    refunded_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

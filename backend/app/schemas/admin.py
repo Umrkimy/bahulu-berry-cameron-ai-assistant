@@ -11,7 +11,7 @@ class AdminBase(BaseModel):
 class AdminCreate(AdminBase):
     password: str = Field(min_length=8, max_length=128)
 
-    is_superuser: bool = False
+    role: str = "STAFF"
 
 
 class AdminLogin(BaseModel):
@@ -23,6 +23,8 @@ class AdminUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=50)
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
+    role: str | None = None
+    is_active: bool | None = None
 
 
 class AdminPublic(BaseModel):
@@ -35,5 +37,7 @@ class AdminPublic(BaseModel):
 
 class AdminPrivate(AdminPublic):
     is_superuser: bool
+    role: str
+    is_active: bool
     created_at: datetime
     updated_at: datetime

@@ -12,6 +12,8 @@ export interface Order {
   customer_id: number;
   status: OrderStatus;
   payment_status: PaymentStatus;
+  subtotal: number | string;
+  discount_amount: number | string;
   total_amount: number | string;
   delivery_name: string | null;
   delivery_phone: string | null;
@@ -34,6 +36,13 @@ export interface OrderItem {
   quantity: number;
   unit_price: number | string;
   subtotal: number | string;
+  discount_id: number | null;
+  discount_name: string | null;
+  discount_type: "PERCENTAGE" | "FIXED_AMOUNT" | "BUNDLE_PRICE" | null;
+  discount_value: number | string | null;
+  discount_bundle_quantity: number | null;
+  discount_amount: number | string;
+  total_amount: number | string;
 }
 
 export interface CreateOrderItemData {
@@ -64,4 +73,26 @@ export interface UpdateOrderData {
   postal_code?: string | null;
   country?: string | null;
   tracking_number?: string | null;
+}
+
+export interface OrderQuoteItem {
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number | string;
+  subtotal: number | string;
+  discount_id: number | null;
+  discount_name: string | null;
+  discount_type: "PERCENTAGE" | "FIXED_AMOUNT" | "BUNDLE_PRICE" | null;
+  discount_value: number | string | null;
+  discount_bundle_quantity: number | null;
+  discount_amount: number | string;
+  total_amount: number | string;
+}
+
+export interface OrderQuote {
+  items: OrderQuoteItem[];
+  subtotal: number | string;
+  discount_amount: number | string;
+  total_amount: number | string;
 }

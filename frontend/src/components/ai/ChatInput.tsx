@@ -38,7 +38,7 @@ export default function ChatInput({ onSend, loading = false }: ChatInputProps) {
         value={message}
         onChange={(event) => setMessage(event.currentTarget.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Message Bahulu Cameron AI..."
+        placeholder="Message Bahulu Berry Cameron AI..."
         autosize
         minRows={1}
         maxRows={6}

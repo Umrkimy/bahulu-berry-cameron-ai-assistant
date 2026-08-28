@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
 
 import { modals } from "@mantine/modals";
+import { notifications } from "@mantine/notifications";
 
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 
@@ -13,12 +14,16 @@ import { DataTable } from "../common/DataTable";
 import { useDeleteProduct, useProducts } from "../../hooks/useProducts";
 
 import type { Product } from "../../types/product";
+import useAuth from "../../auth/useAuth";
+import { getApiError } from "../../api/errors";
 
 interface ProductTableProps {
   onEdit: (product: Product) => void;
 }
 
 export default function ProductTable({ onEdit }: ProductTableProps) {
+  const { admin } = useAuth();
+  const isOwner = admin?.role === "OWNER";
   const { data, isLoading, isError } = useProducts();
 
   const deleteMutation = useDeleteProduct();
@@ -52,6 +57,13 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
           onSuccess: () => {
             modals.closeAll();
           },
+          onError: (error) => {
+            notifications.show({
+              title: "Unable to delete product",
+              message: getApiError(error).message,
+              color: "red",
+            });
+          },
         });
       },
     });
@@ -81,8 +93,45 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Price",
 
         cell: ({ row }) => (
-          <Text fw={600}>RM {Number(row.original.price).toFixed(2)}</Text>
+          <>
+            {getPriceDiscount(row.original) ? (
+              <>
+                <Text fw={700} c="red">
+                  RM {getSalePrice(row.original).toFixed(2)}
+                </Text>
+
+                <Text size="xs" c="dimmed" td="line-through">
+                  RM {Number(row.original.price).toFixed(2)}
+                </Text>
+              </>
+            ) : (
+              <Text fw={600}>RM {Number(row.original.price).toFixed(2)}</Text>
+            )}
+          </>
         ),
+      },
+
+      {
+        id: "promotion",
+        header: "Promotion",
+
+        cell: ({ row }) => {
+          const discounts = row.original.active_discounts ?? [];
+
+          if (!discounts.length) {
+            return <Text c="dimmed">-</Text>;
+          }
+
+          return (
+            <Group gap={4}>
+              {discounts.map((discount) => (
+                <Badge key={discount.id} color="red" variant="light">
+                  {getPromotionLabel(discount)}
+                </Badge>
+              ))}
+            </Group>
+          );
+        },
       },
 
       {
@@ -114,7 +163,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Actions",
         enableSorting: false,
 
-        cell: ({ row }) => (
+        cell: ({ row }) => isOwner ? (
           <Group gap="xs">
             {/* EDIT */}
             <Tooltip label="Edit product" withArrow>
@@ -143,10 +192,10 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
               </ActionIcon>
             </Tooltip>
           </Group>
-        ),
+        ) : <Text c="dimmed">-</Text>,
       },
     ],
-    [deleteMutation.isPending, onEdit],
+    [deleteMutation.isPending, isOwner, onEdit],
   );
 
   if (isError) {
@@ -175,4 +224,41 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
       />
     </Card>
   );
+}
+
+function getSalePrice(product: Product) {
+  const discount = getPriceDiscount(product);
+  const price = Number(product.price);
+
+  if (!discount) {
+    return price;
+  }
+
+  if (discount.discount_type === "PERCENTAGE") {
+    return price * (1 - Number(discount.discount_value) / 100);
+  }
+
+  if (discount.discount_type === "FIXED_AMOUNT") {
+    return Math.max(0, price - Number(discount.discount_value));
+  }
+
+  return price;
+}
+
+function getPriceDiscount(product: Product) {
+  return product.active_discounts?.find(
+    (discount) => discount.discount_type === "PERCENTAGE" || discount.discount_type === "FIXED_AMOUNT",
+  ) ?? null;
+}
+
+function getPromotionLabel(discount: NonNullable<Product["active_discount"]>) {
+  if (discount.discount_type === "PERCENTAGE") {
+    return `${Number(discount.discount_value)}% OFF`;
+  }
+
+  if (discount.discount_type === "FIXED_AMOUNT") {
+    return `RM ${Number(discount.discount_value).toFixed(2)} OFF`;
+  }
+
+  return `BUY ${discount.bundle_quantity} FOR RM ${Number(discount.discount_value).toFixed(2)}`;
 }

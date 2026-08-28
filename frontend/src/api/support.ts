@@ -1,0 +1,11 @@
+import api from "./axios";
+import type { HandoffRule, SupportFAQ, SupportRequest, SupportTemplate } from "../types/support";
+export const getSupportRequests=async()=> (await api.get<SupportRequest[]>("/support/requests")).data;
+export const createSupportRequest=async(data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.post<SupportRequest>("/support/requests",data)).data;
+export const updateSupportRequest=async(id:number,data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.patch<SupportRequest>(`/support/requests/${id}`,data)).data;
+export const getFAQs=async()=> (await api.get<SupportFAQ[]>("/support/faqs")).data;
+export const getTemplates=async()=> (await api.get<SupportTemplate[]>("/support/templates")).data;
+export const getRules=async()=> (await api.get<HandoffRule[]>("/support/rules")).data;
+export const createFAQ=async(data:Omit<SupportFAQ,"id"|"updated_at">)=>(await api.post<SupportFAQ>("/support/faqs",data)).data;
+export const createTemplate=async(data:Omit<SupportTemplate,"id"|"updated_at">)=>(await api.post<SupportTemplate>("/support/templates",data)).data;
+export const createRule=async(data:Omit<HandoffRule,"id"|"updated_at">)=>(await api.post<HandoffRule>("/support/rules",data)).data;

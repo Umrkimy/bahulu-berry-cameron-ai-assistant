@@ -8,10 +8,11 @@ from sqlalchemy.orm import selectinload
 
 from app.db.database import get_db
 from app.schemas.pagination import PaginatedResponse
-from app.auth.dependencies import get_current_admin
+from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.models.admin import Admin
 from app.models.product import Product
 from app.models.inventory import Inventory
+from app.services.activity_services import record_activity
 from app.schemas.product import (
     ProductCreate,
     ProductPrivate,
@@ -73,7 +74,10 @@ async def get_products(
 
     total = await db.scalar(count_query)
 
-    query = select(Product).options(selectinload(Product.inventory)).where(*filters)
+    query = select(Product).options(
+        selectinload(Product.inventory),
+        selectinload(Product.discounts),
+    ).where(*filters)
 
     # Sorting
     if sort == "newest":
@@ -191,7 +195,8 @@ async def get_admin_products(
     query = (
         select(Product)
         .options(
-            selectinload(Product.inventory)
+            selectinload(Product.inventory),
+            selectinload(Product.discounts),
         )
         .where(*filters)
     )
@@ -276,7 +281,10 @@ async def get_admin_products(
 async def get_product(product_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.inventory))
+        .options(
+            selectinload(Product.inventory),
+            selectinload(Product.discounts),
+        )
         .where(Product.id == product_id)
     )
 
@@ -302,7 +310,7 @@ async def create_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
 
@@ -339,8 +347,9 @@ async def create_product(
     )
 
     db.add(inventory)
+    await record_activity(db, admin=current_admin, action="created", entity_type="product", entity_id=product.id, description=f"Created product {product.name}.")
     await db.commit()
-    await db.refresh(product, ["inventory"])
+    await db.refresh(product, ["inventory", "discounts"])
     return product
 
 
@@ -352,7 +361,7 @@ async def update_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
     result = await db.execute(
@@ -391,8 +400,9 @@ async def update_product(
     for field, value in update_data.items():
         setattr(product, field, value)
 
+    await record_activity(db, admin=current_admin, action="updated", entity_type="product", entity_id=product.id, description=f"Updated product {product.name}.")
     await db.commit()
-    await db.refresh(product)
+    await db.refresh(product, ["inventory", "discounts"])
 
     return product
 
@@ -404,7 +414,7 @@ async def delete_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_admin),
+        Depends(get_current_superuser),
     ],
 ):
 
@@ -423,5 +433,6 @@ async def delete_product(
     if inventory:
         await db.delete(inventory)
 
+    await record_activity(db, admin=current_admin, action="deleted", entity_type="product", entity_id=product.id, description=f"Deleted product {product.name}.")
     await db.delete(product)
     await db.commit()

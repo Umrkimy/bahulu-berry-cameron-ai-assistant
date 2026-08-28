@@ -21,6 +21,7 @@ from app.services.inventory_services import (
     adjust_inventory,
     set_inventory_quantity,
 )
+from app.services.activity_services import record_activity
 
 
 router = APIRouter()
@@ -202,6 +203,7 @@ async def adjust_inventory_route(
             product_id=inventory.product_id,
             quantity_change=inventory_data.quantity_change,
         )
+        await record_activity(db, admin=current_admin, action="adjusted", entity_type="inventory", entity_id=inventory.id, description=f"Adjusted stock for {inventory.product.name} by {inventory_data.quantity_change}.", metadata={"quantity_change": inventory_data.quantity_change})
 
         await db.commit()
 
@@ -273,6 +275,7 @@ async def update_inventory(
                 inventory_data.low_stock_threshold
             )
 
+        await record_activity(db, admin=current_admin, action="updated", entity_type="inventory", entity_id=inventory.id, description=f"Updated inventory for {inventory.product.name}.")
         await db.commit()
 
     except HTTPException:
@@ -330,6 +333,7 @@ async def delete_inventory(
             detail="Inventory not found",
         )
 
+    await record_activity(db, admin=current_admin, action="deleted", entity_type="inventory", entity_id=inventory.id, description=f"Deleted inventory for product #{inventory.product_id}.")
     await db.delete(inventory)
     await db.commit()
 
