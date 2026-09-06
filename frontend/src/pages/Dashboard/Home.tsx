@@ -22,6 +22,7 @@ import RecentOrders from "../../components/dashboard/RecentOrders";
 import OrderStatusCard from "../../components/dashboard/OrderStatusCard";
 
 import InventoryCard from "../../components/dashboard/InventoryCard";
+import OperationsAlertPanel from "../../components/dashboard/OperationsAlertPanel";
 
 import { useDashboard } from "../../hooks/useDashboard";
 import useAuth from "../../auth/useAuth";
@@ -104,6 +105,8 @@ export default function Home() {
           <DashboardCard key={item.title} {...item} />
         ))}
       </SimpleGrid>
+
+      <OperationsAlertPanel />
 
       {/* Charts */}
 

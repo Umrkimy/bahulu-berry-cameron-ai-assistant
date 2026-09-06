@@ -17,6 +17,7 @@ const Activity = lazy(() => import("../pages/Activity/Activity"));
 const Team = lazy(() => import("../pages/Team/Team"));
 const RefundRequests = lazy(() => import("../pages/RefundRequests/RefundRequests"));
 const AIUsage = lazy(() => import("../pages/AIUsage/AIUsage"));
+const Alerts = lazy(() => import("../pages/Alerts/Alerts"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -62,6 +63,8 @@ export default function AppRoutes() {
         <Route path="/activity" element={<Activity />} />
 
         <Route path="/refund-requests" element={<RefundRequests />} />
+
+        <Route path="/alerts" element={<Alerts />} />
 
         <Route path="/team" element={<OwnerRoute><Team /></OwnerRoute>} />
       </Route>

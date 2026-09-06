@@ -159,7 +159,9 @@ export default function DataTable<TData extends object>({
             leftSection={<IconSearch size={16} />}
             value={searchValue ?? globalFilter}
             onChange={(event) => {
-              setGlobalFilter(event.currentTarget.value);
+              const value = event.currentTarget.value;
+              setGlobalFilter(value);
+              onSearchChange?.(value);
               setPagination((current) => ({ ...current, pageIndex: 0 }));
             }}
             w={280}

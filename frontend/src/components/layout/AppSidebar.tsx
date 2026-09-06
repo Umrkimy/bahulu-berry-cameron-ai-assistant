@@ -15,6 +15,7 @@ import {
   IconUsersGroup,
   IconCash,
   IconChartBar,
+  IconBell,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -96,6 +97,11 @@ export default function AppSidebar() {
       <NavSection
         title="OPERATIONS"
         items={[
+          {
+            label: "Alerts",
+            link: "/alerts",
+            icon: <IconBell size={18} />,
+          },
           {
             label: "Refund Requests",
             link: "/refund-requests",

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Spotlight, spotlight } from "@mantine/spotlight";
 import { useHotkeys } from "@mantine/hooks";
-import { IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
+import { IconBell, IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
 
@@ -32,6 +32,7 @@ export default function CommandPalette() {
           { id: "deliveries", label: "Deliveries", onClick: () => navigate("/deliveries"), leftSection: <IconTruck size={18} /> },
           { id: "discounts", label: "Discounts", onClick: () => navigate("/discounts"), leftSection: <IconDiscount2 size={18} /> },
           { id: "activity", label: "Activity", onClick: () => navigate("/activity"), leftSection: <IconBox size={18} /> },
+          { id: "alerts", label: "Operations Alerts", onClick: () => navigate("/alerts"), leftSection: <IconBell size={18} /> },
           { id: "refund-requests", label: "Refund Requests", onClick: () => navigate("/refund-requests"), leftSection: <IconCash size={18} /> },
           { id: "assistant", label: "AI Assistant", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
           ...(admin?.role === "OWNER" ? [{ id: "ai-usage", label: "AI Usage & Budget", onClick: () => navigate("/ai-usage"), leftSection: <IconChartBar size={18} /> }] : []),
