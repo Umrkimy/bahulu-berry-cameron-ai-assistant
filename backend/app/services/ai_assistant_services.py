@@ -1,5 +1,6 @@
 import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -30,6 +31,11 @@ from app.services.ai_tools import (
     get_unique_customers_for_date_tool,
     get_best_selling_products_tool,
     get_dashboard_summary_tool,
+    get_delivery_workload,
+    get_low_stock_summary,
+    get_order_workflow,
+    get_shift_summary,
+    get_support_queue_summary,
 )
 
 
@@ -43,8 +49,14 @@ MAX_HISTORY_MESSAGES = 12
 CONFIRMATION_TTL = timedelta(minutes=10)
 
 
+@dataclass(frozen=True)
+class AIServiceResult:
+    response: str
+    cards: list[dict[str, Any]]
+
+
 SYSTEM_PROMPT = """
-You are Bahulu Cameron AI Assistant, an AI assistant for Bahulu Cameron bakery.
+You are Bahulu Berry Cameron AI Assistant, an AI assistant for Bahulu Berry Cameron bakery.
 
 Help manage customers, products, inventory, orders, and business analytics.
 
@@ -172,6 +184,13 @@ ANALYTICS:
 - Use get_best_selling_products for best-selling products.
 - Never calculate business statistics yourself.
 - Cancelled orders are excluded from sales analytics.
+
+STAFF OPERATIONS:
+- Use get_low_stock_summary for stock warnings.
+- Use get_order_workflow for a specific order's payment, fulfilment, and delivery state.
+- Use get_delivery_workload for current delivery workload.
+- Use get_support_queue_summary for support workload and the current user's assigned tickets.
+- Use get_shift_summary for a concise operational handover.
 
 RESPONSE STYLE:
 - Keep responses concise.
@@ -650,6 +669,46 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_low_stock_summary",
+            "description": "Get active products at or below their low-stock threshold.",
+            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_order_workflow",
+            "description": "Get an order's payment, fulfilment, and delivery status by order ID.",
+            "parameters": {"type": "object", "properties": {"order_id": {"type": "integer"}}, "required": ["order_id"], "additionalProperties": False},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_delivery_workload",
+            "description": "Get the current delivery workload grouped by delivery status.",
+            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_support_queue_summary",
+            "description": "Get support queue workload including new, waiting, high-priority, and current staff assignments.",
+            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_shift_summary",
+            "description": "Get a concise current shift summary for orders, inventory warnings, deliveries, and support workload.",
+            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        },
+    },
 ]
 
 
@@ -670,6 +729,11 @@ TOOL_HANDLERS = {
     "get_unique_customers_for_date": get_unique_customers_for_date_tool,
     "get_best_selling_products": get_best_selling_products_tool,
     "get_dashboard_summary": get_dashboard_summary_tool,
+    "get_low_stock_summary": get_low_stock_summary,
+    "get_order_workflow": get_order_workflow,
+    "get_delivery_workload": get_delivery_workload,
+    "get_support_queue_summary": get_support_queue_summary,
+    "get_shift_summary": get_shift_summary,
 }
 
 WRITE_TOOLS = {
@@ -1092,20 +1156,48 @@ async def _execute_tool(
         )
         return {"success": False, "confirmation_required": True, "message": f"I am ready to {_describe_action(tool_name, arguments)} Reply Confirm to continue."}
 
+    if tool_name in {"get_support_queue_summary", "get_shift_summary"}:
+        return await handler(db=db, admin_id=admin_id, **arguments)
+
     return await handler(
         db=db,
         **arguments,
     )
 
 
-async def generate_ai_response(
+def _operation_cards(tool_name: str, result: dict[str, Any]) -> list[dict[str, Any]]:
+    if not result.get("success"):
+        return []
+    if tool_name == "get_low_stock_summary":
+        products = result.get("products", [])
+        facts = [f"{product['product_name']}: {product['quantity']} left (warning at {product['low_stock_threshold']})" for product in products[:4]]
+        return [{"title": "Inventory warnings", "facts": facts or ["No active products are at their low-stock threshold."], "tone": "warning" if products else "success", "href": "/inventory"}]
+    if tool_name == "get_order_workflow":
+        order = result.get("order", {})
+        delivery = result.get("delivery", {})
+        return [{"title": f"Order #{order.get('id', '')}", "facts": [f"Order: {order.get('status', 'Unknown')}", f"Payment: {order.get('payment_status', 'Unknown')}", f"Delivery: {delivery.get('status', 'Unknown')}"], "tone": "warning" if order.get("payment_status") != "PAID" else "info", "href": "/orders"}]
+    if tool_name == "get_delivery_workload":
+        statuses = result.get("by_status", {})
+        facts = [f"{status.replace('_', ' ').title()}: {count}" for status, count in sorted(statuses.items())]
+        return [{"title": "Delivery workload", "facts": facts or ["No delivery records yet."], "tone": "info", "href": "/deliveries"}]
+    if tool_name == "get_support_queue_summary":
+        return [{"title": "Support queue", "facts": [f"New: {result.get('new', 0)}", f"Waiting for customer: {result.get('waiting_for_customer', 0)}", f"High priority: {result.get('high_priority', 0)}", f"Assigned to you: {result.get('assigned_to_you', 0)}"], "tone": "warning" if result.get("high_priority", 0) else "info", "href": "/whatsapp"}]
+    if tool_name == "get_shift_summary":
+        today = result.get("today", {})
+        inventory = result.get("inventory", {})
+        support = result.get("support", {})
+        return [{"title": "Current shift summary", "facts": [f"Today’s orders: {today.get('orders', 0)}", f"Low-stock products: {inventory.get('low_stock_count', 0)}", f"High-priority support: {support.get('high_priority', 0)}", f"Assigned to you: {support.get('assigned_to_you', 0)}"], "tone": "warning" if inventory.get("low_stock_count", 0) or support.get("high_priority", 0) else "success", "href": "/dashboard"}]
+    return []
+
+
+async def generate_ai_result(
     db: AsyncSession,
     message: str,
     conversation_id: str,
     admin_id: int,
     conversation_history: list[AIChatMessage],
     is_owner: bool,
-) -> str:
+) -> AIServiceResult:
 
     confirmed_response = await _execute_pending_confirmation(
         db=db,
@@ -1114,7 +1206,9 @@ async def generate_ai_response(
         message=message,
     ) if is_owner else None
     if confirmed_response is not None:
-        return confirmed_response
+        return AIServiceResult(response=confirmed_response, cards=[])
+
+    cards: list[dict[str, Any]] = []
 
     messages: list[dict[str, Any]] = [
         {
@@ -1169,13 +1263,13 @@ async def generate_ai_response(
                 model=settings.OPENAI_MODEL,
             )
         except AIBudgetExceeded:
-            return "The monthly AI budget has been reached. Please ask an owner to review the AI usage page."
+            return AIServiceResult(response="The monthly AI budget has been reached. Please ask an owner to review the AI usage page.", cards=[])
 
         try:
             response = await client.chat.completions.create(**request_options)
         except OpenAIError:
             await settle_ai_usage(db, usage_record, outcome="FAILED")
-            return "The AI service is temporarily unavailable. Please try again shortly."
+            return AIServiceResult(response="The AI service is temporarily unavailable. Please try again shortly.", cards=[])
 
         provider_usage = response.usage
         await settle_ai_usage(
@@ -1189,7 +1283,7 @@ async def generate_ai_response(
         assistant_message = response.choices[0].message
 
         if not assistant_message.tool_calls:
-            return assistant_message.content or ""
+            return AIServiceResult(response=assistant_message.content or "", cards=cards)
 
         messages.append(
             {
@@ -1237,6 +1331,8 @@ async def generate_ai_response(
                     "error": str(exc),
                 }
 
+            cards.extend(_operation_cards(tool_name, result))
+
             messages.append(
                 {
                     "role": "tool",
@@ -1248,7 +1344,23 @@ async def generate_ai_response(
                 }
             )
 
-    return (
-        "I was unable to complete the request. "
-        "Please try again."
+    return AIServiceResult(response="I was unable to complete the request. Please try again.", cards=cards)
+
+
+async def generate_ai_response(
+    db: AsyncSession,
+    message: str,
+    conversation_id: str,
+    admin_id: int,
+    conversation_history: list[AIChatMessage],
+    is_owner: bool,
+) -> str:
+    result = await generate_ai_result(
+        db=db,
+        message=message,
+        conversation_id=conversation_id,
+        admin_id=admin_id,
+        conversation_history=conversation_history,
+        is_owner=is_owner,
     )
+    return result.response

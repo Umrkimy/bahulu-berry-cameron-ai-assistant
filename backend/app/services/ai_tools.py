@@ -1,3 +1,4 @@
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.customer import CustomerCreate
@@ -32,6 +33,10 @@ from app.services.dashboard_services import (
 from app.services.product_services import (
     get_product_by_name,
 )
+from app.models.delivery import Delivery
+from app.models.inventory import Inventory
+from app.models.product import Product
+from app.models.support import SupportRequest
 
 
 # =========================================================
@@ -427,3 +432,73 @@ async def get_dashboard_summary_tool(
         db=db,
         date=date,
     )
+
+
+# =========================================================
+# STAFF OPERATIONS COPILOT
+# =========================================================
+
+
+async def get_low_stock_summary(db: AsyncSession) -> dict:
+    low_stock_filter = (
+        Product.is_active.is_(True),
+        Inventory.quantity <= Inventory.low_stock_threshold,
+    )
+    total = await db.scalar(
+        select(func.count(Product.id))
+        .join(Inventory, Inventory.product_id == Product.id)
+        .where(*low_stock_filter)
+    )
+    rows = await db.execute(
+        select(Product.id, Product.name, Inventory.quantity, Inventory.low_stock_threshold)
+        .join(Inventory, Inventory.product_id == Product.id)
+        .where(*low_stock_filter)
+        .order_by(Inventory.quantity.asc(), Product.name.asc())
+        .limit(20)
+    )
+    products = [
+        {"product_id": row.id, "product_name": row.name, "quantity": row.quantity, "low_stock_threshold": row.low_stock_threshold}
+        for row in rows
+    ]
+    return {"success": True, "low_stock_count": int(total or 0), "products": products}
+
+
+async def get_delivery_workload(db: AsyncSession) -> dict:
+    rows = await db.execute(select(Delivery.status, func.count(Delivery.id)).group_by(Delivery.status))
+    statuses = {str(status): int(count) for status, count in rows.all()}
+    return {"success": True, "total": sum(statuses.values()), "by_status": statuses}
+
+
+async def get_support_queue_summary(db: AsyncSession, admin_id: int) -> dict:
+    async def count(where_clause) -> int:
+        value = await db.scalar(select(func.count(SupportRequest.id)).where(where_clause))
+        return int(value or 0)
+
+    return {
+        "success": True,
+        "new": await count(SupportRequest.status == "NEW"),
+        "waiting_for_customer": await count(SupportRequest.status == "WAITING_FOR_CUSTOMER"),
+        "high_priority": await count(SupportRequest.priority.in_(("HIGH", "URGENT"))),
+        "assigned_to_you": await count(SupportRequest.assigned_admin_id == admin_id),
+    }
+
+
+async def get_order_workflow(db: AsyncSession, order_id: int) -> dict:
+    result = await service_get_order(db=db, order_id=order_id)
+    if not result.get("success"):
+        return result
+    delivery = await db.scalar(select(Delivery).where(Delivery.order_id == order_id))
+    result["delivery"] = {
+        "status": delivery.status if delivery else "NOT_CREATED",
+        "courier": delivery.courier if delivery else None,
+        "tracking_number": delivery.tracking_number if delivery else None,
+    }
+    return result
+
+
+async def get_shift_summary(db: AsyncSession, admin_id: int) -> dict:
+    dashboard = await service_get_dashboard_summary(db=db, date="today")
+    inventory = await get_low_stock_summary(db)
+    deliveries = await get_delivery_workload(db)
+    support = await get_support_queue_summary(db, admin_id)
+    return {"success": True, "today": dashboard, "inventory": inventory, "deliveries": deliveries, "support": support}
