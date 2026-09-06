@@ -206,7 +206,7 @@ export default function ChatInput({ onSend, loading = false }: ChatInputProps) {
 
   return (
     <Box>
-      <Group justify="space-between" mb={6} gap="xs">
+      <Group className="ai-input-controls" justify="space-between" mb={6} gap="xs">
         <Select
           aria-label="Dictation language"
           data={languageOptions}

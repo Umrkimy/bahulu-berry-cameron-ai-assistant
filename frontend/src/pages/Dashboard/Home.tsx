@@ -1,9 +1,8 @@
-import { Alert, Button, Group, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Alert, Button, Group, SimpleGrid, Stack } from "@mantine/core";
 
 import {
   IconCurrencyDollar,
   IconShoppingCart,
-  IconUsers,
   IconPackage,
   IconAlertTriangle,
   IconCalendarMonth,
@@ -28,7 +27,7 @@ import { useDashboard } from "../../hooks/useDashboard";
 import useAuth from "../../auth/useAuth";
 
 export default function Home() {
-  const { data, isLoading, error } = useDashboard();
+  const { data, isLoading, error, refetch } = useDashboard();
   const { admin } = useAuth();
 
   if (isLoading) {
@@ -36,44 +35,32 @@ export default function Home() {
   }
 
   if (error || !data) {
-    return <Text>Failed to load dashboard</Text>;
+    return <Alert color="red" title="Dashboard unavailable">We could not load the latest operational data. <Button size="compact-xs" variant="subtle" color="red" onClick={() => refetch()}>Try again</Button></Alert>;
   }
 
   const stats = [
     {
-      title: "Paid Revenue",
-      value: `RM ${Number(data.sales.revenue).toFixed(2)}`,
-      description: "All-time paid, non-cancelled orders",
+      title: "Today’s sales",
+      value: Number(data.sales.today_revenue),
+      format: "currency" as const,
+      description: "Paid, non-cancelled orders today",
       icon: <IconCurrencyDollar />,
       color: "red",
     },
     {
-      title: "This Month",
-      value: `RM ${Number(data.sales.monthly_revenue).toFixed(2)}`,
-      description: `Today: RM ${Number(data.sales.today_revenue).toFixed(2)}`,
+      title: "This month",
+      value: Number(data.sales.monthly_revenue),
+      format: "currency" as const,
+      description: "Month-to-date paid revenue",
       icon: <IconCalendarMonth />,
-      color: "blue",
-    },
-    {
-      title: "Pending Orders",
-      value: String(data.orders.pending),
-      description: `${data.orders.total} total orders`,
-      icon: <IconShoppingCart />,
-      color: "orange",
-    },
-    {
-      title: "Inventory Alerts",
-      value: String(data.inventory.low_stock + data.inventory.out_of_stock),
-      description: `${data.inventory.out_of_stock} out of stock`,
-      icon: <IconAlertTriangle />,
       color: "red",
     },
     {
-      title: "Customers",
-      value: String(data.customers.total),
-      description: `${data.products.total} active products`,
-      icon: <IconUsers />,
-      color: "violet",
+      title: "Pending Orders",
+      value: data.orders.pending,
+      description: `${data.orders.total} total orders`,
+      icon: <IconShoppingCart />,
+      color: "orange",
     },
   ];
 
@@ -98,7 +85,6 @@ export default function Home() {
           base: 1,
           sm: 2,
           lg: 3,
-          xl: 5,
         }}
       >
         {stats.map((item) => (

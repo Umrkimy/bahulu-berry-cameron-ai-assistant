@@ -19,6 +19,7 @@ from app.api.routes import (
     support,
     ai_usage,
     operations,
+    reports,
 )
 
 api_router = APIRouter()
@@ -129,5 +130,11 @@ api_router.include_router(
     operations.router,
     prefix="/operations",
     tags=["operations"],
+)
+
+api_router.include_router(
+    reports.router,
+    prefix="/reports",
+    tags=["reports"],
 )
 

@@ -17,6 +17,10 @@ unconfirmed business details are excluded.
   grounded cited drafts, human handoffs, and a provider-neutral simulator.
 - AI cost controls for `gpt-4o-mini`: safe usage telemetry, fixed request
   limits, warning threshold, and a backend-enforced monthly budget cap.
+- Owner-only reports and responsive operational views for desktop, tablet, and
+  phone, including Apache ECharts sales and fulfilment visualisations.
+- Calm, reduced-motion-aware UI feedback, safe dashboard crash recovery, and
+  automated frontend/browser regression checks.
 
 ## Architecture
 
@@ -54,8 +58,13 @@ Useful checks:
 
 ```powershell
 cd backend; uv run pytest
-cd ../frontend; npm run build; npm audit --omit=dev --audit-level=high
+cd ../frontend; npm run test; npm run test:e2e; npm run build; npm audit --omit=dev --audit-level=high
 ```
+
+The dashboard uses `react-error-boundary` to show a safe recovery screen if a
+route fails. Vitest/MSW cover deterministic UI and API states, while Playwright
+checks the sign-in experience at desktop and mobile sizes. These tests use mock
+data and never call Stripe or production services.
 
 Compose runs Alembic migrations before the API starts. Production should use a
 managed, client-owned PostgreSQL database and an explicit migration job.

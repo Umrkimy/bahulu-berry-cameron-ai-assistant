@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -221,6 +221,9 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         loading={isLoading}
         searchPlaceholder="Search products..."
         emptyMessage="No products found."
+        renderMobileCard={(product) => (
+          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{product.name}</Text><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "ACTIVE" : "INACTIVE"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={700} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="light" color="orange" onClick={() => onEdit(product)} aria-label="Edit product"><IconEdit size={18} /></ActionIcon><ActionIcon variant="light" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
+        )}
       />
     </Card>
   );

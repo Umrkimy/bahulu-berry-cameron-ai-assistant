@@ -157,6 +157,7 @@ export default function AIAssistant() {
   return (
     <>
       <Box
+        className="ai-assistant-shell"
         h="calc(100vh - 70px)"
         style={{
           display: "flex",
@@ -175,6 +176,7 @@ export default function AIAssistant() {
           }}
         >
           <Box
+            className="ai-chat-header"
             maw={900}
             mx="auto"
             style={{
@@ -197,6 +199,7 @@ export default function AIAssistant() {
             </Text>
 
             <Button
+              className="ai-chat-actions"
               size="sm"
               variant="light"
               leftSection={<IconPlus size={16} />}

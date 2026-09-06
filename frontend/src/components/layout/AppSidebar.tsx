@@ -108,6 +108,7 @@ export default function AppSidebar() {
             icon: <IconCash size={18} />,
           },
           ...(admin?.role === "OWNER" ? [{ label: "AI Usage", link: "/ai-usage", icon: <IconChartBar size={18} /> }] : []),
+          ...(admin?.role === "OWNER" ? [{ label: "Reports", link: "/reports", icon: <IconChartBar size={18} /> }] : []),
           {
             label: "Activity",
             link: "/activity",

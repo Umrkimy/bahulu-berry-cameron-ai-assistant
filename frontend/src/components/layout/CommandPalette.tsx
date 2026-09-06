@@ -36,6 +36,7 @@ export default function CommandPalette() {
           { id: "refund-requests", label: "Refund Requests", onClick: () => navigate("/refund-requests"), leftSection: <IconCash size={18} /> },
           { id: "assistant", label: "AI Assistant", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
           ...(admin?.role === "OWNER" ? [{ id: "ai-usage", label: "AI Usage & Budget", onClick: () => navigate("/ai-usage"), leftSection: <IconChartBar size={18} /> }] : []),
+          ...(admin?.role === "OWNER" ? [{ id: "reports", label: "Owner Reports", onClick: () => navigate("/reports"), leftSection: <IconChartBar size={18} /> }] : []),
         ] },
         { group: "Quick actions", actions: [
           { id: "new-order", label: "Create Order", onClick: () => navigate("/orders?create=1"), leftSection: <IconPlus size={18} /> },

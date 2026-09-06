@@ -18,11 +18,13 @@ const Team = lazy(() => import("../pages/Team/Team"));
 const RefundRequests = lazy(() => import("../pages/RefundRequests/RefundRequests"));
 const AIUsage = lazy(() => import("../pages/AIUsage/AIUsage"));
 const Alerts = lazy(() => import("../pages/Alerts/Alerts"));
+const Reports = lazy(() => import("../pages/Reports/Reports"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
 
 import AppLayout from "../components/layout/AppLayout";
+import AppErrorBoundary from "../components/common/AppErrorBoundary";
 
 export default function AppRoutes() {
   return (
@@ -34,7 +36,7 @@ export default function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <AppErrorBoundary><AppLayout /></AppErrorBoundary>
           </ProtectedRoute>
         }
       >
@@ -65,6 +67,8 @@ export default function AppRoutes() {
         <Route path="/refund-requests" element={<RefundRequests />} />
 
         <Route path="/alerts" element={<Alerts />} />
+
+        <Route path="/reports" element={<OwnerRoute><Reports /></OwnerRoute>} />
 
         <Route path="/team" element={<OwnerRoute><Team /></OwnerRoute>} />
       </Route>
