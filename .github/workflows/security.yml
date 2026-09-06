@@ -50,6 +50,45 @@ jobs:
       - run: npm run build
         working-directory: frontend
 
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bahulu_test
+          POSTGRES_USER: bahulu
+          POSTGRES_PASSWORD: ci-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bahulu -d bahulu_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ENVIRONMENT: development
+      DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://bahulu:ci-password@localhost:5432/bahulu_test
+      TEST_DATABASE_URL: postgresql+asyncpg://bahulu:ci-password@localhost:5432/bahulu_test
+      ALLOWED_ORIGINS: http://localhost:5173
+      TRUSTED_HOSTS: localhost,127.0.0.1,testserver
+      SECRET_KEY: ci-only-secret-key-with-more-than-thirty-two-characters
+      OPENAI_API_KEY: ci-placeholder
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_SUCCESS_URL: http://localhost:5173/payment/success
+      STRIPE_CANCEL_URL: http://localhost:5173/payment/cancel
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v9
+      - run: uv sync --locked --group dev
+        working-directory: backend
+      - run: uv run alembic upgrade head
+        working-directory: backend
+      - run: uv run pytest
+        working-directory: backend
+
   secrets:
     runs-on: ubuntu-latest
     steps:

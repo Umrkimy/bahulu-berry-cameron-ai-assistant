@@ -1,5 +1,10 @@
 export type SupportStatus = "NEW" | "IN_PROGRESS" | "WAITING_FOR_CUSTOMER" | "RESOLVED" | "CLOSED";
 export interface SupportRequest { id:number; customer_id:number|null; customer_name:string; contact:string|null; source:string; subject:string; notes:string|null; handoff_reason:string|null; priority:"LOW"|"NORMAL"|"HIGH"|"URGENT"; status:SupportStatus; assigned_admin_id:number|null; created_at:string; updated_at:string; }
+export interface SupportRequestPage { items: SupportRequest[]; page: number; page_size: number; total: number; total_pages: number; }
+export interface SupportRequestNote { id: number; support_request_id: number; author_admin_id: number; content: string; created_at: string; }
 export interface SupportFAQ { id:number; category:string; question_en:string; answer_en:string; question_ms:string|null; answer_ms:string|null; is_active:boolean; updated_at:string; }
 export interface SupportTemplate { id:number; category:string; name:string; content_en:string; content_ms:string|null; is_active:boolean; updated_at:string; }
 export interface HandoffRule { id:number; trigger:string; description:string; is_active:boolean; updated_at:string; }
+export interface SupportDraftSource { type:"FAQ"|"TEMPLATE"; id:number; label:string; }
+export interface SupportDraft { reply:string|null; language:"EN"|"MS"; handoff_required:boolean; handoff_reason:string|null; sources:SupportDraftSource[]; prompt_version:string; model:string; latency_ms:number; }
+export interface SimulatorInboundResult { outcome: "DRAFTED" | "HANDOFF" | "DUPLICATE"; duplicate: boolean; support_request_id: number | null; ticket_created: boolean; draft: SupportDraft | null; }

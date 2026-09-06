@@ -24,8 +24,13 @@ class Settings(BaseSettings):
     CSRF_COOKIE_NAME: str = "bbc_csrf_token"
 
     OPENAI_API_KEY: SecretStr
-    OPENAI_MODEL: str = "gpt-5.6-luna"
+    OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_REASONING_EFFORT: str = "none"
+    AI_MONTHLY_BUDGET_USD: float = 8.0
+    AI_DISPLAY_EXCHANGE_RATE: float = 4.4
+    AI_BUDGET_WARNING_THRESHOLD: float = 0.8
+    AI_MAX_COMPLETION_TOKENS: int = 600
+    AI_MAX_RESERVED_INPUT_TOKENS: int = 32_000
 
     STRIPE_SECRET_KEY: SecretStr
     STRIPE_WEBHOOK_SECRET: SecretStr

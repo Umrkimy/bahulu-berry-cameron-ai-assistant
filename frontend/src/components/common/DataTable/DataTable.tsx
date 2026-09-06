@@ -36,6 +36,15 @@ interface DataTableProps<TData extends object> {
   emptyMessage?: string;
   pageSizeOptions?: string[];
   toolbar?: ReactNode;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  manualPagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
 }
 
 export default function DataTable<TData extends object>({
@@ -46,6 +55,9 @@ export default function DataTable<TData extends object>({
   emptyMessage = "No records found.",
   pageSizeOptions = ["10", "20", "30", "50"],
   toolbar,
+  searchValue,
+  onSearchChange,
+  manualPagination,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -60,39 +72,66 @@ export default function DataTable<TData extends object>({
     columns,
 
     state: {
-      globalFilter,
+      globalFilter: searchValue ?? globalFilter,
       sorting,
-      pagination,
+      pagination: manualPagination
+        ? { pageIndex: manualPagination.page - 1, pageSize: manualPagination.pageSize }
+        : pagination,
     },
 
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: (value) => {
+      setGlobalFilter(value);
+      onSearchChange?.(value);
+    },
     onSortingChange: setSorting,
-    onPaginationChange: setPagination,
+    onPaginationChange: manualPagination
+      ? (updater) => {
+          const current = { pageIndex: manualPagination.page - 1, pageSize: manualPagination.pageSize };
+          const next = typeof updater === "function" ? updater(current) : updater;
+          if (next.pageSize !== current.pageSize) {
+            manualPagination.onPageSizeChange(next.pageSize);
+          } else if (next.pageIndex !== current.pageIndex) {
+            manualPagination.onPageChange(next.pageIndex + 1);
+          }
+        }
+      : setPagination,
+
+    manualPagination: Boolean(manualPagination),
+    pageCount: manualPagination ? Math.max(1, Math.ceil(manualPagination.total / manualPagination.pageSize)) : undefined,
 
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(manualPagination ? {} : { getPaginationRowModel: getPaginationRowModel() }),
   });
 
   const rows = table.getRowModel().rows;
 
-  const totalRows = table.getFilteredRowModel().rows.length;
+  const totalRows = manualPagination ? manualPagination.total : table.getFilteredRowModel().rows.length;
 
   const startRow =
     totalRows === 0
       ? 0
-      : pagination.pageIndex * pagination.pageSize + 1;
+      : manualPagination
+        ? (manualPagination.page - 1) * manualPagination.pageSize + 1
+        : pagination.pageIndex * pagination.pageSize + 1;
 
   const endRow = Math.min(
-    (pagination.pageIndex + 1) * pagination.pageSize,
+    manualPagination
+      ? manualPagination.page * manualPagination.pageSize
+      : (pagination.pageIndex + 1) * pagination.pageSize,
     totalRows,
   );
 
   const resetTable = () => {
     setGlobalFilter("");
+    onSearchChange?.("");
     setSorting([]);
-    table.setPageIndex(0);
+    if (manualPagination) {
+      manualPagination.onPageChange(1);
+    } else {
+      table.setPageIndex(0);
+    }
   };
 
   return (
@@ -118,7 +157,7 @@ export default function DataTable<TData extends object>({
           <TextInput
             placeholder={searchPlaceholder}
             leftSection={<IconSearch size={16} />}
-            value={globalFilter}
+            value={searchValue ?? globalFilter}
             onChange={(event) => {
               setGlobalFilter(event.currentTarget.value);
               setPagination((current) => ({ ...current, pageIndex: 0 }));
@@ -291,7 +330,7 @@ export default function DataTable<TData extends object>({
           <Select
             size="xs"
             w={80}
-            value={String(pagination.pageSize)}
+            value={String(manualPagination?.pageSize ?? pagination.pageSize)}
             data={pageSizeOptions}
             onChange={(value) => {
               if (!value) return;

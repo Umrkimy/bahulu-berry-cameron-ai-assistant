@@ -1,11 +1,24 @@
 import api from "./axios";
-import type { HandoffRule, SupportFAQ, SupportRequest, SupportTemplate } from "../types/support";
-export const getSupportRequests=async()=> (await api.get<SupportRequest[]>("/support/requests")).data;
+import type { HandoffRule, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportRequest, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
+export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
 export const createSupportRequest=async(data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.post<SupportRequest>("/support/requests",data)).data;
 export const updateSupportRequest=async(id:number,data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.patch<SupportRequest>(`/support/requests/${id}`,data)).data;
+export const deleteSupportRequest=async(id:number)=>api.delete(`/support/requests/${id}`);
+export const getSupportRequestNotes=async(id:number)=> (await api.get<SupportRequestNote[]>(`/support/requests/${id}/notes`)).data;
+export const createSupportRequestNote=async(id:number, content:string)=> (await api.post<SupportRequestNote>(`/support/requests/${id}/notes`, { content })).data;
+export const getSupportAssignees=async()=> (await api.get<{id:number;username:string;role:"OWNER"|"STAFF"}[]>("/support/assignees")).data;
 export const getFAQs=async()=> (await api.get<SupportFAQ[]>("/support/faqs")).data;
 export const getTemplates=async()=> (await api.get<SupportTemplate[]>("/support/templates")).data;
 export const getRules=async()=> (await api.get<HandoffRule[]>("/support/rules")).data;
 export const createFAQ=async(data:Omit<SupportFAQ,"id"|"updated_at">)=>(await api.post<SupportFAQ>("/support/faqs",data)).data;
+export const updateFAQ=async(id:number,data:Omit<SupportFAQ,"id"|"updated_at">)=>(await api.patch<SupportFAQ>(`/support/faqs/${id}`,data)).data;
+export const deleteFAQ=async(id:number)=>api.delete(`/support/faqs/${id}`);
 export const createTemplate=async(data:Omit<SupportTemplate,"id"|"updated_at">)=>(await api.post<SupportTemplate>("/support/templates",data)).data;
+export const updateTemplate=async(id:number,data:Omit<SupportTemplate,"id"|"updated_at">)=>(await api.patch<SupportTemplate>(`/support/templates/${id}`,data)).data;
+export const deleteTemplate=async(id:number)=>api.delete(`/support/templates/${id}`);
 export const createRule=async(data:Omit<HandoffRule,"id"|"updated_at">)=>(await api.post<HandoffRule>("/support/rules",data)).data;
+export const updateRule=async(id:number,data:Omit<HandoffRule,"id"|"updated_at">)=>(await api.patch<HandoffRule>(`/support/rules/${id}`,data)).data;
+export const deleteRule=async(id:number)=>api.delete(`/support/rules/${id}`);
+export const createSupportDraft=async(data:{message:string;language:"AUTO"|"EN"|"MS";support_request_id?:number})=>(await api.post<SupportDraft>("/support/copilot/draft",data)).data;
+export const simulateInboundMessage=async(data:{message_id:string;conversation_id:string;sender_reference:string;message:string;language:"AUTO"|"EN"|"MS"})=>(await api.post<SimulatorInboundResult>("/support/simulator/inbound",data)).data;

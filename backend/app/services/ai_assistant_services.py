@@ -3,7 +3,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.schemas.ai_assistant import AIChatMessage
 from app.models.ai_action_confirmation import AIActionConfirmation
 from app.services.activity_services import record_activity
+from app.services.ai_usage_services import AIBudgetExceeded, reserve_ai_usage, settle_ai_usage
 
 from app.services.ai_tools import (
     adjust_product_stock,
@@ -679,6 +680,11 @@ WRITE_TOOLS = {
     "cancel_order",
 }
 
+READ_ONLY_TOOLS = [
+    tool for tool in TOOLS
+    if tool["function"]["name"] not in WRITE_TOOLS
+]
+
 
 def _describe_action(tool_name: str, arguments: dict[str, Any]) -> str:
     if tool_name == "adjust_product_stock":
@@ -1117,6 +1123,14 @@ async def generate_ai_response(
         }
     ]
 
+    if not is_owner:
+        messages.append(
+            {
+                "role": "system",
+                "content": "The current user is Staff. You may provide read-only operational help using read-only tools. Do not suggest, preview, or attempt changes to customers, inventory, orders, or any other records.",
+            }
+        )
+
     recent_history = conversation_history[
         -MAX_HISTORY_MESSAGES:
     ]
@@ -1138,12 +1152,38 @@ async def generate_ai_response(
 
     for _ in range(MAX_TOOL_ROUNDS):
 
-        response = await client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="auto",
-            reasoning_effort=settings.OPENAI_REASONING_EFFORT,
+        request_options: dict[str, Any] = {
+            "model": settings.OPENAI_MODEL,
+            "messages": messages,
+            "tools": TOOLS if is_owner else READ_ONLY_TOOLS,
+            "tool_choice": "auto",
+            "max_completion_tokens": settings.AI_MAX_COMPLETION_TOKENS,
+        }
+        if settings.OPENAI_REASONING_EFFORT != "none":
+            request_options["reasoning_effort"] = settings.OPENAI_REASONING_EFFORT
+
+        try:
+            usage_record = await reserve_ai_usage(
+                db,
+                admin_id=admin_id,
+                model=settings.OPENAI_MODEL,
+            )
+        except AIBudgetExceeded:
+            return "The monthly AI budget has been reached. Please ask an owner to review the AI usage page."
+
+        try:
+            response = await client.chat.completions.create(**request_options)
+        except OpenAIError:
+            await settle_ai_usage(db, usage_record, outcome="FAILED")
+            return "The AI service is temporarily unavailable. Please try again shortly."
+
+        provider_usage = response.usage
+        await settle_ai_usage(
+            db,
+            usage_record,
+            input_tokens=getattr(provider_usage, "prompt_tokens", 0) or 0,
+            output_tokens=getattr(provider_usage, "completion_tokens", 0) or 0,
+            outcome="COMPLETED",
         )
 
         assistant_message = response.choices[0].message

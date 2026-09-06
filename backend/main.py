@@ -1,10 +1,16 @@
 from contextlib import asynccontextmanager
+import json
+import logging
+import time
+from uuid import uuid4
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
 
 from app.db.database import engine
 
@@ -13,6 +19,9 @@ from app.core.security import verify_csrf_request
 import app.models
 import app.schemas
 from app.api.router import api_router
+
+
+logger = logging.getLogger("bahulu.api")
 
 
 @asynccontextmanager
@@ -31,6 +40,21 @@ app = FastAPI(
 )
 
 settings.validate_runtime_security()
+
+
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/ready", include_in_schema=False)
+async def readiness_check():
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unavailable"})
+    return {"status": "ready"}
 
 
 @app.exception_handler(IntegrityError)
@@ -64,6 +88,8 @@ app.add_middleware(
 
 @app.middleware("http")
 async def apply_security_controls(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    started = time.perf_counter()
     content_length = request.headers.get("content-length")
     if content_length:
         try:
@@ -81,6 +107,15 @@ async def apply_security_controls(request: Request, call_next):
         raise
 
     response = await call_next(request)
+    logger.info(json.dumps({
+        "event": "request_completed",
+        "request_id": request_id,
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": response.status_code,
+        "duration_ms": round((time.perf_counter() - started) * 1000),
+    }))
+    response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

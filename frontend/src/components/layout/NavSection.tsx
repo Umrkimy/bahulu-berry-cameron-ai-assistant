@@ -16,10 +16,12 @@ interface NavSectionProps {
 
 export default function NavSection({ title, items }: NavSectionProps) {
   const location = useLocation();
+  if (items.length === 0) return null;
 
   return (
     <Stack gap={4}>
       <div
+        className="nav-section-label"
         style={{
           fontSize: 12,
           fontWeight: 600,
@@ -40,6 +42,7 @@ export default function NavSection({ title, items }: NavSectionProps) {
           label={item.label}
           leftSection={item.icon}
           active={location.pathname === item.link}
+          aria-current={location.pathname === item.link ? "page" : undefined}
           variant="light"
           color="bahulu"
           styles={{

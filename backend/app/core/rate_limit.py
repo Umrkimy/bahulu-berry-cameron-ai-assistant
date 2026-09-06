@@ -35,6 +35,7 @@ class InMemoryRateLimiter:
 rate_limiter = InMemoryRateLimiter()
 LOGIN_LIMIT = RateLimit(maximum=5, window_seconds=15 * 60)
 AI_LIMIT = RateLimit(maximum=30, window_seconds=5 * 60)
+STAFF_AI_LIMIT = RateLimit(maximum=10, window_seconds=5 * 60)
 PAYMENT_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
 REFUND_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
 PASSWORD_RESET_LIMIT = RateLimit(maximum=5, window_seconds=15 * 60)

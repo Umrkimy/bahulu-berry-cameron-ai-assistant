@@ -3,9 +3,9 @@ import { createTheme } from "@mantine/core";
 export const theme = createTheme({
   primaryColor: "bahulu",
 
-  defaultRadius: "lg",
+  defaultRadius: "md",
 
-  fontFamily: "Inter, sans-serif",
+  fontFamily: "Inter, 'Segoe UI', sans-serif",
 
   headings: {
     fontFamily: "Inter, sans-serif",
@@ -13,6 +13,7 @@ export const theme = createTheme({
   },
 
   colors: {
+    cream: ["#fffdf8", "#faf5eb", "#f1e9d7", "#e6d9bb", "#d8c69b", "#cab27b", "#b79a60", "#987e4d", "#78633e", "#59492e"],
     bahulu: [
       "#fff5f5",
       "#ffd9d9",
