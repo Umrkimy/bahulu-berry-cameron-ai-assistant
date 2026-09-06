@@ -19,6 +19,7 @@ from app.core.security import verify_csrf_request
 import app.models
 import app.schemas
 from app.api.router import api_router
+from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
 
 
 logger = logging.getLogger("bahulu.api")
@@ -119,7 +120,7 @@ async def apply_security_controls(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
     if settings.is_production:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -130,6 +131,8 @@ app.include_router(
     api_router,
     prefix="/api",
 )
+
+app.include_router(meta_whatsapp_router)
 
 
 if __name__ == "__main__":

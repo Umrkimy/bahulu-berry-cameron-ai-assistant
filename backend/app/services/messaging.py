@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from hashlib import sha256
 import hmac
-from typing import Protocol
+from typing import Any, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,11 +51,47 @@ class SimulatorAdapter:
         raise RuntimeError("Outbound messaging is not enabled.")
 
 
+class MetaWhatsAppAdapter:
+    provider = "META_WHATSAPP"
+
+    def normalize_inbound(self, payload: dict[str, Any]) -> list[NormalizedInboundMessage]:
+        messages: list[NormalizedInboundMessage] = []
+        for entry in payload.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                phone_number_id = value.get("metadata", {}).get("phone_number_id", "")
+                if settings.WHATSAPP_META_PHONE_NUMBER_ID and phone_number_id != settings.WHATSAPP_META_PHONE_NUMBER_ID:
+                    continue
+                for item in value.get("messages", []):
+                    text = item.get("text", {}).get("body") if item.get("type") == "text" else None
+                    message_id, sender = item.get("id"), item.get("from")
+                    if not isinstance(text, str) or not isinstance(message_id, str) or not isinstance(sender, str):
+                        continue
+                    text = text.strip()
+                    if not 2 <= len(text) <= 2_000:
+                        continue
+                    messages.append(NormalizedInboundMessage(
+                        provider=self.provider,
+                        external_message_id=message_id,
+                        external_conversation_id=f"{phone_number_id}:{sender}",
+                        sender_reference=sender,
+                        message=text,
+                        language="AUTO",
+                    ))
+        return messages
+
+    def verify_inbound(self, payload: object) -> bool:
+        return isinstance(payload, dict)
+
+    async def send_template(self, *, recipient: str, template_name: str, variables: dict[str, str]) -> str:
+        raise RuntimeError("Outbound messaging is not enabled in draft-only mode.")
+
+
 def _payload_hash(message: str) -> str:
     return hmac.new(settings.SECRET_KEY.get_secret_value().encode(), message.encode(), sha256).hexdigest()
 
 
-async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin) -> SimulatorInboundPublic:
+async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin | None = None) -> SimulatorInboundPublic:
     existing = await db.scalar(select(MessagingEvent).where(MessagingEvent.provider == message.provider, MessagingEvent.external_message_id == message.external_message_id))
     if existing is not None:
         return SimulatorInboundPublic(outcome="DUPLICATE", duplicate=True, support_request_id=existing.support_request_id)
@@ -89,7 +125,7 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
             conversation.support_request_id = ticket.id
             support_request_id = ticket.id
             ticket_created = True
-            await record_activity(db, admin=actor, action="created", entity_type="support_request", entity_id=ticket.id, description=f"Created support request #{ticket.id} from a fictional WhatsApp handoff.")
+            await record_activity(db, admin=actor, action="created", entity_type="support_request", entity_id=ticket.id, description=f"Created support request #{ticket.id} from an inbound support handoff.")
 
     event = MessagingEvent(
         provider=message.provider,
@@ -108,7 +144,7 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
         action="processed",
         entity_type="messaging_event",
         entity_id=event.id,
-        description="Processed a fictional inbound message into a human handoff." if outcome == "HANDOFF" else "Processed a fictional inbound message into a grounded draft.",
+        description="Processed an inbound message into a human handoff." if outcome == "HANDOFF" else "Processed an inbound message into a grounded draft.",
         metadata={"provider": message.provider, "outcome": outcome, "support_request_id": support_request_id},
     )
     await db.commit()

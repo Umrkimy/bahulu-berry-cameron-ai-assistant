@@ -9,14 +9,14 @@ export default function DashboardSkeleton() {
         cols={{
           base: 1,
           sm: 2,
-          lg: 4,
+          lg: 3,
         }}
       >
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} withBorder radius="md" p="lg">
-            <Skeleton height={20} width="40%" mb="md" />
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Card key={index} withBorder radius="md" p="md">
+            <Skeleton height={14} width="40%" mb="sm" />
 
-            <Skeleton height={35} width="60%" />
+            <Skeleton height={28} width="60%" />
           </Card>
         ))}
       </SimpleGrid>
@@ -24,7 +24,7 @@ export default function DashboardSkeleton() {
       {/* Chart loading */}
 
       <Card withBorder radius="md" p="lg">
-        <Skeleton height={300} />
+        <Skeleton height={240} />
       </Card>
 
       {/* Table loading */}

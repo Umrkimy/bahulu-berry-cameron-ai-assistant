@@ -7,8 +7,9 @@ from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.customer import Customer
+from app.models.messaging import MessagingConversation
 from app.models.support import HandoffRule, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
-from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic
+from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic, SupportMessagingConversationPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.support import FAQInput, FAQPublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
@@ -223,6 +224,16 @@ async def request_notes(item_id: int, db: Annotated[AsyncSession, Depends(get_db
         raise HTTPException(404, detail="Support request not found.")
     result = await db.execute(select(SupportRequestNote).where(SupportRequestNote.support_request_id == item_id).order_by(SupportRequestNote.created_at.asc()))
     return result.scalars().all()
+
+
+@router.get("/requests/{item_id}/messaging-conversation", response_model=SupportMessagingConversationPublic | None)
+async def request_messaging_conversation(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
+    if await db.get(SupportRequest, item_id) is None:
+        raise HTTPException(404, detail="Support request not found.")
+    conversation = await db.scalar(select(MessagingConversation).where(MessagingConversation.support_request_id == item_id).order_by(MessagingConversation.id.desc()))
+    if conversation is None:
+        return None
+    return SupportMessagingConversationPublic(id=conversation.id, provider=conversation.provider, support_request_id=item_id)
 
 
 @router.post("/requests/{item_id}/notes", response_model=SupportRequestNotePublic)

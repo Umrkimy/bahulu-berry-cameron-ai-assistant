@@ -1,8 +1,11 @@
 import {
   ActionIcon,
+  Box,
+  Card,
   Group,
   Paper,
   Select,
+  Stack,
   Text,
   TextInput,
   Tooltip,
@@ -27,6 +30,7 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { AnimatedList, AnimatedListItem } from "../motion/AnimatedList";
 
 interface DataTableProps<TData extends object> {
   data: TData[];
@@ -45,6 +49,7 @@ interface DataTableProps<TData extends object> {
     onPageChange: (page: number) => void;
     onPageSizeChange: (pageSize: number) => void;
   };
+  renderMobileCard?: (record: TData) => ReactNode;
 }
 
 export default function DataTable<TData extends object>({
@@ -58,6 +63,7 @@ export default function DataTable<TData extends object>({
   searchValue,
   onSearchChange,
   manualPagination,
+  renderMobileCard,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -146,6 +152,7 @@ export default function DataTable<TData extends object>({
     >
       {/* SEARCH */}
       <Group
+        className="data-table-toolbar"
         justify="space-between"
         p="md"
         style={{
@@ -155,11 +162,14 @@ export default function DataTable<TData extends object>({
       >
         <Group gap="xs" wrap="wrap">
           <TextInput
+            className="data-table-search"
             placeholder={searchPlaceholder}
             leftSection={<IconSearch size={16} />}
             value={searchValue ?? globalFilter}
             onChange={(event) => {
-              setGlobalFilter(event.currentTarget.value);
+              const value = event.currentTarget.value;
+              setGlobalFilter(value);
+              onSearchChange?.(value);
               setPagination((current) => ({ ...current, pageIndex: 0 }));
             }}
             w={280}
@@ -175,7 +185,7 @@ export default function DataTable<TData extends object>({
       </Group>
 
       {/* TABLE */}
-      <div
+      <div className="data-table-desktop"
         style={{
           overflowX: "auto",
         }}
@@ -313,8 +323,41 @@ export default function DataTable<TData extends object>({
         </table>
       </div>
 
+      <Box className="data-table-mobile" p="sm">
+        {loading ? (
+          <Text c="dimmed" ta="center" py="xl">Loading...</Text>
+        ) : rows.length === 0 ? (
+          <Text c="dimmed" ta="center" py="xl">{emptyMessage}</Text>
+        ) : (
+          <Stack gap="sm">
+            <AnimatedList>{rows.map((row) => renderMobileCard ? (
+              <AnimatedListItem key={row.id} itemKey={row.id}><Box>{renderMobileCard(row.original)}</Box></AnimatedListItem>
+            ) : (
+              <AnimatedListItem key={row.id} itemKey={row.id}><Card withBorder radius="md" p="sm" className="data-table-mobile-card">
+                <Stack gap="xs">
+                  {row.getVisibleCells().map((cell) => {
+                    const label = typeof cell.column.columnDef.header === "string"
+                      ? cell.column.columnDef.header
+                      : cell.column.id === "actions" ? "Actions" : cell.column.id;
+                    return (
+                      <Group key={cell.id} justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                        <Text size="xs" c="dimmed" fw={600}>{label}</Text>
+                        <Box ta="right" style={{ minWidth: 0 }}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </Box>
+                      </Group>
+                    );
+                  })}
+                </Stack>
+              </Card></AnimatedListItem>
+            ))}</AnimatedList>
+          </Stack>
+        )}
+      </Box>
+
       {/* PAGINATION */}
       <Group
+        className="data-table-pagination"
         justify="space-between"
         p="md"
         style={{

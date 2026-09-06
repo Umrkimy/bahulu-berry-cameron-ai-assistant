@@ -68,8 +68,42 @@ async def test_staff_ai_uses_read_only_tools_and_omits_none_reasoning_effort(ses
     tool_names = {tool["function"]["name"] for tool in captured["tools"]}
     assert response == "Stock is available."
     assert tool_names.isdisjoint(ai_assistant_services.WRITE_TOOLS)
+    assert {
+        "get_low_stock_summary",
+        "get_order_workflow",
+        "get_delivery_workload",
+        "get_support_queue_summary",
+        "get_shift_summary",
+    }.issubset(tool_names)
     assert "reasoning_effort" not in captured
     assert captured["max_completion_tokens"] == settings.AI_MAX_COMPLETION_TOKENS
+
+
+def test_operation_cards_contain_only_tool_backed_data_and_safe_routes():
+    cards = ai_assistant_services._operation_cards(
+        "get_low_stock_summary",
+        {
+            "success": True,
+            "low_stock_count": 1,
+            "products": [
+                {
+                    "product_id": 4,
+                    "product_name": "Fictional Berry Bahulu",
+                    "quantity": 2,
+                    "low_stock_threshold": 5,
+                }
+            ],
+        },
+    )
+
+    assert cards == [
+        {
+            "title": "Inventory warnings",
+            "facts": ["Fictional Berry Bahulu: 2 left (warning at 5)"],
+            "tone": "warning",
+            "href": "/inventory",
+        }
+    ]
 
 
 @pytest.mark.asyncio

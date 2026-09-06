@@ -13,6 +13,8 @@ import { IconPlus, IconTrash } from "@tabler/icons-react";
 
 import ChatMessage from "../../components/ai/ChatMessage";
 import ChatInput from "../../components/ai/ChatInput";
+import OperationCards from "../../components/ai/OperationCards";
+import StaffQuickPrompts from "../../components/ai/StaffQuickPrompts";
 
 import type { ChatMessageData } from "../../types/ai";
 
@@ -114,7 +116,8 @@ export default function AIAssistant() {
 
       const assistantMessage: ChatMessageData = {
         role: "assistant",
-        content: response,
+        content: response.response,
+        cards: response.cards,
       };
 
       setMessages((previous) => [...previous, assistantMessage]);
@@ -154,6 +157,7 @@ export default function AIAssistant() {
   return (
     <>
       <Box
+        className="ai-assistant-shell"
         h="calc(100vh - 70px)"
         style={{
           display: "flex",
@@ -172,6 +176,7 @@ export default function AIAssistant() {
           }}
         >
           <Box
+            className="ai-chat-header"
             maw={900}
             mx="auto"
             style={{
@@ -185,12 +190,16 @@ export default function AIAssistant() {
             </Text>
 
             <Text size="xs" c="dimmed" ml="auto" mr="md">
+              {admin?.role === "STAFF" ? "Live operations help — no dashboard changes" : null}
+              {admin?.role !== "STAFF" ? <>
               {admin?.role === "OWNER"
                 ? "Changes always need your confirmation"
                 : "Read-only help for staff — no dashboard changes"}
+              </> : null}
             </Text>
 
             <Button
+              className="ai-chat-actions"
               size="sm"
               variant="light"
               leftSection={<IconPlus size={16} />}
@@ -214,14 +223,23 @@ export default function AIAssistant() {
           <Box maw={900} mx="auto" px="md" py="xl">
             {messages.length === 0 ? (
               <Center h="calc(100vh - 220px)">
-                <Text c="dimmed" size="sm">
-                  Ask about sales, stock, customers, or orders.
-                </Text>
+                {admin?.role === "OWNER" ? (
+                  <Text c="dimmed" size="sm">
+                    Ask about sales, stock, customers, or orders.
+                  </Text>
+                ) : (
+                  <StaffQuickPrompts onSelect={handleSend} />
+                )}
               </Center>
             ) : (
               <Stack gap="lg">
                 {messages.map((message, index) => (
-                  <ChatMessage key={index} message={message} />
+                  <Stack key={index} gap="xs">
+                    <ChatMessage message={message} />
+                    {message.role === "assistant" && message.cards?.length ? (
+                      <OperationCards cards={message.cards} />
+                    ) : null}
+                  </Stack>
                 ))}
 
                 {loading && (

@@ -1,5 +1,6 @@
 import {
   Button,
+  Box,
   Divider,
   Group,
   Loader,
@@ -7,6 +8,7 @@ import {
   NumberInput,
   Paper,
   Select,
+  SimpleGrid,
   Stack,
   Table,
   Text,
@@ -176,17 +178,17 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
         <Divider label="Add Products" labelPosition="center" />
 
         <Paper withBorder radius="md" p="md">
-          <Group align="end" grow>
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <Select label="Product" placeholder="Select a product" searchable clearable maxDropdownHeight={240} data={products.map((product) => ({ value: String(product.id), label: `${product.name} - RM ${getDisplayedPrice(product).toFixed(2)} - Stock: ${product.inventory?.quantity ?? 0}` }))} value={productId} onChange={setProductId} disabled={isLoading} nothingFoundMessage="No products available" />
             <NumberInput label="Quantity" min={1} max={productId ? (products.find((product) => product.id === Number(productId))?.inventory?.quantity ?? undefined) : undefined} value={quantity} onChange={(value) => setQuantity(typeof value === "number" && value > 0 ? value : 1)} disabled={createOrderMutation.isPending} />
             <Button variant="light" onClick={addItem} disabled={createOrderMutation.isPending}>Add Product</Button>
-          </Group>
+          </SimpleGrid>
         </Paper>
 
         {items.length > 0 && (
           <>
             <Divider label="Order Items" labelPosition="center" />
-            <Table.ScrollContainer minWidth={720}>
+            <Box visibleFrom="sm"><Table.ScrollContainer minWidth={720}>
               <Table verticalSpacing="sm">
                 <Table.Thead><Table.Tr><Table.Th>Product</Table.Th><Table.Th>Regular Price</Table.Th><Table.Th>Promotion</Table.Th><Table.Th>Qty</Table.Th><Table.Th>Line Total</Table.Th><Table.Th /></Table.Tr></Table.Thead>
                 <Table.Tbody>
@@ -205,7 +207,13 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
                   })}
                 </Table.Tbody>
               </Table>
-            </Table.ScrollContainer>
+            </Table.ScrollContainer></Box>
+            <Stack hiddenFrom="sm" gap="sm">
+              {items.map((item) => {
+                const line = quoteItems.get(item.product.id);
+                return <Paper key={item.product.id} withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{item.product.name}</Text><Text size="sm" c="dimmed">{item.quantity} × RM {Number(item.product.price).toFixed(2)}</Text>{line?.discount_name ? <Text size="xs" c="red">-{`RM ${Number(line.discount_amount).toFixed(2)}`} · {line.discount_name}</Text> : null}<Text fw={700}>RM {line ? Number(line.total_amount).toFixed(2) : "-"}</Text></Stack><Button color="red" variant="subtle" size="xs" onClick={() => removeItem(item.product.id)} disabled={createOrderMutation.isPending}>Remove</Button></Group></Paper>;
+              })}
+            </Stack>
 
             <Paper withBorder radius="md" p="md">
               {quoteLoading ? <Group justify="center"><Loader size="sm" /><Text size="sm" c="dimmed">Calculating current promotion prices...</Text></Group> : quoteError ? <Text c="red">{quoteError}</Text> : quote ? <Stack gap="xs"><Group justify="space-between"><Text c="dimmed">Subtotal</Text><Text>RM {Number(quote.subtotal).toFixed(2)}</Text></Group><Group justify="space-between"><Text c="red">Discount</Text><Text c="red">-RM {Number(quote.discount_amount).toFixed(2)}</Text></Group><Group justify="space-between"><Text fw={700} size="lg">Order Total</Text><Text fw={700} size="lg">RM {Number(quote.total_amount).toFixed(2)}</Text></Group></Stack> : null}
@@ -213,7 +221,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
           </>
         )}
 
-        <Button size="md" onClick={handleSubmit} loading={createOrderMutation.isPending} disabled={isLoadingCustomers || isLoadingProducts || quoteLoading || !customerId || !items.length || !quote || Boolean(quoteError)}>Create Order</Button>
+        <Button className="mobile-sticky-action" size="md" onClick={handleSubmit} loading={createOrderMutation.isPending} disabled={isLoadingCustomers || isLoadingProducts || quoteLoading || !customerId || !items.length || !quote || Boolean(quoteError)}>Create Order</Button>
       </Stack>
     </Modal>
   );

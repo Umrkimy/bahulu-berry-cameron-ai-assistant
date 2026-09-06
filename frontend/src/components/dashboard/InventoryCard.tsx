@@ -11,6 +11,7 @@ import {
 import { IconAlertTriangle } from "@tabler/icons-react";
 
 import { useDashboardInventory } from "../../hooks/useDashboardInventory";
+import AnimatedNumber from "../common/motion/AnimatedNumber";
 
 export default function InventoryCard() {
   const { data, isLoading, error } = useDashboardInventory();
@@ -51,7 +52,7 @@ export default function InventoryCard() {
       <Group justify="space-between" mb="md">
         <Text fw={700}>Inventory Status</Text>
 
-        <Badge variant="light">{data.length} Products</Badge>
+        <Badge variant="light"><AnimatedNumber value={data.length} /> Products</Badge>
       </Group>
 
       {(lowStockItems.length > 0 || outOfStockItems.length > 0) && (
@@ -79,7 +80,7 @@ export default function InventoryCard() {
             Low Stock
           </Text>
 
-          <Text fw={700}>{lowStockItems.length}</Text>
+          <Text fw={700}><AnimatedNumber value={lowStockItems.length} /></Text>
         </Card>
 
         <Card
@@ -94,7 +95,7 @@ export default function InventoryCard() {
             Out Of Stock
           </Text>
 
-          <Text fw={700}>{outOfStockItems.length}</Text>
+          <Text fw={700}><AnimatedNumber value={outOfStockItems.length} /></Text>
         </Card>
       </Group>
 

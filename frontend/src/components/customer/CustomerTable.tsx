@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconEdit } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -94,6 +94,14 @@ export default function CustomerTable({ onEdit }: Props) {
       loading={isLoading}
       searchPlaceholder="Search customers..."
       emptyMessage="No customers found."
+      renderMobileCard={(customer) => (
+        <Card withBorder radius="md" p="sm">
+          <Group justify="space-between" align="flex-start" wrap="nowrap">
+            <Stack gap={2}><Text fw={700}>{customer.full_name}</Text><Text size="sm">{customer.phone_number}</Text><Text size="xs" c="dimmed">{customer.email ?? "No email"}{customer.city || customer.state ? ` · ${[customer.city, customer.state].filter(Boolean).join(", ")}` : ""}</Text></Stack>
+            <ActionIcon aria-label="Edit customer" variant="light" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>
+          </Group>
+        </Card>
+      )}
     />
   );
 }

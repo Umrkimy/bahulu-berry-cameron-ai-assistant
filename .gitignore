@@ -12,6 +12,10 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+.playwright-cli/
 
 # Frontend env
 frontend/.env

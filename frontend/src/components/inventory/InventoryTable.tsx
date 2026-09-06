@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { ActionIcon, Badge, Card, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -141,6 +141,10 @@ export default function InventoryTable() {
           loading={isLoading}
           searchPlaceholder="Search inventory..."
           emptyMessage="No inventory found."
+          renderMobileCard={(inventory) => {
+            const status = inventory.quantity === 0 ? { label: "OUT", color: "red" } : inventory.quantity <= inventory.low_stock_threshold ? { label: "LOW", color: "orange" } : { label: "GOOD", color: "green" };
+            return <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{inventory.product_name}</Text><Text size="sm" c="dimmed">{inventory.product_category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={status.color} variant="light">{status.label}</Badge><Text size="sm">{inventory.quantity} in stock · Threshold {inventory.low_stock_threshold}</Text></Group></Stack><ActionIcon size="lg" variant="light" color="blue" onClick={() => setSelectedInventory(inventory)} aria-label="Adjust stock"><IconAdjustments size={20} /></ActionIcon></Group></Card>;
+          }}
         />
       </Card>
 

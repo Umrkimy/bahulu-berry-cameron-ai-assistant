@@ -1,24 +1,26 @@
 import { Group, Paper, Text, ThemeIcon } from "@mantine/core";
+import AnimatedNumber from "../common/motion/AnimatedNumber";
 
 interface Props {
   title: string;
-  value: string;
+  value: number;
+  format?: "currency" | "number";
   description?: string;
   icon: React.ReactNode;
   color: string;
 }
 
-export default function DashboardCard({ title, value, description, icon, color }: Props) {
+export default function DashboardCard({ title, value, format = "number", description, icon, color }: Props) {
   return (
-    <Paper className="dashboard-metric" withBorder p="lg" radius="lg">
+    <Paper className="dashboard-metric dashboard-metric-compact" withBorder p="md" radius="lg">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
         <div>
           <Text c="dimmed" tt="uppercase" fw={700} fz="xs">
             {title}
           </Text>
 
-          <Text className="metric-value" fw={700} fz="xl" mt={12}>
-            {value}
+          <Text className="metric-value" fw={750} fz="lg" mt={6}>
+            <AnimatedNumber value={value} format={format} />
           </Text>
 
           {description && (
@@ -28,7 +30,7 @@ export default function DashboardCard({ title, value, description, icon, color }
           )}
         </div>
 
-        <ThemeIcon size={36} radius="md" variant="light" color={color === "orange" ? "orange" : "bahulu"} style={{ flexShrink: 0 }}>
+        <ThemeIcon size={32} radius="md" variant="light" color={color === "orange" ? "orange" : "bahulu"} style={{ flexShrink: 0 }}>
           {icon}
         </ThemeIcon>
       </Group>
