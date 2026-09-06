@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActionIcon, Badge, Group, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
@@ -119,6 +119,9 @@ export default function OrdersTable() {
         loading={isLoadingOrders || isLoadingCustomers}
         searchPlaceholder="Search orders, customers, statuses..."
         emptyMessage="No orders found."
+        renderMobileCard={(order) => (
+          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={700}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={700}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{order.status}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{order.payment_status}</Badge></Group><Group justify="flex-end"><ActionIcon variant="light" color="blue" onClick={() => { setSelectedOrder(order); setViewOpened(true); }} aria-label="View order"><IconEye size={18} /></ActionIcon><ActionIcon variant="light" color="orange" onClick={() => { setSelectedOrder(order); setEditOpened(true); }} aria-label="Edit order"><IconEdit size={18} /></ActionIcon></Group></Stack></Card>
+        )}
       />
       <OrderDetailsModal opened={viewOpened} order={selectedOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); }} />
       <EditOrderModal opened={editOpened} order={selectedOrder} onClose={() => { setEditOpened(false); setSelectedOrder(null); }} />

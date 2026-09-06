@@ -47,6 +47,12 @@ jobs:
         working-directory: frontend
       - run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
+      - run: npm run test
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
       - run: npm run build
         working-directory: frontend
 

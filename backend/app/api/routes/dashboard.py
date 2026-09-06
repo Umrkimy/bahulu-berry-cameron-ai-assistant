@@ -309,7 +309,7 @@ async def sales_chart(
 ):
     now = datetime.now(MALAYSIA_TZ)
     month_starts = []
-    for offset in range(5, -1, -1):
+    for offset in range(11, -1, -1):
         month = now.month - offset
         year = now.year
         if month <= 0:
@@ -332,7 +332,7 @@ async def sales_chart(
 
     sales = [
         {
-            "month": month_start.strftime("%b"),
+            "month": month_start.strftime("%b %y"),
             "revenue": monthly_sales.get((month_start.year, month_start.month), Decimal("0.00")),
         }
         for month_start in month_starts

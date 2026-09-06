@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     AI_MAX_COMPLETION_TOKENS: int = 600
     AI_MAX_RESERVED_INPUT_TOKENS: int = 32_000
 
+    WHATSAPP_META_INBOUND_ENABLED: bool = False
+    WHATSAPP_META_APP_SECRET: SecretStr = SecretStr("")
+    WHATSAPP_META_VERIFY_TOKEN: SecretStr = SecretStr("")
+    WHATSAPP_META_PHONE_NUMBER_ID: str = ""
+
     STRIPE_SECRET_KEY: SecretStr
     STRIPE_WEBHOOK_SECRET: SecretStr
     STRIPE_SUCCESS_URL: str

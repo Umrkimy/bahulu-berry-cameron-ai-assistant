@@ -17,3 +17,9 @@ class SimulatorInboundPublic(BaseModel):
     support_request_id: int | None = None
     ticket_created: bool = False
     draft: SupportDraftPublic | None = None
+
+
+class SupportMessagingConversationPublic(BaseModel):
+    id: int
+    provider: str
+    support_request_id: int

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import AppNavbar from "./AppNavbar";
 import AppSidebar from "./AppSidebar";
 import CommandPalette from "./CommandPalette";
+import PageReveal from "../common/motion/PageReveal";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -62,7 +63,7 @@ export default function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div className="workspace-content"><Outlet /></div>
+        <div className="workspace-content"><PageReveal pageKey={location.pathname}><Outlet /></PageReveal></div>
       </AppShell.Main>
       </AppShell>
     </>

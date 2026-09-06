@@ -8,7 +8,7 @@ from app.db.database import get_db
 from app.core.rate_limit import AI_LIMIT, STAFF_AI_LIMIT, rate_limiter
 from app.models.admin import Admin
 from app.schemas.ai_assistant import AIChatRequest, AIChatResponse
-from app.services.ai_assistant_services import generate_ai_response
+from app.services.ai_assistant_services import generate_ai_result
 
 
 router = APIRouter()
@@ -33,7 +33,7 @@ async def chat(
         f"ai-chat-{'owner' if is_owner else 'staff'}:{current_admin.id}",
         AI_LIMIT if is_owner else STAFF_AI_LIMIT,
     )
-    response = await generate_ai_response(
+    result = await generate_ai_result(
         db=db,
         message=chat_request.message,
         conversation_id=str(chat_request.conversation_id),
@@ -43,5 +43,6 @@ async def chat(
     )
 
     return AIChatResponse(
-        response=response,
+        response=result.response,
+        cards=result.cards,
     )

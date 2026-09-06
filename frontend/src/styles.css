@@ -37,6 +37,7 @@ body {
 .mantine-Modal-header { border-bottom: 1px solid var(--berry-border); margin-bottom: 16px; }
 .mantine-Modal-title { font-weight: 700; letter-spacing: -.025em; }
 .dashboard-metric { background: #fffefd; height: 100%; }
+.dashboard-metric-compact { min-height: 112px; }
 .metric-value { letter-spacing: -.05em; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .app-page-header .mantine-Title-root { font-size: clamp(24px, 2.5vw, 32px); letter-spacing: -.045em; color: #33232c; }
 .app-page-header .mantine-Text-root { font-size: 13px; max-width: 650px; line-height: 1.6; }
@@ -52,6 +53,52 @@ button, input, textarea, select {
   justify-content: space-between;
   gap: 16px;
   padding-block: 8px 20px;
+}
+
+.data-table-mobile { display: none; }
+.data-table-toolbar, .data-table-pagination { gap: 12px; }
+.responsive-actions { flex-wrap: wrap; }
+.ai-chat-header { min-width: 0; }
+.mobile-sticky-action { width: 100%; }
+.motion-card { will-change: transform; }
+
+@media (hover: hover) and (pointer: fine) {
+  .mantine-Button-root:not([data-disabled]):active { transform: scale(.985); }
+  .mantine-Card-root[data-with-border="true"], .dashboard-metric { transition: transform 180ms ease, box-shadow 180ms ease; }
+  .mantine-Card-root[data-with-border="true"]:hover, .dashboard-metric:hover { transform: translateY(-2px); box-shadow: 0 8px 24px #35212b0d; }
+}
+
+@media (max-width: 37.5em) {
+  .workspace-content { width: 100%; }
+  .mantine-AppShell-main { padding-inline: 12px !important; }
+  .mantine-Modal-inner { padding: 0 !important; }
+  .mantine-Modal-content { min-height: 100dvh; border-radius: 0 !important; }
+  .mantine-Modal-header { position: sticky; top: 0; z-index: 2; background: inherit; }
+  .mantine-Drawer-content { width: 100vw !important; max-width: 100vw !important; }
+  .mantine-Drawer-header { position: sticky; top: 0; z-index: 2; }
+  .app-page-header { padding-bottom: 16px; }
+  .app-page-header > *:last-child { width: 100%; }
+  .app-page-header > *:last-child .mantine-Button-root { width: 100%; }
+  .data-table-toolbar { align-items: stretch; }
+  .data-table-toolbar > .mantine-Group-root { width: 100%; }
+  .data-table-search { flex: 1; min-width: 0; }
+  .data-table-search .mantine-Input-wrapper { width: 100%; }
+  .data-table-search .mantine-Input-input { width: 100%; }
+  .data-table-desktop { display: none; }
+  .data-table-mobile { display: block; }
+  .data-table-mobile-card .mantine-Group-root:last-child { padding-top: 4px; }
+  .data-table-pagination { align-items: stretch; }
+  .data-table-pagination > .mantine-Group-root { justify-content: space-between; width: 100%; }
+  .mantine-Tabs-list { overflow-x: auto; flex-wrap: nowrap; }
+  .mantine-Tabs-tab { white-space: nowrap; }
+  .chart-card { min-height: 260px; }
+  .mobile-sticky-action { position: sticky; bottom: 8px; z-index: 2; box-shadow: 0 8px 24px #33232c22; }
+  .ai-assistant-shell { height: calc(100dvh - 64px) !important; }
+  .ai-chat-header { gap: 8px; }
+  .ai-chat-header .mantine-Text-root[data-variant="dimmed"] { display: none; }
+  .ai-chat-actions { width: 100%; }
+  .ai-input-controls { align-items: flex-start; }
+  .ai-input-controls > * { width: 100%; }
 }
 
 @media (max-width: 48em) {

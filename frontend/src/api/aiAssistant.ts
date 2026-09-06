@@ -1,6 +1,6 @@
 import axios from "./axios";
 
-import type { ChatMessageData } from "../types/ai";
+import type { AIOperationCard, ChatMessageData } from "../types/ai";
 
 export interface AIChatRequest {
   message: string;
@@ -10,18 +10,19 @@ export interface AIChatRequest {
 
 export interface AIChatResponse {
   response: string;
+  cards: AIOperationCard[];
 }
 
 export async function sendAIMessage(
   message: string,
   conversationId: string,
   conversationHistory: ChatMessageData[],
-): Promise<string> {
+): Promise<AIChatResponse> {
   const response = await axios.post<AIChatResponse>("/ai-assistant/chat", {
     message,
     conversation_id: conversationId,
     conversation_history: conversationHistory,
   });
 
-  return response.data.response;
+  return response.data;
 }
