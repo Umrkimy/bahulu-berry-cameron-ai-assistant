@@ -9,15 +9,15 @@ or screenshots containing private information in this file.
 **Tester:** ____________________
 
 **Environment:** Docker Compose / local test data
-**Result:** Not started / Passed / Failed
+**Result:** In progress
 
 ## Start and security
 
 | Check | Result | Defect reference / safe note |
 | --- | --- | --- |
-| `docker compose up --build` starts the API, frontend, and database | ☐ | |
-| `GET /health` returns healthy | ☐ | |
-| `GET /ready` confirms database readiness | ☐ | |
+| `docker compose up --build` starts the API, frontend, and database | Passed | Existing PostgreSQL volume preserved. |
+| `GET /health` returns healthy | Passed | API returned `{"status":"ok"}`. |
+| `GET /ready` confirms database readiness | Passed | API returned `{"status":"ready"}`. |
 | Owner and Staff can sign in; inactive account is rejected | ☐ | |
 | Sign-out and expired/invalid session return safely to sign-in | ☐ | |
 | State-changing request without a CSRF token is rejected | ☐ | |
@@ -75,11 +75,11 @@ or screenshots containing private information in this file.
 
 | Command | Result | Safe note |
 | --- | --- | --- |
-| `backend/.venv/Scripts/python.exe -m pytest` | ☐ | |
-| `frontend/npm run test` | ☐ | |
-| `frontend/npm run test:e2e` | ☐ | |
-| `frontend/npm run build` | ☐ | |
-| `frontend/npm audit --omit=dev --audit-level=high` | ☐ | |
+| `backend/.venv/Scripts/python.exe -m pytest` | Passed | 38 tests passed. |
+| `frontend/npm run test` | Passed | 7 tests passed. |
+| `frontend/npm run test:e2e` | Passed | Desktop and mobile sign-in smoke tests passed. |
+| `frontend/npm run build` | Passed | Local and fresh Docker builds passed. |
+| `frontend/npm audit --omit=dev --audit-level=high` | Passed | No production dependency vulnerabilities found. |
 
 ## Sign-off
 
