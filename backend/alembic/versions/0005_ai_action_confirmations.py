@@ -9,6 +9,8 @@ depends_on = None
 
 
 def upgrade():
+    if "ai_action_confirmations" in sa.inspect(op.get_bind()).get_table_names():
+        return
     op.create_table(
         "ai_action_confirmations",
         sa.Column("id", sa.Integer(), primary_key=True),

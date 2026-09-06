@@ -104,7 +104,7 @@ export default function AIAssistant() {
     setLoading(true);
 
     try {
-      const conversationHistory = messages.slice(-20);
+      const conversationHistory = messages.slice(-12);
 
       const response = await sendAIMessage(
         message,
@@ -187,7 +187,7 @@ export default function AIAssistant() {
             <Text size="xs" c="dimmed" ml="auto" mr="md">
               {admin?.role === "OWNER"
                 ? "Changes always need your confirmation"
-                : "Read-only help for staff"}
+                : "Read-only help for staff — no dashboard changes"}
             </Text>
 
             <Button
@@ -255,7 +255,7 @@ export default function AIAssistant() {
             <ChatInput onSend={handleSend} loading={loading} />
 
             <Text ta="center" size="xs" c="dimmed" mt={6}>
-              AI uses live dashboard data. Owners must confirm every change.
+              AI uses live dashboard data. Staff can only ask read-only questions; owners must confirm every change.
             </Text>
           </Box>
         </Box>

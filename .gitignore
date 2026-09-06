@@ -15,6 +15,9 @@ frontend/pnpm-debug.log*
 
 # Frontend env
 frontend/.env
+/.env
+/.env.*
+!/.env.example
 
 
 # =====================

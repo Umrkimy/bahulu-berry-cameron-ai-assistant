@@ -1,7 +1,7 @@
 import { AppShell } from "@mantine/core";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { Outlet, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import AppNavbar from "./AppNavbar";
 import AppSidebar from "./AppSidebar";
@@ -9,9 +9,11 @@ import CommandPalette from "./CommandPalette";
 
 export default function AppLayout() {
   const location = useLocation();
+  const [mobileOpened, setMobileOpened] = useState(false);
 
   useEffect(() => {
     nprogress.complete();
+    setMobileOpened(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function AppLayout() {
       navbar={{
         width: 260,
         breakpoint: "sm",
+        collapsed: { mobile: !mobileOpened },
       }}
       padding={{ base: "md", sm: "xl" }}
       styles={{
@@ -42,8 +45,8 @@ export default function AppLayout() {
           borderBottom: "1px solid #f1dedb",
         },
         navbar: {
-          background: "#fffdf9",
-          borderRight: "1px solid #f1dedb",
+          background: "#fffdf8",
+          borderRight: "1px solid #e9e2dc",
         },
         main: {
           background: "transparent",
@@ -51,15 +54,15 @@ export default function AppLayout() {
       }}
     >
       <AppShell.Header>
-        <AppNavbar />
+        <AppNavbar mobileOpened={mobileOpened} onToggleNavigation={() => setMobileOpened((value) => !value)} />
       </AppShell.Header>
 
-      <AppShell.Navbar>
+      <AppShell.Navbar className="berry-sidebar" style={{ overflowY: "auto" }}>
         <AppSidebar />
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <Outlet />
+        <div className="workspace-content"><Outlet /></div>
       </AppShell.Main>
       </AppShell>
     </>

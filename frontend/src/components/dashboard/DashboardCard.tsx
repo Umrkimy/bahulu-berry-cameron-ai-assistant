@@ -10,14 +10,14 @@ interface Props {
 
 export default function DashboardCard({ title, value, description, icon, color }: Props) {
   return (
-    <Paper withBorder p="lg" radius="lg" style={{ borderColor: "#f0dcd8", background: "rgba(255, 255, 255, 0.88)" }}>
-      <Group justify="space-between">
+    <Paper className="dashboard-metric" withBorder p="lg" radius="lg">
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
         <div>
           <Text c="dimmed" tt="uppercase" fw={700} fz="xs">
             {title}
           </Text>
 
-          <Text fw={700} fz="xl" mt={4}>
+          <Text className="metric-value" fw={700} fz="xl" mt={12}>
             {value}
           </Text>
 
@@ -28,7 +28,7 @@ export default function DashboardCard({ title, value, description, icon, color }
           )}
         </div>
 
-        <ThemeIcon size={46} radius="lg" variant="light" color={color}>
+        <ThemeIcon size={36} radius="md" variant="light" color={color === "orange" ? "orange" : "bahulu"} style={{ flexShrink: 0 }}>
           {icon}
         </ThemeIcon>
       </Group>

@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 import BrandName from "../../components/brand/BrandName";
 
-import { loginRequest } from "../../api/auth";
+import { getCurrentAdmin, loginRequest } from "../../api/auth";
 import { getApiError } from "../../api/errors";
 
 import useAuth from "../../auth/useAuth";
@@ -44,7 +44,9 @@ export default function Login() {
 
       await loginRequest(email, password);
 
-      login();
+      const currentAdmin = await getCurrentAdmin();
+
+      login(currentAdmin);
 
       navigate("/dashboard");
     } catch (error) {

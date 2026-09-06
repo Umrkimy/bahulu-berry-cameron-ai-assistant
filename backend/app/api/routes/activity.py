@@ -24,6 +24,7 @@ async def list_activity(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[Admin, Depends(get_current_admin)],
     entity_type: str | None = None,
+    entity_id: int | None = None,
     action: str | None = None,
     admin_id: int | None = None,
     start_at: datetime | None = None,
@@ -34,6 +35,8 @@ async def list_activity(
     query = select(ActivityLog).order_by(ActivityLog.created_at.desc())
     if entity_type:
         query = query.where(ActivityLog.entity_type == entity_type)
+    if entity_id is not None:
+        query = query.where(ActivityLog.entity_id == entity_id)
     if action:
         query = query.where(ActivityLog.action == action)
     if admin_id:
