@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { HandoffRule, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportRequest, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+import type { HandoffRule, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessagingConversation, SupportRequest, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
 export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
 export const createSupportRequest=async(data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.post<SupportRequest>("/support/requests",data)).data;
@@ -22,3 +22,5 @@ export const updateRule=async(id:number,data:Omit<HandoffRule,"id"|"updated_at">
 export const deleteRule=async(id:number)=>api.delete(`/support/rules/${id}`);
 export const createSupportDraft=async(data:{message:string;language:"AUTO"|"EN"|"MS";support_request_id?:number})=>(await api.post<SupportDraft>("/support/copilot/draft",data)).data;
 export const simulateInboundMessage=async(data:{message_id:string;conversation_id:string;sender_reference:string;message:string;language:"AUTO"|"EN"|"MS"})=>(await api.post<SimulatorInboundResult>("/support/simulator/inbound",data)).data;
+export const getMetaConnectionStatus=async()=> (await api.get<MetaConnectionStatus>("/support/meta/status")).data;
+export const getSupportMessagingConversation=async(id:number)=> (await api.get<SupportMessagingConversation | null>(`/support/requests/${id}/messaging-conversation`)).data;

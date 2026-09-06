@@ -19,6 +19,7 @@ from app.core.security import verify_csrf_request
 import app.models
 import app.schemas
 from app.api.router import api_router
+from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
 
 
 logger = logging.getLogger("bahulu.api")
@@ -130,6 +131,8 @@ app.include_router(
     api_router,
     prefix="/api",
 )
+
+app.include_router(meta_whatsapp_router)
 
 
 if __name__ == "__main__":

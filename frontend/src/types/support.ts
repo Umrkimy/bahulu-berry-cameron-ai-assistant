@@ -8,3 +8,5 @@ export interface HandoffRule { id:number; trigger:string; description:string; is
 export interface SupportDraftSource { type:"FAQ"|"TEMPLATE"; id:number; label:string; }
 export interface SupportDraft { reply:string|null; language:"EN"|"MS"; handoff_required:boolean; handoff_reason:string|null; sources:SupportDraftSource[]; prompt_version:string; model:string; latency_ms:number; }
 export interface SimulatorInboundResult { outcome: "DRAFTED" | "HANDOFF" | "DUPLICATE"; duplicate: boolean; support_request_id: number | null; ticket_created: boolean; draft: SupportDraft | null; }
+export interface MetaConnectionStatus { provider: "META_WHATSAPP_CLOUD_API"; inbound_enabled: boolean; webhook_url: string; app_secret_configured: boolean; verify_token_configured: boolean; phone_number_configured: boolean; outbound_enabled: false; mode: "DRAFT_ONLY"; }
+export interface SupportMessagingConversation { id: number; provider: string; support_request_id: number; }
