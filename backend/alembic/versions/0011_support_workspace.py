@@ -5,6 +5,8 @@ down_revision="0010_ai_confirmation_previews"
 branch_labels=None
 depends_on=None
 def upgrade():
+    if {"support_faqs", "support_templates", "handoff_rules", "support_requests"}.issubset(set(sa.inspect(op.get_bind()).get_table_names())):
+        return
     op.create_table("support_faqs",sa.Column("id",sa.Integer,primary_key=True),sa.Column("category",sa.String(80),nullable=False),sa.Column("question_en",sa.Text,nullable=False),sa.Column("answer_en",sa.Text,nullable=False),sa.Column("question_ms",sa.Text),sa.Column("answer_ms",sa.Text),sa.Column("is_active",sa.Boolean,nullable=False),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False))
     op.create_table("support_templates",sa.Column("id",sa.Integer,primary_key=True),sa.Column("category",sa.String(80),nullable=False),sa.Column("name",sa.String(120),nullable=False),sa.Column("content_en",sa.Text,nullable=False),sa.Column("content_ms",sa.Text),sa.Column("is_active",sa.Boolean,nullable=False),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False))
     op.create_table("handoff_rules",sa.Column("id",sa.Integer,primary_key=True),sa.Column("trigger",sa.String(120),nullable=False,unique=True),sa.Column("description",sa.Text,nullable=False),sa.Column("is_active",sa.Boolean,nullable=False),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False))

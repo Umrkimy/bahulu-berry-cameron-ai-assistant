@@ -17,6 +17,7 @@ from app.api.routes import (
     team,
     refund_requests,
     support,
+    ai_usage,
 )
 
 api_router = APIRouter()
@@ -115,5 +116,11 @@ api_router.include_router(
     ai_assistant.router,
     prefix="/ai-assistant",
     tags=["AI Assistant"],
+)
+
+api_router.include_router(
+    ai_usage.router,
+    prefix="/ai-usage",
+    tags=["AI usage"],
 )
 

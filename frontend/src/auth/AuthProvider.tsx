@@ -18,7 +18,7 @@ interface AuthContextType {
   admin: Admin | null;
   loading: boolean;
 
-  login: () => void;
+  login: (nextAdmin: Admin) => void;
   logout: () => void;
 }
 
@@ -37,7 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAdmin(null);
   }, []);
 
-  const login = useCallback(() => setIsAuthenticated(true), []);
+  const login = useCallback((nextAdmin: Admin) => {
+    setAdmin(nextAdmin);
+    setIsAuthenticated(true);
+  }, []);
 
   useEffect(() => {
     let ignore = false;

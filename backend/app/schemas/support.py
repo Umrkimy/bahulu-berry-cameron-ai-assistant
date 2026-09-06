@@ -1,6 +1,36 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
+
+class SupportDraftInput(BaseModel):
+    message: str = Field(min_length=2, max_length=2_000)
+    language: str = Field(default="AUTO", pattern="^(AUTO|EN|MS)$")
+    support_request_id: int | None = None
+
+
+class SupportDraftSource(BaseModel):
+    type: str
+    id: int
+    label: str
+
+
+class SupportDraftPublic(BaseModel):
+    reply: str | None = None
+    language: str
+    handoff_required: bool
+    handoff_reason: str | None = None
+    sources: list[SupportDraftSource] = []
+    prompt_version: str
+    model: str
+    latency_ms: int
+
+
+class SupportAssigneePublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    username: str
+    role: str
+
 class FAQInput(BaseModel):
     category: str = Field(min_length=2, max_length=80)
     question_en: str = Field(min_length=2, max_length=2000)
@@ -46,3 +76,16 @@ class SupportRequestPublic(SupportRequestInput):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class SupportRequestNoteCreate(BaseModel):
+    content: str = Field(min_length=2, max_length=5_000)
+
+
+class SupportRequestNotePublic(SupportRequestNoteCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    support_request_id: int
+    author_admin_id: int
+    created_at: datetime

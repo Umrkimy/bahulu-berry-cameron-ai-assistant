@@ -9,6 +9,8 @@ depends_on = None
 
 
 def upgrade():
+    if "activity_logs" in sa.inspect(op.get_bind()).get_table_names():
+        return
     op.create_table(
         "activity_logs",
         sa.Column("id", sa.Integer(), primary_key=True),

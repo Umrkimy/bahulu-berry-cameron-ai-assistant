@@ -14,6 +14,7 @@ import {
   IconActivity,
   IconUsersGroup,
   IconCash,
+  IconChartBar,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -100,6 +101,7 @@ export default function AppSidebar() {
             link: "/refund-requests",
             icon: <IconCash size={18} />,
           },
+          ...(admin?.role === "OWNER" ? [{ label: "AI Usage", link: "/ai-usage", icon: <IconChartBar size={18} /> }] : []),
           {
             label: "Activity",
             link: "/activity",

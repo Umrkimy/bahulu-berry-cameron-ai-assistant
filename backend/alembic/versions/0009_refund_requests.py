@@ -9,6 +9,8 @@ depends_on = None
 
 
 def upgrade():
+    if "refund_requests" in sa.inspect(op.get_bind()).get_table_names():
+        return
     op.create_table(
         "refund_requests",
         sa.Column("id", sa.Integer(), nullable=False),

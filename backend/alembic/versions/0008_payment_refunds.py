@@ -9,6 +9,9 @@ depends_on = None
 
 
 def upgrade():
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("payments")}
+    if {"provider_refund_id", "refund_reason", "refunded_at"}.issubset(columns):
+        return
     op.add_column("payments", sa.Column("provider_refund_id", sa.String(length=255), nullable=True))
     op.add_column("payments", sa.Column("refund_reason", sa.Text(), nullable=True))
     op.add_column("payments", sa.Column("refunded_at", sa.DateTime(timezone=True), nullable=True))

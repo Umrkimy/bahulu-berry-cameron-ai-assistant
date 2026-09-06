@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Spotlight, spotlight } from "@mantine/spotlight";
 import { useHotkeys } from "@mantine/hooks";
-import { IconBox, IconBuildingWarehouse, IconCash, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
+import { IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
 
@@ -34,6 +34,7 @@ export default function CommandPalette() {
           { id: "activity", label: "Activity", onClick: () => navigate("/activity"), leftSection: <IconBox size={18} /> },
           { id: "refund-requests", label: "Refund Requests", onClick: () => navigate("/refund-requests"), leftSection: <IconCash size={18} /> },
           { id: "assistant", label: "AI Assistant", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
+          ...(admin?.role === "OWNER" ? [{ id: "ai-usage", label: "AI Usage & Budget", onClick: () => navigate("/ai-usage"), leftSection: <IconChartBar size={18} /> }] : []),
         ] },
         { group: "Quick actions", actions: [
           { id: "new-order", label: "Create Order", onClick: () => navigate("/orders?create=1"), leftSection: <IconPlus size={18} /> },

@@ -9,6 +9,9 @@ depends_on = None
 
 
 def upgrade():
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("admins")}
+    if {"role", "is_active"}.issubset(columns):
+        return
     op.add_column("admins", sa.Column("role", sa.String(length=20), nullable=True))
     op.add_column("admins", sa.Column("is_active", sa.Boolean(), nullable=True))
     op.execute("UPDATE admins SET role = CASE WHEN is_superuser THEN 'OWNER' ELSE 'STAFF' END")

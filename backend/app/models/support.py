@@ -53,3 +53,13 @@ class SupportRequest(Base):
     assigned_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admins.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+
+
+class SupportRequestNote(Base):
+    __tablename__ = "support_request_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    support_request_id: Mapped[int] = mapped_column(ForeignKey("support_requests.id"), nullable=False, index=True)
+    author_admin_id: Mapped[int] = mapped_column(ForeignKey("admins.id"), nullable=False, index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)

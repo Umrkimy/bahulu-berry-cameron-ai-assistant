@@ -24,9 +24,11 @@ import OrderStatusCard from "../../components/dashboard/OrderStatusCard";
 import InventoryCard from "../../components/dashboard/InventoryCard";
 
 import { useDashboard } from "../../hooks/useDashboard";
+import useAuth from "../../auth/useAuth";
 
 export default function Home() {
   const { data, isLoading, error } = useDashboard();
+  const { admin } = useAuth();
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -77,8 +79,8 @@ export default function Home() {
   return (
     <Stack gap="lg">
       <PageHeader
-        title="Good day, Umar"
-        description="Your Malaysia-time business overview, based on paid and active orders."
+        title={`Good day, ${admin?.username || "there"}`}
+        description="A clear view of your business. Orders, revenue, and what needs your attention."
         action={<Group><Button component={Link} to="/orders" leftSection={<IconShoppingCart size={16} />}>Manage Orders</Button><Button component={Link} to="/inventory" variant="default" leftSection={<IconPackage size={16} />}>View Inventory</Button></Group>}
       />
 
@@ -94,7 +96,8 @@ export default function Home() {
         cols={{
           base: 1,
           sm: 2,
-          lg: 4,
+          lg: 3,
+          xl: 5,
         }}
       >
         {stats.map((item) => (

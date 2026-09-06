@@ -13,6 +13,7 @@ export interface Activity {
 
 export interface ActivityFilters {
   entity_type?: string;
+  entity_id?: number;
   action?: string;
   limit?: number;
   offset?: number;
