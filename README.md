@@ -1,8 +1,8 @@
 # Bahulu Berry Cameron AI Operations Platform
 
-Portfolio-safe technical demonstration of a secure operations platform for a
-Malaysian bakery. Real client credentials, customers, payments, contacts, and
-unconfirmed business details are excluded.
+Secure operations platform for a Malaysian bakery. Real credentials, customer
+records, payment details, contacts, and unconfirmed business details are kept
+out of source control.
 
 ## What it demonstrates
 
@@ -69,15 +69,12 @@ data and never call Stripe or production services.
 Compose runs Alembic migrations before the API starts. Production should use a
 managed, client-owned PostgreSQL database and an explicit migration job.
 
-## Public portfolio release
+## Safe local demo data
 
-This repository is the private client working project. Prepare a new redacted
-repository or branch with clean history for any public portfolio; do not publish
-until Umar and the client approve what is being shared. Use only fictional seed
-data and approved screenshots. The [portfolio release guide](PORTFOLIO_RELEASE.md)
-contains the opt-in seed command, Docker reset notes, screenshot checklist,
-five-minute interview demo, and threat-model summary.
+The optional local demo seed creates clearly fictional records for development,
+testing, and interface review. It never imports or changes client records. See
+the [local demo guide](LOCAL_DEMO_GUIDE.md) for the opt-in command and safe
+Docker reset instructions.
 
-Do not publish `.env` files, API keys, webhook secrets, real addresses, phone
-numbers, payment identifiers, or client-approved business content without
-explicit permission.
+Do not commit `.env` files, API keys, webhook secrets, real addresses, phone
+numbers, payment identifiers, or approved business content.
