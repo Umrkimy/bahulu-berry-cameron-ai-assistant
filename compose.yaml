@@ -13,6 +13,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  migrate:
+    build: ./backend
+    env_file:
+      - ${APP_ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "uv run --no-sync alembic upgrade head"]
+
   api:
     build: ./backend
     environment:
@@ -42,13 +53,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 5s
       retries: 6
     ports:
-      - "8000:8000"
+      - "${API_BIND_ADDRESS:-0.0.0.0}:${API_PORT:-8000}:8000"
 
   frontend:
     build:
@@ -59,7 +72,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "5173:80"
+      - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-5173}:80"
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.63.0-noble

@@ -8,6 +8,10 @@ or screenshots containing private information in this file.
 
 **Tester:** ____________________
 
+**Current milestone note:** Backup/restore and local staging checks are added
+below after their automated rehearsal. Stripe, microphone, and visual browser
+checks remain deferred until Umar verifies them.
+
 **Environment:** Docker Compose / local test data
 **Result:** Partial — automated validation re-run on 2026-09-08; browser-only checks remain deferred for Umar.
 
@@ -77,7 +81,7 @@ or screenshots containing private information in this file.
 
 | Command | Result | Safe note |
 | --- | --- | --- |
-| `backend/.venv/Scripts/python.exe -m pytest` | Passed | 56 passed; 2 PostgreSQL-only tests skipped on SQLite, re-run 2026-09-08. |
+| `backend/.venv/Scripts/python.exe -m pytest` | Passed | 61 passed; 2 PostgreSQL-only tests skipped on SQLite, re-run 2026-09-08. |
 | Full backend suite on isolated PostgreSQL 16 | Passed | 52 passed, including concurrent budget, dispatch, confirmation and message-idempotency cases. Existing Compose volume untouched. |
 | `frontend/npm run test` | Passed | 13 tests passed on 2026-09-08. |
 | `frontend/npm run test:e2e` | Passed | 10 mocked browser tests: sign-in, Staff AI privacy and fulfilment selected-record/filter behaviour at 360/768/1280px. Not a full manual workflow sign-off. |
@@ -92,6 +96,8 @@ or screenshots containing private information in this file.
 | Rebuilt Compose health, readiness and revision | Passed | Rebuilt on 2026-09-08 with the existing volume retained; revision 0019; test Stripe key and disabled Meta intake verified using boolean-only checks. |
 | Current local Gitleaks scan | Deferred | Gitleaks is not installed locally. Existing GitHub Actions secret-scan configuration remains the recurring gate; do not mark a local re-run as passed until the tool is available. |
 | Current tracked/untracked source secret scan | Passed | No leaks in source changes. `.gitleaksignore` is excluded from stdin scanning because it intentionally contains two historical Gitleaks fingerprints, not credentials. |
+| Local backup and disposable restore rehearsal | Passed | Rehearsed on 2026-09-08 using the existing test database. A compressed dump restored into a random disposable database, migrated through 0019, passed the application connection check, and was removed; the active volume was unchanged. |
+| Local staging-style Compose startup | Passed | Rehearsed on 2026-09-08 with isolated `bahulu-staging` project and database volume. Explicit migration completed; API `/health` and `/ready` passed on port 18000 while the normal stack stayed healthy on port 8000. |
 
 ## Quality review follow-up — 2026-09-07
 
