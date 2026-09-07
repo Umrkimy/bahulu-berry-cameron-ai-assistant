@@ -19,6 +19,9 @@ const RefundRequests = lazy(() => import("../pages/RefundRequests/RefundRequests
 const AIUsage = lazy(() => import("../pages/AIUsage/AIUsage"));
 const Alerts = lazy(() => import("../pages/Alerts/Alerts"));
 const Reports = lazy(() => import("../pages/Reports/Reports"));
+const Suppliers = lazy(() => import("../pages/Suppliers/Suppliers"));
+const Tasks = lazy(() => import("../pages/Tasks/Tasks"));
+const Fulfillment = lazy(() => import("../pages/Fulfillment/Fulfillment"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -45,8 +48,13 @@ export default function AppRoutes() {
         <Route path="/products" element={<Products />} />
 
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/tasks" element={<Tasks />} />
+
+        <Route path="/suppliers" element={<OwnerRoute><Suppliers /></OwnerRoute>} />
 
         <Route path="/orders" element={<Orders />} />
+
+        <Route path="/fulfillment" element={<Fulfillment />} />
 
         <Route path="/customers" element={<Customers />} />
 

@@ -3,6 +3,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
+from sqlalchemy import or_
+from app.models.task import Task
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin
@@ -33,6 +35,8 @@ async def list_activity(
     offset: int = Query(default=0, ge=0),
 ):
     query = select(ActivityLog).order_by(ActivityLog.created_at.desc())
+    if current_admin.role != "OWNER":
+        query = query.where(or_(ActivityLog.entity_type != "task", ActivityLog.entity_id.in_(select(Task.id).where(Task.assigned_admin_id == current_admin.id))))
     if entity_type:
         query = query.where(ActivityLog.entity_type == entity_type)
     if entity_id is not None:

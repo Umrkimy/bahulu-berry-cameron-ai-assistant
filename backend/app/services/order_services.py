@@ -347,10 +347,14 @@ async def create_order(
             db=db,
             product_id=product.id,
             quantity_change=-quantity,
+            movement_type="ORDER_DEDUCTION",
+            reason="Stock deducted for order.",
+            source_type="ORDER",
+            source_id=order.id,
         )
 
     try:
-        await db.commit()
+        await db.flush()
 
     except Exception:
         await db.rollback()
@@ -388,7 +392,7 @@ async def update_order(
     payment_status: str | None = None,
 ) -> dict:
     result = await db.execute(
-        _order_query().where(
+        _order_query().with_for_update().execution_options(populate_existing=True).where(
             Order.id == order_id
         )
     )
@@ -461,7 +465,25 @@ async def update_order(
                 "error": "Only paid orders can be marked as completed.",
             }
 
+        if (
+            normalized_status in {"PROCESSING", "SHIPPED"}
+            and order.payment_status != "PAID"
+        ):
+            return {
+                "success": False,
+                "error": "Only paid orders can begin preparation.",
+            }
+
         order.status = normalized_status
+
+        delivery = await db.scalar(select(Delivery).where(Delivery.order_id == order.id))
+        if delivery is not None:
+            if normalized_status == "SHIPPED" and delivery.status == "PENDING":
+                delivery.status = "SHIPPED"
+                delivery.shipped_at = datetime.now(UTC)
+            elif normalized_status == "COMPLETED":
+                delivery.status = "DELIVERED"
+                delivery.delivered_at = datetime.now(UTC)
 
     if payment_status is not None:
         normalized_payment_status = (
@@ -482,7 +504,7 @@ async def update_order(
         order.payment_status = normalized_payment_status
 
     try:
-        await db.commit()
+        await db.flush()
 
     except Exception:
         await db.rollback()
@@ -536,7 +558,7 @@ async def cancel_order(
     cancellation_admin_id: int | None = None,
 ) -> dict:
     result = await db.execute(
-        _order_query().where(
+        _order_query().with_for_update().execution_options(populate_existing=True).where(
             Order.id == order_id
         )
     )
@@ -612,6 +634,10 @@ async def cancel_order(
             db=db,
             product_id=item.product.id,
             quantity_change=item.quantity,
+            movement_type="CANCELLATION_RESTORATION",
+            reason="Stock restored after eligible order cancellation.",
+            source_type="ORDER",
+            source_id=order.id,
         )
 
     order.status = "CANCELLED"
@@ -649,7 +675,7 @@ async def cancel_order(
             refund_request_id = existing_refund_request.id
 
     try:
-        await db.commit()
+        await db.flush()
 
     except Exception:
         await db.rollback()

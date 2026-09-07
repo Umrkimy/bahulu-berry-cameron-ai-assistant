@@ -39,3 +39,37 @@ class InventoryNested(BaseModel):
 
 class InventoryAdjustment(BaseModel):
     quantity_change: int
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class StockMovementCreate(BaseModel):
+    low_stock_threshold: int | None = Field(default=None, ge=0)
+    movement_type: str = Field(pattern="^(SUPPLIER_RECEIPT|MANUAL_INCREASE|MANUAL_DECREASE)$")
+    quantity_change: int
+    reason: str | None = Field(default=None, max_length=2_000)
+    supplier_id: int | None = None
+    reference: str | None = Field(default=None, max_length=160)
+
+
+class OpeningBalanceCreate(BaseModel):
+    reason: str = Field(min_length=2, max_length=2_000)
+
+
+class StockMovementPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    inventory_id: int
+    product_id: int
+    product_name: str
+    supplier_id: int | None
+    supplier_name: str | None
+    admin_name: str | None
+    movement_type: str
+    quantity_change: int
+    quantity_before: int
+    quantity_after: int
+    reason: str | None
+    reference: str | None
+    source_type: str | None
+    source_id: int | None
+    created_at: datetime

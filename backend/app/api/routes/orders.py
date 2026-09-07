@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import (
@@ -16,8 +17,11 @@ from app.schemas.order import (
     OrderPrivate,
     OrderQuoteRequest,
     OrderQuoteResponse,
+    OrderDispatch,
     OrderUpdate,
 )
+from app.schemas.fulfillment import FulfillmentQueueResponse
+from app.models.delivery import Delivery
 from app.services.order_services import (
     cancel_order,
     create_order as service_create_order,
@@ -25,6 +29,8 @@ from app.services.order_services import (
 )
 from app.services.pricing_services import calculate_order_pricing
 from app.services.activity_services import record_activity
+from app.services.fulfillment_services import get_fulfillment_queue
+from datetime import UTC, datetime
 
 router = APIRouter()
 
@@ -70,6 +76,14 @@ async def get_orders(
     return result.scalars().all()
 
 
+@router.get("/fulfilment", response_model=FulfillmentQueueResponse)
+async def get_fulfilment_queue(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    return await get_fulfillment_queue(db)
+
+
 @router.get(
     "/{order_id}",
     response_model=OrderPrivate,
@@ -99,6 +113,44 @@ async def get_order(
             detail="Order not found",
         )
 
+    return order
+
+
+@router.post("/{order_id}/dispatch", response_model=OrderPrivate)
+async def dispatch_order(
+    order_id: int,
+    dispatch_data: OrderDispatch,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.delivery))
+        .with_for_update()
+        .execution_options(populate_existing=True)
+        .where(Order.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+    if order.payment_status != "PAID":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only paid orders can be marked as shipped.")
+    if order.status != "PROCESSING":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only orders in preparation can be marked as shipped.")
+    if order.delivery is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Delivery record not found for this order.")
+
+    delivery: Delivery = order.delivery
+    for field, value in dispatch_data.model_dump(exclude_unset=True).items():
+        setattr(delivery, field, value.strip() or None if value else None)
+    delivery.status = "SHIPPED"
+    delivery.shipped_at = datetime.now(UTC)
+    order.status = "SHIPPED"
+    await db.flush()
+    await record_activity(db, admin=current_admin, action="updated", entity_type="delivery", entity_id=delivery.id, description=f"Marked delivery for order #{order.id} as shipped.")
+    await record_activity(db, admin=current_admin, action="updated", entity_type="order", entity_id=order.id, description=f"Marked order #{order.id} as shipped.")
+    await db.commit()
+    await db.refresh(order)
     return order
 
 

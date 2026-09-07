@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +39,10 @@ from app.models.delivery import Delivery
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.support import SupportRequest
+from app.models.admin import Admin
+from app.models.order import Order
+from app.models.task import Task
+from app.services.task_services import resolve_task_context
 
 
 # =========================================================
@@ -179,6 +185,7 @@ async def find_product(
                 if inventory
                 else None
             ),
+            "inventory_id": inventory.id if inventory else None,
         },
     }
 
@@ -483,12 +490,106 @@ async def get_support_queue_summary(db: AsyncSession, admin_id: int) -> dict:
     }
 
 
+async def find_active_team_member(db: AsyncSession, member_name: str) -> dict:
+    normalized = member_name.strip().lower()
+    if not normalized:
+        return {"success": False, "error": "Enter the active team member's name."}
+
+    rows = await db.execute(
+        select(Admin.id, Admin.username, Admin.role)
+        .where(Admin.is_active.is_(True), func.lower(Admin.username).contains(normalized))
+        .order_by(Admin.username.asc())
+        .limit(6)
+    )
+    matches = [
+        {"admin_id": row.id, "username": row.username, "role": row.role}
+        for row in rows
+    ]
+    if not matches:
+        return {"success": False, "error": "No active team member matches that name."}
+    if len(matches) > 1:
+        return {"success": False, "error": "More than one active team member matches that name. Ask the Owner to choose one.", "matches": matches}
+    return {"success": True, "member": matches[0]}
+
+
+async def create_task_tool(
+    db: AsyncSession,
+    *,
+    assigned_admin_id: int,
+    title: str,
+    description: str | None = None,
+    priority: str = "NORMAL",
+    due_at: str | None = None,
+    context_type: str | None = None,
+    context_id: int | None = None,
+    created_by_admin_id: int,
+) -> dict:
+    assignee = await db.scalar(
+        select(Admin).where(Admin.id == assigned_admin_id, Admin.is_active.is_(True))
+    )
+    if assignee is None:
+        return {"success": False, "error": "Choose an active team member before creating the task."}
+
+    cleaned_title = title.strip()
+    cleaned_description = description.strip() if description else None
+    if len(cleaned_title) < 2 or len(cleaned_title) > 200:
+        return {"success": False, "error": "Task title must be between 2 and 200 characters."}
+    if cleaned_description and len(cleaned_description) > 2000:
+        return {"success": False, "error": "Task instructions must be 2,000 characters or fewer."}
+    if priority not in {"LOW", "NORMAL", "HIGH"}:
+        return {"success": False, "error": "Task priority must be low, normal, or high."}
+
+    parsed_due_at = None
+    if due_at:
+        try:
+            parsed_due_at = datetime.fromisoformat(due_at.replace("Z", "+00:00"))
+        except ValueError:
+            return {"success": False, "error": "Use a valid Malaysia date and time for the task deadline."}
+        if parsed_due_at.tzinfo is None or parsed_due_at.utcoffset() != timedelta(hours=8):
+            return {"success": False, "error": "Use Malaysia time (+08:00) when setting a task deadline."}
+
+    try:
+        resolved_context_type, resolved_context_id, context_label = await resolve_task_context(
+            db, context_type, context_id
+        )
+    except ValueError as error:
+        return {"success": False, "error": str(error)}
+
+    item = Task(
+        title=cleaned_title,
+        description=cleaned_description,
+        priority=priority,
+        due_at=parsed_due_at,
+        assigned_admin_id=assignee.id,
+        created_by_admin_id=created_by_admin_id,
+        context_type=resolved_context_type,
+        context_id=resolved_context_id,
+        context_label=context_label,
+    )
+    db.add(item)
+    await db.flush()
+    return {
+        "success": True,
+        "task_id": item.id,
+        "assignee": assignee.username,
+        "title": item.title,
+        "priority": item.priority,
+        "description": item.description,
+        "due_at": item.due_at.isoformat() if item.due_at else None,
+        "context_type": item.context_type,
+        "context_id": item.context_id,
+        "context_label": item.context_label,
+        "message": f"Created task for {assignee.username}: {item.title}.",
+    }
+
+
 async def get_order_workflow(db: AsyncSession, order_id: int) -> dict:
     result = await service_get_order(db=db, order_id=order_id)
     if not result.get("success"):
         return result
     delivery = await db.scalar(select(Delivery).where(Delivery.order_id == order_id))
     result["delivery"] = {
+        "id": delivery.id if delivery else None,
         "status": delivery.status if delivery else "NOT_CREATED",
         "courier": delivery.courier if delivery else None,
         "tracking_number": delivery.tracking_number if delivery else None,
@@ -501,4 +602,33 @@ async def get_shift_summary(db: AsyncSession, admin_id: int) -> dict:
     inventory = await get_low_stock_summary(db)
     deliveries = await get_delivery_workload(db)
     support = await get_support_queue_summary(db, admin_id)
-    return {"success": True, "today": dashboard, "inventory": inventory, "deliveries": deliveries, "support": support}
+    active_task_filter = Task.status.in_(("OPEN", "IN_PROGRESS"))
+    if (await db.scalar(select(Admin.role).where(Admin.id == admin_id))) == "OWNER":
+        task_rows = await db.execute(
+            select(Task.status, func.count(Task.id)).where(active_task_filter).group_by(Task.status)
+        )
+        task_scope = "team"
+    else:
+        task_rows = await db.execute(
+            select(Task.status, func.count(Task.id))
+            .where(active_task_filter, Task.assigned_admin_id == admin_id)
+            .group_by(Task.status)
+        )
+        task_scope = "your"
+    task_counts = {str(status): int(count) for status, count in task_rows}
+    paid_fulfilment = await db.scalar(
+        select(func.count(Order.id)).where(
+            Order.payment_status == "PAID",
+            Order.status.in_(("PENDING", "PROCESSING", "SHIPPED")),
+        )
+    )
+    failed_deliveries = await db.scalar(select(func.count(Delivery.id)).where(Delivery.status == "FAILED"))
+    return {
+        "success": True,
+        "today": dashboard,
+        "inventory": inventory,
+        "deliveries": deliveries,
+        "support": support,
+        "tasks": {"scope": task_scope, "open": task_counts.get("OPEN", 0), "in_progress": task_counts.get("IN_PROGRESS", 0)},
+        "fulfilment": {"paid_active": int(paid_fulfilment or 0), "failed_deliveries": int(failed_deliveries or 0)},
+    }

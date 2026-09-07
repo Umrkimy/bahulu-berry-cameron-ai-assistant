@@ -42,6 +42,7 @@ export function useUpdateOrderDelivery() {
       );
 
       await Promise.all([
+        ...["fulfillment-queue", "operation-alerts", "activity", "reports", "order"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
         queryClient.invalidateQueries({
           queryKey: ["deliveries"],
         }),

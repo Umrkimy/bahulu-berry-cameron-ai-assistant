@@ -1,4 +1,4 @@
-import { Box, Paper, Text } from "@mantine/core";
+import { Badge, Box, Paper, Text } from "@mantine/core";
 import { IconSparkles } from "@tabler/icons-react";
 import ReactMarkdown from "react-markdown";
 
@@ -37,9 +37,14 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           p="sm"
           px="md"
           radius="lg"
-          bg={isUser ? "blue.6" : "gray.1"}
+          bg={isUser ? "bahulu.6" : "cream.0"}
           c={isUser ? "white" : "dark"}
         >
+          {!isUser && message.outcome && message.outcome !== "ANSWER" && (
+            <Badge mb="xs" color={message.outcome === "COMPLETED" ? "green" : message.outcome === "FAILED" ? "red" : "orange"} variant="light">
+              {message.outcome === "COMPLETED" ? "Action completed" : message.outcome === "FAILED" ? "Request not completed" : "Awaiting your confirmation"}
+            </Badge>
+          )}
           {isUser ? (
             <Text
               size="sm"

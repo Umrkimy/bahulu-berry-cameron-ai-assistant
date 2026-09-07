@@ -9,12 +9,13 @@ from app.core.config import settings
 from app.models.admin import Admin
 from app.models.ai_usage import AIUsage
 from app.schemas.ai_usage import AIUsageByAdmin, AIUsageDaily, AIUsageSummary
+from app.services.transaction_lock import acquire_transaction_lock
 
 
 MODEL_PRICING_USD_PER_MILLION = {
     "gpt-4o-mini": {"input": Decimal("0.15"), "output": Decimal("0.60")},
 }
-COUNTED_OUTCOMES = {"RESERVED", "COMPLETED"}
+COUNTED_OUTCOMES = {"RESERVED", "COMPLETED", "UNCERTAIN"}
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 
 
@@ -46,6 +47,9 @@ async def _month_spend(db: AsyncSession) -> Decimal:
 
 
 async def reserve_ai_usage(db: AsyncSession, *, admin_id: int, model: str) -> AIUsage:
+    await acquire_transaction_lock(db, "ai-monthly-budget")
+    if model not in MODEL_PRICING_USD_PER_MILLION:
+        raise AIBudgetExceeded
     reserved_cost = calculate_cost_usd(
         model,
         settings.AI_MAX_RESERVED_INPUT_TOKENS,
@@ -77,7 +81,10 @@ async def settle_ai_usage(
 ) -> None:
     usage.input_tokens = input_tokens
     usage.output_tokens = output_tokens
-    usage.estimated_cost_usd = calculate_cost_usd(usage.model, input_tokens, output_tokens) if outcome == "COMPLETED" else Decimal("0")
+    if outcome == "COMPLETED":
+        usage.estimated_cost_usd = calculate_cost_usd(usage.model, input_tokens, output_tokens)
+    elif outcome != "UNCERTAIN":
+        usage.estimated_cost_usd = Decimal("0")
     usage.outcome = outcome
     await db.commit()
 

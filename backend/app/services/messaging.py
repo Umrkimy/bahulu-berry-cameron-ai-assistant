@@ -15,6 +15,7 @@ from app.models.support import SupportRequest
 from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
+from app.services.transaction_lock import acquire_transaction_lock
 
 
 @dataclass(frozen=True)
@@ -143,6 +144,7 @@ async def create_simulated_dashboard_reply(
 
 
 async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin | None = None) -> SimulatorInboundPublic:
+    await acquire_transaction_lock(db, "messaging-intake")
     existing = await db.scalar(select(MessagingEvent).where(MessagingEvent.provider == message.provider, MessagingEvent.external_message_id == message.external_message_id))
     if existing is not None:
         return SimulatorInboundPublic(outcome="DUPLICATE", duplicate=True, support_request_id=existing.support_request_id)
@@ -155,11 +157,13 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
     elif conversation.contact_reference is None:
         conversation.contact_reference = message.sender_reference
 
-    draft = await create_grounded_draft(db, message=message.message, requested_language=message.language)
+    ticket = await db.scalar(select(SupportRequest).where(SupportRequest.id == conversation.support_request_id).with_for_update().execution_options(populate_existing=True)) if conversation.support_request_id else None
+    human_handling = ticket is not None and ticket.handoff_state in {"HUMAN_HANDLING", "HUMAN_REQUESTED"}
+    draft = None if human_handling else await create_grounded_draft(db, message=message.message, requested_language=message.language)
     support_request_id: int | None = conversation.support_request_id
     ticket_created = False
-    outcome = "DRAFTED"
-    if draft.handoff_required:
+    outcome = "HANDOFF" if human_handling else "DRAFTED"
+    if draft is not None and draft.handoff_required:
         outcome = "HANDOFF"
         if support_request_id is None:
             ticket = SupportRequest(

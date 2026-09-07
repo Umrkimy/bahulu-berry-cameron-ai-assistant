@@ -3,14 +3,16 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from openai import AsyncOpenAI, OpenAIError
+from openai import AsyncOpenAI, OpenAIError, APIConnectionError, APITimeoutError, APIStatusError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from app.core.config import settings
 from app.schemas.ai_assistant import AIChatMessage
 from app.models.ai_action_confirmation import AIActionConfirmation
+from app.models.admin import Admin
 from app.services.activity_services import record_activity
 from app.services.ai_usage_services import AIBudgetExceeded, reserve_ai_usage, settle_ai_usage
 
@@ -36,23 +38,28 @@ from app.services.ai_tools import (
     get_order_workflow,
     get_shift_summary,
     get_support_queue_summary,
+    find_active_team_member,
+    create_task_tool,
 )
 
 
 client = AsyncOpenAI(
-    api_key=settings.OPENAI_API_KEY.get_secret_value()
+    api_key=settings.OPENAI_API_KEY.get_secret_value(),
+    max_retries=0,
 )
 
 
 MAX_TOOL_ROUNDS = 5
 MAX_HISTORY_MESSAGES = 12
 CONFIRMATION_TTL = timedelta(minutes=10)
+MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 
 
 @dataclass(frozen=True)
 class AIServiceResult:
     response: str
     cards: list[dict[str, Any]]
+    outcome: str = "ANSWER"
 
 
 SYSTEM_PROMPT = """
@@ -191,6 +198,14 @@ STAFF OPERATIONS:
 - Use get_delivery_workload for current delivery workload.
 - Use get_support_queue_summary for support workload and the current user's assigned tickets.
 - Use get_shift_summary for a concise operational handover.
+
+TASKS:
+- Owners can use find_active_team_member and create_task to delegate work.
+- Find the active team member before creating a task. Never guess or choose between multiple matching people.
+- Task title is required. Instructions are optional. Priority is LOW, NORMAL, or HIGH.
+- A task may link to one exact record: use ORDER with an order ID, DELIVERY with a delivery ID returned by get_order_workflow, or INVENTORY with an inventory ID returned by find_product. Never guess a record ID; look it up first when the Owner names a record.
+- When a deadline is stated, use an ISO 8601 timestamp with Asia/Kuala_Lumpur (+08:00). If no deadline is stated, use null; never invent one.
+- Staff can ask only about their own tasks through the shift summary. They cannot create, assign, preview, or confirm tasks.
 
 RESPONSE STYLE:
 - Keep responses concise.
@@ -709,6 +724,22 @@ TOOLS = [
             "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_active_team_member",
+            "description": "Find one active team member by username or partial username before an Owner delegates a task. Ask for clarification if multiple active members match.",
+            "parameters": {"type": "object", "properties": {"member_name": {"type": "string"}}, "required": ["member_name"], "additionalProperties": False},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_task",
+            "description": "Create and assign an operational task after the Owner confirms it. The assignee must be an active team member returned by find_active_team_member.",
+            "parameters": {"type": "object", "properties": {"assigned_admin_id": {"type": "integer"}, "title": {"type": "string"}, "description": {"type": ["string", "null"]}, "priority": {"type": "string", "enum": ["LOW", "NORMAL", "HIGH"]}, "due_at": {"type": ["string", "null"], "description": "ISO 8601 deadline including +08:00, or null when none was requested."}, "context_type": {"type": ["string", "null"], "enum": ["ORDER", "DELIVERY", "INVENTORY", None]}, "context_id": {"type": ["integer", "null"]}}, "required": ["assigned_admin_id", "title", "description", "priority", "due_at", "context_type", "context_id"], "additionalProperties": False},
+        },
+    },
 ]
 
 
@@ -734,6 +765,8 @@ TOOL_HANDLERS = {
     "get_delivery_workload": get_delivery_workload,
     "get_support_queue_summary": get_support_queue_summary,
     "get_shift_summary": get_shift_summary,
+    "find_active_team_member": find_active_team_member,
+    "create_task": create_task_tool,
 }
 
 WRITE_TOOLS = {
@@ -742,11 +775,14 @@ WRITE_TOOLS = {
     "create_order",
     "update_order_status",
     "cancel_order",
+    "create_task",
 }
+
+OWNER_ONLY_TOOLS = {"find_active_team_member", "create_task"}
 
 READ_ONLY_TOOLS = [
     tool for tool in TOOLS
-    if tool["function"]["name"] not in WRITE_TOOLS
+    if tool["function"]["name"] not in WRITE_TOOLS | OWNER_ONLY_TOOLS
 ]
 
 
@@ -762,6 +798,17 @@ def _describe_action(tool_name: str, arguments: dict[str, Any]) -> str:
         return f"Change order #{arguments.get('order_id')} to {str(arguments.get('new_status', '')).lower()}."
     if tool_name == "cancel_order":
         return f"Cancel order #{arguments.get('order_id')} and restore eligible stock."
+    if tool_name == "create_task":
+        due_at = arguments.get("due_at")
+        instructions = arguments.get("description")
+        details = f"Assign {arguments.get('assignee_name', 'the selected team member')} the {str(arguments.get('priority', 'NORMAL')).lower()} priority task: {arguments.get('title', 'Untitled task')}."
+        if instructions:
+            details += f" Instructions: {instructions}"
+        if due_at:
+            details += f" Due: {due_at}."
+        if arguments.get("context_label"):
+            details += f" Related to: {arguments['context_label']}."
+        return details
     return "Apply the requested business change."
 
 
@@ -1072,6 +1119,10 @@ async def _execute_pending_confirmation(
     if pending is None:
         return None
 
+    admin = await db.scalar(select(Admin).where(Admin.id == admin_id).execution_options(populate_existing=True))
+    if admin is None or not admin.is_active or admin.role != "OWNER":
+        return "Only an active Owner can confirm record changes."
+
     if not _is_confirmation(message):
         await db.delete(pending)
         await db.commit()
@@ -1079,8 +1130,10 @@ async def _execute_pending_confirmation(
 
     tool_name = pending.tool_name
     arguments = pending.arguments or {}
-    await db.delete(pending)
-    await db.commit()
+    claimed = await db.execute(delete(AIActionConfirmation).where(AIActionConfirmation.id == pending.id).returning(AIActionConfirmation.id))
+    if claimed.scalar_one_or_none() is None:
+        return "This action has already been confirmed. Refresh the record to check its result."
+    await db.flush()
 
     if tool_name is None:
         return "This confirmation has expired. Please ask again."
@@ -1089,14 +1142,18 @@ async def _execute_pending_confirmation(
     if handler is None:
         return "This action is no longer available. Please ask again."
 
+    execution_arguments = dict(arguments)
+    execution_arguments.pop("assignee_name", None)
+    execution_arguments.pop("context_label", None)
+
     if tool_name == "cancel_order":
         result = await cancel_order(
             db=db,
-            order_id=arguments.get("order_id"),
+            order_id=execution_arguments.get("order_id"),
             cancellation_admin_id=admin_id,
         )
     else:
-        result = await handler(db=db, **arguments)
+        result = await handler(db=db, **execution_arguments)
 
     if result.get("success"):
         if result.get("refund_request_auto_approved"):
@@ -1109,18 +1166,31 @@ async def _execute_pending_confirmation(
                 description=f"AI-confirmed cancellation automatically approved a refund request for order #{arguments.get('order_id')}.",
                 metadata={"source": "ai_assistant"},
             )
-        await record_activity(
-            db,
-            admin_id=admin_id,
-            action="ai_confirmed",
-            entity_type="ai_action",
-            entity_id=0,
-            description=f"AI-confirmed action: {_describe_action(tool_name, arguments)}",
-            metadata={"source": "ai_assistant", "tool": tool_name},
-        )
+        if tool_name == "create_task":
+            await record_activity(
+                db,
+                admin_id=admin_id,
+                action="created",
+                entity_type="task",
+                entity_id=result["task_id"],
+                description=f"Created and assigned task to {result['assignee']}: {result['title']}.",
+                metadata={"source": "ai_assistant", "priority": result["priority"]},
+            )
+        else:
+            await record_activity(
+                db,
+                admin_id=admin_id,
+                action="ai_confirmed",
+                entity_type="ai_action",
+                entity_id=0,
+                description=f"AI-confirmed action: {_describe_action(tool_name, arguments)}",
+                metadata={"source": "ai_assistant", "tool": tool_name},
+            )
         await db.commit()
+        db.info["ai_action_outcome"] = "COMPLETED"
         return result.get("message", "The confirmed action was completed.")
 
+    await db.rollback()
     return result.get("error", "Unable to complete the confirmed action.")
 
 
@@ -1135,7 +1205,7 @@ async def _execute_tool(
     is_owner: bool,
 ) -> dict[str, Any]:
 
-    if not is_owner and tool_name in WRITE_TOOLS:
+    if not is_owner and tool_name in WRITE_TOOLS | OWNER_ONLY_TOOLS:
         return {"success": False, "error": "Only owners can ask the AI to make changes."}
 
     handler = TOOL_HANDLERS.get(tool_name)
@@ -1147,6 +1217,26 @@ async def _execute_tool(
         }
 
     if tool_name in WRITE_TOOLS:
+        if tool_name == "create_task":
+            assignee = await db.scalar(
+                select(Admin).where(
+                    Admin.id == arguments.get("assigned_admin_id"),
+                    Admin.is_active.is_(True),
+                )
+            )
+            if assignee is None:
+                return {"success": False, "error": "Choose an active team member before creating the task."}
+            arguments = {
+                **arguments,
+                "created_by_admin_id": admin_id,
+                "assignee_name": assignee.username,
+            }
+            try:
+                from app.services.task_services import resolve_task_context
+                _, _, context_label = await resolve_task_context(db, arguments.get("context_type"), arguments.get("context_id"))
+            except ValueError as error:
+                return {"success": False, "error": str(error)}
+            arguments["context_label"] = context_label
         await _store_confirmation(
             db=db,
             admin_id=admin_id,
@@ -1183,10 +1273,17 @@ def _operation_cards(tool_name: str, result: dict[str, Any]) -> list[dict[str, A
     if tool_name == "get_support_queue_summary":
         return [{"title": "Support queue", "facts": [f"New: {result.get('new', 0)}", f"Waiting for customer: {result.get('waiting_for_customer', 0)}", f"High priority: {result.get('high_priority', 0)}", f"Assigned to you: {result.get('assigned_to_you', 0)}"], "tone": "warning" if result.get("high_priority", 0) else "info", "href": "/whatsapp"}]
     if tool_name == "get_shift_summary":
-        today = result.get("today", {})
-        inventory = result.get("inventory", {})
+        tasks = result.get("tasks", {})
+        fulfilment = result.get("fulfilment", {})
         support = result.get("support", {})
-        return [{"title": "Current shift summary", "facts": [f"Today’s orders: {today.get('orders', 0)}", f"Low-stock products: {inventory.get('low_stock_count', 0)}", f"High-priority support: {support.get('high_priority', 0)}", f"Assigned to you: {support.get('assigned_to_you', 0)}"], "tone": "warning" if inventory.get("low_stock_count", 0) or support.get("high_priority", 0) else "success", "href": "/dashboard"}]
+        scope = "Team" if tasks.get("scope") == "team" else "My"
+        task_tone = "warning" if tasks.get("open", 0) or tasks.get("in_progress", 0) else "success"
+        fulfilment_tone = "warning" if fulfilment.get("failed_deliveries", 0) else "info"
+        return [
+            {"title": f"{scope} tasks", "facts": [f"Open: {tasks.get('open', 0)}", f"In progress: {tasks.get('in_progress', 0)}"], "tone": task_tone, "href": "/tasks"},
+            {"title": "Fulfilment", "facts": [f"Paid active orders: {fulfilment.get('paid_active', 0)}", f"Failed deliveries: {fulfilment.get('failed_deliveries', 0)}"], "tone": fulfilment_tone, "href": "/fulfillment"},
+            {"title": "Support queue", "facts": [f"High priority: {support.get('high_priority', 0)}", f"Assigned to you: {support.get('assigned_to_you', 0)}"], "tone": "warning" if support.get("high_priority", 0) else "info", "href": "/whatsapp"},
+        ]
     return []
 
 
@@ -1206,7 +1303,7 @@ async def generate_ai_result(
         message=message,
     ) if is_owner else None
     if confirmed_response is not None:
-        return AIServiceResult(response=confirmed_response, cards=[])
+        return AIServiceResult(response=confirmed_response, cards=[], outcome=db.info.pop("ai_action_outcome", "FAILED"))
 
     cards: list[dict[str, Any]] = []
 
@@ -1216,6 +1313,12 @@ async def generate_ai_result(
             "content": SYSTEM_PROMPT,
         }
     ]
+    messages.append(
+        {
+            "role": "system",
+            "content": f"Current Malaysia date and time: {datetime.now(MALAYSIA_TZ).isoformat()}. Use this only to resolve an explicitly requested task deadline.",
+        }
+    )
 
     if not is_owner:
         messages.append(
@@ -1256,6 +1359,10 @@ async def generate_ai_result(
         if settings.OPENAI_REASONING_EFFORT != "none":
             request_options["reasoning_effort"] = settings.OPENAI_REASONING_EFFORT
 
+        input_upper_bound = len(json.dumps({"messages": messages, "tools": request_options["tools"]}, ensure_ascii=False).encode("utf-8")) + 1024
+        if input_upper_bound > settings.AI_MAX_RESERVED_INPUT_TOKENS:
+            return AIServiceResult(response="This conversation is too long for the AI request limit. Start a new chat with a shorter question.", cards=[], outcome="FAILED")
+
         try:
             usage_record = await reserve_ai_usage(
                 db,
@@ -1263,13 +1370,19 @@ async def generate_ai_result(
                 model=settings.OPENAI_MODEL,
             )
         except AIBudgetExceeded:
-            return AIServiceResult(response="The monthly AI budget has been reached. Please ask an owner to review the AI usage page.", cards=[])
+            return AIServiceResult(response="The monthly AI budget has been reached. Please ask an owner to review the AI usage page.", cards=[], outcome="FAILED")
 
         try:
             response = await client.chat.completions.create(**request_options)
+        except (APIConnectionError, APITimeoutError):
+            await settle_ai_usage(db, usage_record, outcome="UNCERTAIN")
+            return AIServiceResult(response="The AI connection was interrupted. Check the record before retrying an action. Estimated usage remains reserved until its cost is known.", cards=[], outcome="FAILED")
+        except APIStatusError as error:
+            await settle_ai_usage(db, usage_record, outcome="UNCERTAIN" if error.status_code >= 500 else "FAILED")
+            return AIServiceResult(response="The AI service is temporarily unavailable. Please try again shortly.", cards=[], outcome="FAILED")
         except OpenAIError:
             await settle_ai_usage(db, usage_record, outcome="FAILED")
-            return AIServiceResult(response="The AI service is temporarily unavailable. Please try again shortly.", cards=[])
+            return AIServiceResult(response="The AI service is temporarily unavailable. Please try again shortly.", cards=[], outcome="FAILED")
 
         provider_usage = response.usage
         await settle_ai_usage(
@@ -1277,7 +1390,7 @@ async def generate_ai_result(
             usage_record,
             input_tokens=getattr(provider_usage, "prompt_tokens", 0) or 0,
             output_tokens=getattr(provider_usage, "completion_tokens", 0) or 0,
-            outcome="COMPLETED",
+            outcome="COMPLETED" if provider_usage is not None else "UNCERTAIN",
         )
 
         assistant_message = response.choices[0].message
@@ -1323,13 +1436,16 @@ async def generate_ai_result(
                     is_owner=is_owner,
                 )
 
-            except Exception as exc:
+            except Exception:
                 await db.rollback()
 
                 result = {
                     "success": False,
-                    "error": str(exc),
+                    "error": "The requested operation could not be completed. Check the record and try again.",
                 }
+
+            if result.get("confirmation_required"):
+                return AIServiceResult(response=result["message"], cards=cards, outcome="CONFIRMATION_REQUIRED")
 
             cards.extend(_operation_cards(tool_name, result))
 
@@ -1344,7 +1460,7 @@ async def generate_ai_result(
                 }
             )
 
-    return AIServiceResult(response="I was unable to complete the request. Please try again.", cards=cards)
+    return AIServiceResult(response="I was unable to complete the request. Please try again.", cards=cards, outcome="FAILED")
 
 
 async def generate_ai_response(

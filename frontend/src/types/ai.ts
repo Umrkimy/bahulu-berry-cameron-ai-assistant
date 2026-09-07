@@ -9,4 +9,5 @@ export type ChatMessageData = {
   role: "user" | "assistant";
   content: string;
   cards?: AIOperationCard[];
+  outcome?: "ANSWER" | "CONFIRMATION_REQUIRED" | "COMPLETED" | "FAILED";
 };

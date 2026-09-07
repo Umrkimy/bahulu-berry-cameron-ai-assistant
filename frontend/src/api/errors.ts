@@ -16,6 +16,7 @@ function getValidationErrors(detail: unknown): Record<string, string> {
   }
 
   return detail.reduce<Record<string, string>>((errors, item: ValidationDetail) => {
+    if (!item || typeof item !== "object" || !Array.isArray(item.loc)) return errors;
     const field = item.loc?.at(-1);
     if (typeof field === "string" && item.msg && !errors[field]) {
       errors[field] = item.msg;
@@ -52,11 +53,12 @@ export function getApiError(error: unknown): ApiError {
   const validationFieldErrors = getValidationErrors(detail);
   const detailFieldErrors =
     detail && typeof detail === "object" && !Array.isArray(detail)
-      ? detail.field_errors
+      ? detail.field_errors ?? {}
       : {};
   const fieldErrors = Object.keys(validationFieldErrors).length > 0
     ? validationFieldErrors
-    : detailFieldErrors;
+    : Object.fromEntries(Object.entries(detailFieldErrors && typeof detailFieldErrors === "object" && !Array.isArray(detailFieldErrors) ? detailFieldErrors : {}).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  if (typeof detail?.field === "string" && typeof detail?.message === "string") fieldErrors[detail.field] = detail.message;
   if (Object.keys(fieldErrors).length > 0) {
     return { message: "Please correct the highlighted fields.", fieldErrors };
   }

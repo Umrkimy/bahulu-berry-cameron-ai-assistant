@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -44,6 +45,11 @@ export default function OrdersTable() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [viewOpened, setViewOpened] = useState(false);
   const [editOpened, setEditOpened] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const routedOrder = orders?.find((item) => item.id === (location.state as { openOrderId?: number } | null)?.openOrderId) ?? null;
+  const activeOrder = selectedOrder ?? routedOrder;
 
   const customerNames = useMemo(
     () => new Map(customers?.map((customer) => [customer.id, customer.full_name]) ?? []),
@@ -123,7 +129,7 @@ export default function OrdersTable() {
           <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={700}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={700}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{order.status}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{order.payment_status}</Badge></Group><Group justify="flex-end"><ActionIcon variant="light" color="blue" onClick={() => { setSelectedOrder(order); setViewOpened(true); }} aria-label="View order"><IconEye size={18} /></ActionIcon><ActionIcon variant="light" color="orange" onClick={() => { setSelectedOrder(order); setEditOpened(true); }} aria-label="Edit order"><IconEdit size={18} /></ActionIcon></Group></Stack></Card>
         )}
       />
-      <OrderDetailsModal opened={viewOpened} order={selectedOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); }} />
+      <OrderDetailsModal opened={viewOpened || routedOrder !== null} order={activeOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); navigate(location.pathname, { replace: true, state: null }); }} />
       <EditOrderModal opened={editOpened} order={selectedOrder} onClose={() => { setEditOpened(false); setSelectedOrder(null); }} />
     </>
   );

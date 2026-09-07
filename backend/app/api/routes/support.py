@@ -274,6 +274,7 @@ async def request_messages(item_id: int, db: Annotated[AsyncSession, Depends(get
 
 @router.post("/requests/{item_id}/claim", response_model=SupportRequestPublic)
 async def claim_conversation(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_REQUESTED" or ticket.assigned_admin_id is not None:
         raise HTTPException(409, detail="This conversation is no longer available to claim.")
@@ -287,6 +288,7 @@ async def claim_conversation(item_id: int, db: Annotated[AsyncSession, Depends(g
 
 @router.post("/requests/{item_id}/return-to-ai", response_model=SupportRequestPublic)
 async def return_conversation_to_ai(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_HANDLING":
         raise HTTPException(409, detail="This conversation is not being handled by a person.")
@@ -301,6 +303,7 @@ async def return_conversation_to_ai(item_id: int, db: Annotated[AsyncSession, De
 
 @router.post("/requests/{item_id}/request-human-takeover", response_model=SupportRequestPublic)
 async def request_human_takeover(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "AI_ACTIVE":
         raise HTTPException(409, detail="This conversation is already waiting for or being handled by a person.")

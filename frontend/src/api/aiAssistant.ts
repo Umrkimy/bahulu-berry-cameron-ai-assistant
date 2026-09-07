@@ -10,6 +10,7 @@ export interface AIChatRequest {
 
 export interface AIChatResponse {
   response: string;
+  outcome?: ChatMessageData["outcome"];
   cards: AIOperationCard[];
 }
 

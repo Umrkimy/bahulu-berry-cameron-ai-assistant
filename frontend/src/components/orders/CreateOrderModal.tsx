@@ -152,7 +152,9 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
           <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <Select label="Product" placeholder="Select a product" searchable clearable maxDropdownHeight={240} data={products.map((product) => ({ value: String(product.id), label: `${product.name} - RM ${getDisplayedPrice(product).toFixed(2)} - Stock: ${product.inventory?.quantity ?? 0}` }))} value={productId} onChange={setProductId} disabled={isLoading} nothingFoundMessage="No products available" />
             <NumberInput label="Quantity" min={1} max={productId ? (products.find((product) => product.id === Number(productId))?.inventory?.quantity ?? undefined) : undefined} value={quantity} onChange={(value) => setQuantity(typeof value === "number" && value > 0 ? value : 1)} disabled={createOrderMutation.isPending} />
-            <Button variant="light" onClick={addItem} disabled={createOrderMutation.isPending}>Add Product</Button>
+            <Box style={{ display: "flex", alignItems: "flex-end" }}>
+              <Button fullWidth variant="light" onClick={addItem} disabled={createOrderMutation.isPending}>Add Product</Button>
+            </Box>
           </SimpleGrid>
         </Paper>
 

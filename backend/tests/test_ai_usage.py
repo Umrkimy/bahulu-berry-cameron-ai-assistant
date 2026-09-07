@@ -3,14 +3,23 @@ from uuid import uuid4
 from decimal import Decimal
 
 import pytest
-from openai import OpenAIError
+import pytest_asyncio
+from openai import OpenAIError, APITimeoutError
+import httpx
 from sqlalchemy import select
 
 from app.core.config import settings
 from app.models.ai_usage import AIUsage
+from app.models.admin import Admin
 from app.schemas.ai_assistant import AIChatMessage
 from app.services import ai_assistant_services
 from app.services.ai_usage_services import AIBudgetExceeded, calculate_cost_usd, get_usage_summary, reserve_ai_usage, settle_ai_usage
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def usage_admin(session):
+    session.add(Admin(id=1, username="usage-test-owner", email="usage@example.test", password_hash="unused", role="OWNER", is_active=True))
+    await session.commit()
 
 
 def test_gpt_4o_mini_cost_calculation():
@@ -125,3 +134,18 @@ async def test_provider_error_is_safe_and_does_not_keep_reserved_cost(session, m
     assert response == "The AI service is temporarily unavailable. Please try again shortly."
     assert usage.outcome == "FAILED"
     assert float(usage.estimated_cost_usd) == 0
+
+
+@pytest.mark.asyncio
+async def test_timeout_retains_reservation_without_private_error(session, monkeypatch):
+    async def timeout(**kwargs):
+        raise APITimeoutError(request=httpx.Request("POST", "https://example.test"))
+
+    monkeypatch.setattr(ai_assistant_services.client.chat.completions, "create", timeout)
+    result = await ai_assistant_services.generate_ai_result(session, "Stock?", str(uuid4()), 1, [], False)
+    usage = await session.scalar(select(AIUsage))
+    assert result.outcome == "FAILED"
+    assert "example.test" not in result.response
+    assert usage.outcome == "UNCERTAIN"
+    assert usage.estimated_cost_usd > 0
+    assert (await get_usage_summary(session)).spent_usd == float(usage.estimated_cost_usd)

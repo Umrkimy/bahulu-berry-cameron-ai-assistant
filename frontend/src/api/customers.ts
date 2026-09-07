@@ -10,6 +10,9 @@ export interface Customer {
   state: string | null;
   postal_code: string | null;
   country: string;
+  tags: string | null;
+  internal_note: string | null;
+  follow_up_at: string | null;
   created_at: string;
 }
 
@@ -32,6 +35,9 @@ export interface UpdateCustomerData {
   state?: string | null;
   postal_code?: string | null;
   country?: string | null;
+  tags?: string | null;
+  internal_note?: string | null;
+  follow_up_at?: string | null;
 }
 
 export async function getCustomers() {

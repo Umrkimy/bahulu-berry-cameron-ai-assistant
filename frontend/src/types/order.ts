@@ -1,3 +1,5 @@
+import type { DeliveryStatus } from "./delivery";
+
 export type OrderStatus =
   | "PENDING"
   | "PROCESSING"
@@ -95,4 +97,30 @@ export interface OrderQuote {
   subtotal: number | string;
   discount_amount: number | string;
   total_amount: number | string;
+}
+
+export type FulfillmentStage = "NEEDS_ATTENTION" | "READY_TO_PREPARE" | "IN_PREPARATION" | "IN_DELIVERY";
+
+export interface FulfillmentDelivery {
+  id: number;
+  status: DeliveryStatus;
+  courier: string | null;
+  tracking_number: string | null;
+  updated_at: string;
+}
+
+export interface FulfillmentOrder {
+  id: number;
+  customer_name: string;
+  status: OrderStatus;
+  payment_status: PaymentStatus;
+  total_amount: number | string;
+  created_at: string;
+  queue_stage: FulfillmentStage;
+  delivery: FulfillmentDelivery | null;
+}
+
+export interface FulfillmentQueue {
+  items: FulfillmentOrder[];
+  counts: Record<FulfillmentStage, number>;
 }

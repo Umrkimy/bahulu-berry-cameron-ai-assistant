@@ -20,6 +20,8 @@ from app.api.routes import (
     ai_usage,
     operations,
     reports,
+    suppliers,
+    tasks,
 )
 
 api_router = APIRouter()
@@ -41,6 +43,9 @@ api_router.include_router(
     prefix="/inventories",
     tags=["inventories"],
 )
+
+api_router.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"])
+api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
 api_router.include_router(
     orders.router,

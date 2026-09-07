@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Spotlight, spotlight } from "@mantine/spotlight";
 import { useHotkeys } from "@mantine/hooks";
-import { IconBell, IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
+import { IconBell, IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconClipboardCheck, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconTruckLoading, IconUsers } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
 import type { DashboardRouteState } from "../../types/navigation";
@@ -29,7 +29,9 @@ export default function CommandPalette() {
           { id: "customers", label: "Customers", onClick: () => navigate("/customers"), leftSection: <IconUsers size={18} /> },
           { id: "products", label: "Products", onClick: () => navigate("/products"), leftSection: <IconPackage size={18} /> },
           { id: "inventory", label: "Inventory", onClick: () => navigate("/inventory"), leftSection: <IconBuildingWarehouse size={18} /> },
+          ...(admin?.role === "OWNER" ? [{ id: "suppliers", label: "Suppliers", onClick: () => navigate("/suppliers"), leftSection: <IconTruckLoading size={18} /> }] : []),
           { id: "orders", label: "Orders", onClick: () => navigate("/orders"), leftSection: <IconShoppingCart size={18} /> },
+          { id: "fulfillment", label: "Fulfilment", onClick: () => navigate("/fulfillment"), leftSection: <IconClipboardCheck size={18} /> },
           { id: "deliveries", label: "Deliveries", onClick: () => navigate("/deliveries"), leftSection: <IconTruck size={18} /> },
           { id: "discounts", label: "Discounts", onClick: () => navigate("/discounts"), leftSection: <IconDiscount2 size={18} /> },
           { id: "activity", label: "Activity", onClick: () => navigate("/activity"), leftSection: <IconBox size={18} /> },
