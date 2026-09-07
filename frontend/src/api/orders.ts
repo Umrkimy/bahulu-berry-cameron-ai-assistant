@@ -6,6 +6,7 @@ import type {
   OrderItem,
   UpdateOrderData,
   OrderQuote,
+  FulfillmentQueue,
 } from "../types/order";
 
 interface CancelOrderResponse {
@@ -23,6 +24,16 @@ export async function quoteOrder(items: CreateOrderData["items"]) {
 export async function getOrders() {
   const response = await api.get<Order[]>("/orders");
 
+  return response.data;
+}
+
+export async function getFulfillmentQueue() {
+  const response = await api.get<FulfillmentQueue>("/orders/fulfilment");
+  return response.data;
+}
+
+export async function dispatchOrder(orderId: number, data: { courier?: string | null; tracking_number?: string | null }) {
+  const response = await api.post<Order>(`/orders/${orderId}/dispatch`, data);
   return response.data;
 }
 

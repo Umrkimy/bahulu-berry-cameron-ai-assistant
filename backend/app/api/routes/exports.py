@@ -17,6 +17,8 @@ from app.models.discount import Discount
 from app.models.inventory import Inventory
 from app.models.order import Order
 from app.models.product import Product
+from app.models.stock_movement import StockMovement
+from app.models.supplier import Supplier
 from app.services.activity_services import record_activity
 
 
@@ -65,6 +67,12 @@ async def export_csv(
         if ids: query = query.where(Discount.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
         rows = [["ID", "Product ID", "Name", "Type", "Value", "Active", "Starts", "Ends"]] + [[x.id, x.product_id, x.name, x.discount_type, x.discount_value, x.is_active, _malaysia_time(x.start_at), _malaysia_time(x.end_at)] for x in data]
+    elif resource == "stock-movements":
+        query = select(StockMovement, Product.name, Supplier.name).join(Product).outerjoin(Supplier).order_by(StockMovement.created_at.desc())
+        if ids:
+            query = query.where(StockMovement.id.in_(ids))
+        data = (await db.execute(query)).all()
+        rows = [["ID", "Product", "Type", "Change", "Before", "After", "Supplier", "Reference", "Reason", "Created"]] + [[movement.id, product_name, movement.movement_type, movement.quantity_change, movement.quantity_before, movement.quantity_after, supplier_name or "", movement.reference or "", movement.reason or "", _malaysia_time(movement.created_at)] for movement, product_name, supplier_name in data]
     else:
         raise HTTPException(status_code=404, detail="Export type not found.")
 

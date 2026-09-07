@@ -39,6 +39,7 @@ async def update_delivery(
     order_id: int,
     update_data: dict,
 ) -> Delivery | None:
+    order = await db.scalar(select(Order).where(Order.id == order_id).with_for_update().execution_options(populate_existing=True))
     delivery = await get_delivery_by_order(
         db=db,
         order_id=order_id,
@@ -48,6 +49,13 @@ async def update_delivery(
         return None
 
     if not update_data:
+        return delivery
+
+    if order is None:
+        raise ValueError("Order not found.")
+    if order.status in {"COMPLETED", "CANCELLED"}:
+        if any(getattr(delivery, field) != value for field, value in update_data.items()):
+            raise ValueError("Completed or cancelled orders cannot be changed.")
         return delivery
 
     new_status = None
@@ -60,10 +68,29 @@ async def update_delivery(
                 f"Invalid delivery status '{new_status}'."
             )
 
-        _update_delivery_timestamp(
-            delivery=delivery,
-            new_status=new_status,
-        )
+        if new_status != delivery.status:
+            allowed = {
+                "PENDING": {"SHIPPED"},
+                "SHIPPED": {"IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"},
+                "IN_TRANSIT": {"OUT_FOR_DELIVERY", "DELIVERED", "FAILED"},
+                "OUT_FOR_DELIVERY": {"DELIVERED", "FAILED"},
+                "FAILED": {"SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"},
+                "DELIVERED": set(),
+            }
+            if new_status not in allowed.get(delivery.status, set()):
+                raise ValueError("This delivery cannot move to that status.")
+            if order.payment_status != "PAID":
+                raise ValueError("Only paid orders can progress through delivery.")
+            if new_status == "SHIPPED" and order.status not in {"PROCESSING", "SHIPPED"}:
+                raise ValueError("Start order preparation before dispatching.")
+            if new_status != "SHIPPED" and order.status != "SHIPPED":
+                raise ValueError("Dispatch the order before updating delivery progress.")
+
+        if new_status != delivery.status:
+            _update_delivery_timestamp(
+                delivery=delivery,
+                new_status=new_status,
+            )
 
     for field, value in update_data.items():
         setattr(
@@ -137,8 +164,10 @@ async def _sync_order_status(
         "IN_TRANSIT",
         "OUT_FOR_DELIVERY",
     }:
+        if order.payment_status != "PAID":
+            raise ValueError("Only paid orders can be marked as shipped.")
         if order.status != "COMPLETED":
-            order.status = "PROCESSING"
+            order.status = "SHIPPED"
 
     elif delivery_status == "DELIVERED":
         if order.payment_status != "PAID":

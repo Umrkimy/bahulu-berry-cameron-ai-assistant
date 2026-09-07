@@ -52,6 +52,11 @@ class OrderUpdate(BaseModel):
     payment_status: Literal[*PAYMENT_STATUS] | None = None
 
 
+class OrderDispatch(BaseModel):
+    courier: str | None = Field(default=None, max_length=100)
+    tracking_number: str | None = Field(default=None, max_length=100)
+
+
 class OrderPrivate(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,

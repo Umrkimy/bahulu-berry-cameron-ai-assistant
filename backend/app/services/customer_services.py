@@ -185,7 +185,7 @@ async def create_customer(
 
     db.add(customer)
 
-    await db.commit()
+    await db.flush()
     await db.refresh(customer)
 
     return {

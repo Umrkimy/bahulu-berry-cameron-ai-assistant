@@ -121,7 +121,7 @@ async def update_customer(
 
         setattr(customer, field, value)
 
-    await record_activity(db, admin=current_admin, action="updated", entity_type="customer", entity_id=customer.id, description=f"Updated customer {customer.full_name}.")
+    await record_activity(db, admin=current_admin, action="updated", entity_type="customer", entity_id=customer.id, description=f"Updated customer {customer.full_name}.", metadata={"fields": sorted(update_data.keys())})
     await db.commit()
     await db.refresh(customer)
 

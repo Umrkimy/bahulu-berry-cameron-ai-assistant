@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -58,8 +59,12 @@ export default function DeliveriesTable() {
   const [viewOpened, setViewOpened] = useState(false);
 
   const [editOpened, setEditOpened] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const deliveries = data ?? [];
+
+  const routedDelivery = deliveries.find((item) => item.id === (location.state as { openDeliveryId?: number } | null)?.openDeliveryId) ?? null;
 
   function handleView(delivery: Delivery) {
     setSelectedDelivery(delivery);
@@ -214,9 +219,9 @@ export default function DeliveriesTable() {
 
       {/* VIEW DELIVERY */}
       <DeliveryDetailsModal
-        opened={viewOpened}
-        delivery={selectedDelivery}
-        onClose={handleCloseView}
+        opened={viewOpened || routedDelivery !== null}
+        delivery={selectedDelivery ?? routedDelivery}
+        onClose={() => { handleCloseView(); navigate(location.pathname, { replace: true, state: null }); }}
       />
 
       {/* EDIT DELIVERY */}

@@ -14,12 +14,15 @@ import {
 import { useForm } from "@mantine/form";
 
 import { notifications } from "@mantine/notifications";
+import { modals } from "@mantine/modals";
 
 import {
   useOrderDelivery,
   useUpdateOrderDelivery,
 } from "../../hooks/useDeliveries";
 import { getApiError } from "../../api/errors";
+import useAuth from "../../auth/useAuth";
+import { useNavigate } from "react-router-dom";
 
 import type { Delivery, DeliveryStatus } from "../../types/delivery";
 
@@ -47,6 +50,8 @@ export default function EditDeliveryModal({
   delivery,
   onClose,
 }: Props) {
+  const { admin } = useAuth();
+  const navigate = useNavigate();
   const updateDeliveryMutation = useUpdateOrderDelivery();
 
   const orderId = delivery?.order_id ?? 0;
@@ -86,7 +91,7 @@ export default function EditDeliveryModal({
 
   const currentDelivery: Delivery = latestDelivery ?? delivery;
 
-  async function handleSubmit(values: typeof form.values) {
+  async function saveDelivery(values: typeof form.values) {
     const courier = values.courier.trim();
 
     const trackingNumber = values.tracking_number.trim();
@@ -135,6 +140,21 @@ export default function EditDeliveryModal({
     }
   }
 
+  function handleSubmit(values: typeof form.values) {
+    if (values.status !== "SHIPPED" && values.status !== "DELIVERED") {
+      void saveDelivery(values);
+      return;
+    }
+    const action = values.status === "DELIVERED" ? "mark this delivery as completed" : "mark this delivery as shipped";
+    modals.openConfirmModal({
+      title: "Confirm delivery update",
+      children: <Text size="sm">Are you sure you want to {action}?</Text>,
+      labels: { confirm: "Confirm", cancel: "Go back" },
+      confirmProps: { color: values.status === "DELIVERED" ? "green" : "bahulu" },
+      onConfirm: () => saveDelivery(values),
+    });
+  }
+
   function handleClose() {
     if (updateDeliveryMutation.isPending) {
       return;
@@ -171,6 +191,7 @@ export default function EditDeliveryModal({
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="lg">
+          {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="light" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "DELIVERY", id: currentDelivery.id, label: `Delivery for Order #${currentDelivery.order_id}` } } }); }}>Create task for this delivery</Button></Group>}
           {/* CURRENT STATUS */}
 
           <div>

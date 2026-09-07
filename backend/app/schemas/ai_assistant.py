@@ -25,3 +25,4 @@ class AIOperationCard(BaseModel):
 class AIChatResponse(BaseModel):
     response: str
     cards: list[AIOperationCard] = Field(default_factory=list)
+    outcome: Literal["ANSWER", "CONFIRMATION_REQUIRED", "COMPLETED", "FAILED"] = "ANSWER"

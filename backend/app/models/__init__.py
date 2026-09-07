@@ -14,3 +14,6 @@ from app.models.refund_request import RefundRequest
 from app.models.support import SupportFAQ, SupportTemplate, HandoffRule, SupportRequest, SupportRequestNote
 from app.models.ai_usage import AIUsage
 from app.models.messaging import MessagingConversation, MessagingEvent
+from app.models.supplier import Supplier
+from app.models.stock_movement import StockMovement
+from app.models.task import Task

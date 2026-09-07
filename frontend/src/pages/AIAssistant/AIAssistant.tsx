@@ -14,6 +14,7 @@ import { IconPlus, IconTrash } from "@tabler/icons-react";
 import ChatMessage from "../../components/ai/ChatMessage";
 import ChatInput from "../../components/ai/ChatInput";
 import OperationCards from "../../components/ai/OperationCards";
+import OwnerQuickPrompts from "../../components/ai/OwnerQuickPrompts";
 import StaffQuickPrompts from "../../components/ai/StaffQuickPrompts";
 
 import type { ChatMessageData } from "../../types/ai";
@@ -29,20 +30,20 @@ function createConversationId() {
   return crypto.randomUUID();
 }
 
-function loadConversationId() {
-  const savedId = localStorage.getItem(CONVERSATION_ID_KEY);
+function loadConversationId(key: string) {
+  const savedId = sessionStorage.getItem(key);
 
   if (savedId) {
     return savedId;
   }
 
   const conversationId = createConversationId();
-  localStorage.setItem(CONVERSATION_ID_KEY, conversationId);
+  sessionStorage.setItem(key, conversationId);
   return conversationId;
 }
 
-function loadMessages(): ChatMessageData[] {
-  const savedMessages = localStorage.getItem(STORAGE_KEY);
+function loadMessages(key: string): ChatMessageData[] {
+  const savedMessages = sessionStorage.getItem(key);
 
   if (!savedMessages) {
     return [];
@@ -55,7 +56,7 @@ function loadMessages(): ChatMessageData[] {
       return parsed as ChatMessageData[];
     }
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(key);
   }
 
   return [];
@@ -63,9 +64,20 @@ function loadMessages(): ChatMessageData[] {
 
 export default function AIAssistant() {
   const { admin } = useAuth();
-  const [messages, setMessages] = useState<ChatMessageData[]>(loadMessages);
+  return <AccountChat key={admin?.id} />;
+}
 
-  const [conversationId, setConversationId] = useState(loadConversationId);
+function AccountChat() {
+  const { admin } = useAuth();
+  const storageKey = `${STORAGE_KEY}:${admin?.id}`;
+  const conversationKey = `${CONVERSATION_ID_KEY}:${admin?.id}`;
+  const [messages, setMessages] = useState<ChatMessageData[]>(() =>
+    loadMessages(storageKey),
+  );
+
+  const [conversationId, setConversationId] = useState(() =>
+    loadConversationId(conversationKey),
+  );
 
   const [loading, setLoading] = useState(false);
 
@@ -78,8 +90,10 @@ export default function AIAssistant() {
   // ============================================================
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CONVERSATION_ID_KEY);
+    sessionStorage.setItem(storageKey, JSON.stringify(messages));
+  }, [messages, storageKey]);
 
   // ============================================================
   // AUTO-SCROLL TO NEWEST MESSAGE
@@ -118,6 +132,7 @@ export default function AIAssistant() {
         role: "assistant",
         content: response.response,
         cards: response.cards,
+        outcome: response.outcome,
       };
 
       setMessages((previous) => [...previous, assistantMessage]);
@@ -125,6 +140,7 @@ export default function AIAssistant() {
       const errorMessage: ChatMessageData = {
         role: "assistant",
         content: getApiError(error).message,
+        outcome: "FAILED",
       };
 
       setMessages((previous) => [...previous, errorMessage]);
@@ -138,10 +154,10 @@ export default function AIAssistant() {
   // ============================================================
 
   const handleNewChat = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(storageKey);
 
     const nextConversationId = createConversationId();
-    localStorage.setItem(CONVERSATION_ID_KEY, nextConversationId);
+    sessionStorage.setItem(conversationKey, nextConversationId);
 
     setMessages([]);
 
@@ -190,12 +206,16 @@ export default function AIAssistant() {
             </Text>
 
             <Text size="xs" c="dimmed" ml="auto" mr="md">
-              {admin?.role === "STAFF" ? "Live operations help — no dashboard changes" : null}
-              {admin?.role !== "STAFF" ? <>
-              {admin?.role === "OWNER"
-                ? "Changes always need your confirmation"
-                : "Read-only help for staff — no dashboard changes"}
-              </> : null}
+              {admin?.role === "STAFF"
+                ? "Live operations help — no dashboard changes"
+                : null}
+              {admin?.role !== "STAFF" ? (
+                <>
+                  {admin?.role === "OWNER"
+                    ? "Changes always need your confirmation"
+                    : "Read-only help for staff — no dashboard changes"}
+                </>
+              ) : null}
             </Text>
 
             <Button
@@ -224,9 +244,7 @@ export default function AIAssistant() {
             {messages.length === 0 ? (
               <Center h="calc(100vh - 220px)">
                 {admin?.role === "OWNER" ? (
-                  <Text c="dimmed" size="sm">
-                    Ask about sales, stock, customers, or orders.
-                  </Text>
+                  <OwnerQuickPrompts onSelect={handleSend} />
                 ) : (
                   <StaffQuickPrompts onSelect={handleSend} />
                 )}
@@ -273,7 +291,8 @@ export default function AIAssistant() {
             <ChatInput onSend={handleSend} loading={loading} />
 
             <Text ta="center" size="xs" c="dimmed" mt={6}>
-              AI uses live dashboard data. Staff can only ask read-only questions; owners must confirm every change.
+              AI uses live dashboard data. Staff can only ask read-only
+              questions; owners must confirm every change.
             </Text>
           </Box>
         </Box>

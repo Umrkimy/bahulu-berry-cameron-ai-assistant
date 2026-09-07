@@ -21,6 +21,7 @@ import { getOrderItems } from "../../api/orders";
 import { getProducts } from "../../api/products";
 import { getOrderDelivery } from "../../api/deliveries";
 import { getApiError } from "../../api/errors";
+import useAuth from "../../auth/useAuth";
 
 import {
   useCreateOrderPayment,
@@ -58,6 +59,7 @@ function getDeliveryStatusColor(status: string) {
 
 export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const navigate = useNavigate();
+  const { admin } = useAuth();
   const createPaymentMutation = useCreateOrderPayment();
 
   const { data: customers } = useQuery({
@@ -175,6 +177,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       closeOnEscape={!createPaymentMutation.isPending}
     >
       <Stack gap="lg">
+        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="light" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
         {/* ORDER SUMMARY */}
 
         <Paper withBorder radius="md" p="md">
@@ -291,18 +294,6 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                           PAID
                         </Badge>
                       </Group>
-                      {!refundRequest &&
-                        ["PENDING", "PROCESSING"].includes(order.status) && (
-                          <Button
-                            color="red"
-                            variant="light"
-                            onClick={() =>
-                              navigate(`/refund-requests?order=${orderId}`)
-                            }
-                          >
-                            Record Refund Request
-                          </Button>
-                        )}
                     </Stack>
                   </Paper>
                 )}

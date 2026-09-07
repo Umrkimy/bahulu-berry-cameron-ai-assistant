@@ -38,6 +38,9 @@ export default function EditCustomerModal({
       state: "",
       postal_code: "",
       country: "Malaysia",
+      tags: "",
+      internal_note: "",
+      follow_up_at: "",
     },
 
     validate: {
@@ -66,6 +69,9 @@ export default function EditCustomerModal({
       state: customer.state ?? "",
       postal_code: customer.postal_code ?? "",
       country: customer.country ?? "Malaysia",
+      tags: customer.tags ?? "",
+      internal_note: customer.internal_note ?? "",
+      follow_up_at: customer.follow_up_at ? customer.follow_up_at.slice(0, 16) : "",
     });
   }, [customer, form]);
 
@@ -91,6 +97,9 @@ export default function EditCustomerModal({
           state: values.state.trim() || null,
           postal_code: values.postal_code.trim() || null,
           country: values.country.trim(),
+          tags: values.tags.trim() || null,
+          internal_note: values.internal_note.trim() || null,
+          follow_up_at: values.follow_up_at ? new Date(values.follow_up_at).toISOString() : null,
         },
       });
 
@@ -165,6 +174,11 @@ export default function EditCustomerModal({
         />
 
         <Divider />
+
+        <div><Text fw={600} size="sm">Internal CRM</Text><Text size="xs" c="dimmed">Private staff-only labels, notes, and follow-up reminders.</Text></div>
+        <TextInput label="Tags" placeholder="VIP, repeat customer" {...form.getInputProps("tags")} />
+        <Textarea label="Internal note" minRows={2} {...form.getInputProps("internal_note")} />
+        <TextInput label="Follow up on" type="datetime-local" {...form.getInputProps("follow_up_at")} />
 
         <div>
           <Text fw={600} size="sm">

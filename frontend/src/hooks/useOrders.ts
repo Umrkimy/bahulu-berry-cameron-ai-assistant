@@ -4,6 +4,8 @@ import {
   cancelOrder,
   createOrder,
   getOrders,
+  getFulfillmentQueue,
+  dispatchOrder,
   updateOrder,
 } from "../api/orders";
 
@@ -16,6 +18,30 @@ export function useOrders() {
   });
 }
 
+export function useFulfillmentQueue() {
+  return useQuery({
+    queryKey: ["fulfillment-queue"],
+    queryFn: getFulfillmentQueue,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useDispatchOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, courier, tracking_number }: { orderId: number; courier?: string | null; tracking_number?: string | null }) => dispatchOrder(orderId, { courier, tracking_number }),
+    onSuccess: async () => {
+      await Promise.all([
+        ...["fulfillment-queue", "operation-alerts", "activity", "reports", "report-summary", "order", "delivery", "deliveries"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+        queryClient.invalidateQueries({ queryKey: ["fulfillment-queue"] }),
+        queryClient.invalidateQueries({ queryKey: ["orders"] }),
+        queryClient.invalidateQueries({ queryKey: ["deliveries"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
+    },
+  });
+}
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
 
@@ -24,6 +50,7 @@ export function useCreateOrder() {
 
     onSuccess: async () => {
       await Promise.all([
+        ...["fulfillment-queue", "operation-alerts", "activity", "reports", "report-summary", "order", "delivery", "deliveries"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
         queryClient.invalidateQueries({
           queryKey: ["orders"],
         }),
@@ -68,6 +95,7 @@ export function useUpdateOrder() {
       });
 
       await Promise.all([
+        ...["fulfillment-queue", "operation-alerts", "activity", "reports", "report-summary", "order", "delivery", "deliveries"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
         queryClient.invalidateQueries({
           queryKey: ["orders"],
         }),
@@ -98,6 +126,7 @@ export function useCancelOrder() {
       });
 
       await Promise.all([
+        ...["fulfillment-queue", "operation-alerts", "activity", "reports", "report-summary", "order", "delivery", "deliveries"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
         queryClient.invalidateQueries({
           queryKey: ["orders"],
         }),

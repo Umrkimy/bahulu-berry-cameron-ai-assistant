@@ -34,6 +34,9 @@ class CustomerPrivate(CustomerPublic):
     email: EmailStr | None
     address: str | None
     postal_code: str | None
+    tags: str | None
+    internal_note: str | None
+    follow_up_at: datetime | None
 
 
 class CustomerUpdate(BaseModel):
@@ -68,3 +71,6 @@ class CustomerUpdate(BaseModel):
         default=None,
         max_length=100,
     )
+    tags: str | None = Field(default=None, max_length=500)
+    internal_note: str | None = Field(default=None, max_length=2_000)
+    follow_up_at: datetime | None = None

@@ -33,6 +33,7 @@ export default function FormModal({
   onSubmit,
 }: FormModalProps) {
   const requestClose = () => {
+    if (loading) return;
     if (isDirty) {
       modals.openConfirmModal({
         title: "Discard unsaved changes?",

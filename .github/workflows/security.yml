@@ -23,6 +23,8 @@ jobs:
       STRIPE_SUCCESS_URL: http://localhost:5173/payment/success
       STRIPE_CANCEL_URL: http://localhost:5173/payment/cancel
     steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v9
       - run: uv sync --locked --group dev
@@ -37,6 +39,8 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
         with:
@@ -48,6 +52,8 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
       - run: npm run test
+        working-directory: frontend
+      - run: npm run lint -- --max-warnings=0
         working-directory: frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
@@ -98,6 +104,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0

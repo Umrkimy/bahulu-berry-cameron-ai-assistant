@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../../auth/useAuth";
 
 import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { IconAdjustments } from "@tabler/icons-react";
+import { IconAdjustments, IconChecklist } from "@tabler/icons-react";
 
 import { DataTable } from "../common/DataTable";
 
@@ -15,6 +17,7 @@ import type { Inventory } from "../../types/inventory";
 import StockAdjustmentModal from "./StockAdjustmentModal";
 
 export default function InventoryTable() {
+  const { admin } = useAuth();
   const { data, isLoading } = useInventories();
 
   const [selectedInventory, setSelectedInventory] = useState<Inventory | null>(
@@ -22,6 +25,10 @@ export default function InventoryTable() {
   );
 
   const inventories = data ?? [];
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const routedInventory = inventories.find((item) => item.id === (location.state as { openInventoryId?: number } | null)?.openInventoryId) ?? null;
 
   const columns = useMemo<ColumnDef<Inventory, unknown>[]>(
     () => [
@@ -108,8 +115,7 @@ export default function InventoryTable() {
         enableSorting: false,
 
         cell: ({ row }) => (
-          <Tooltip label="Adjust Stock">
-            <ActionIcon
+          <Group gap="xs"><Tooltip label="Adjust Stock"><ActionIcon
               size="lg"
               variant="light"
               color="blue"
@@ -117,12 +123,11 @@ export default function InventoryTable() {
               aria-label="Adjust stock"
             >
               <IconAdjustments size={20} />
-            </ActionIcon>
-          </Tooltip>
+            </ActionIcon></Tooltip>{admin?.role === "OWNER" && <Tooltip label="Create task"><ActionIcon size="lg" variant="light" color="grape" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
         ),
       },
     ],
-    [],
+    [admin?.role, navigate],
   );
 
   return (
@@ -149,9 +154,9 @@ export default function InventoryTable() {
       </Card>
 
       <StockAdjustmentModal
-        opened={selectedInventory !== null}
-        inventory={selectedInventory}
-        onClose={() => setSelectedInventory(null)}
+        opened={selectedInventory !== null || routedInventory !== null}
+        inventory={selectedInventory ?? routedInventory}
+        onClose={() => { setSelectedInventory(null); navigate(location.pathname, { replace: true, state: null }); }}
       />
     </>
   );

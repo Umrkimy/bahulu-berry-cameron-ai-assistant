@@ -45,4 +45,5 @@ async def chat(
     return AIChatResponse(
         response=result.response,
         cards=result.cards,
+        outcome=result.outcome,
     )

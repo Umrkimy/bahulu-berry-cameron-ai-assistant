@@ -16,6 +16,9 @@ import {
   IconCash,
   IconChartBar,
   IconBell,
+  IconTruckLoading,
+  IconChecklist,
+  IconClipboardCheck,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -64,6 +67,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
             link: "/inventory",
             icon: <IconBuildingWarehouse size={18} />,
           },
+          ...(admin?.role === "OWNER" ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={18} /> }] : []),
 
           {
             label: "Deliveries",
@@ -101,6 +105,8 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
         title="OPERATIONS"
         onNavigate={onNavigate}
         items={[
+          { label: "Fulfilment", link: "/fulfillment", icon: <IconClipboardCheck size={18} /> },
+          { label: "Tasks", link: "/tasks", icon: <IconChecklist size={18} /> },
           {
             label: "Alerts",
             link: "/alerts",
