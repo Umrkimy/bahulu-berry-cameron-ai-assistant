@@ -21,12 +21,13 @@ import {
 import NavSection from "./NavSection";
 import useAuth from "../../auth/useAuth";
 
-export default function AppSidebar() {
+export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
   const { admin } = useAuth();
   return (
     <Stack p="md" gap="sm">
       <NavSection
         title="OVERVIEW"
+        onNavigate={onNavigate}
         items={[
           {
             label: "Dashboard",
@@ -38,6 +39,7 @@ export default function AppSidebar() {
 
       <NavSection
         title="COMMERCE"
+        onNavigate={onNavigate}
         items={[
           {
             label: "Customers",
@@ -79,6 +81,7 @@ export default function AppSidebar() {
 
       <NavSection
         title="AI ASSISTANT"
+        onNavigate={onNavigate}
         items={[
           {
             label: "ChatGPT",
@@ -96,6 +99,7 @@ export default function AppSidebar() {
 
       <NavSection
         title="OPERATIONS"
+        onNavigate={onNavigate}
         items={[
           {
             label: "Alerts",
@@ -119,6 +123,7 @@ export default function AppSidebar() {
 
       <NavSection
         title="SYSTEM"
+        onNavigate={onNavigate}
         items={[
           ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "Settings", link: "/settings", icon: <IconSettings size={18} /> }] : []),

@@ -87,7 +87,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
     form.setValues({
       status: order.status,
     });
-  }, [order]);
+  }, [form, order]);
 
   if (!order) {
     return null;

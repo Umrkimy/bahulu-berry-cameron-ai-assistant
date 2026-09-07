@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 import json
 import logging
 import time
@@ -12,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 
-from app.db.database import engine
+from app.db.database import AsyncSessionLocal, engine
 
 from app.core.config import settings
 from app.core.security import verify_csrf_request
@@ -20,6 +21,7 @@ import app.models
 import app.schemas
 from app.api.router import api_router
 from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
+from app.services.messaging import purge_expired_message_content
 
 
 logger = logging.getLogger("bahulu.api")
@@ -27,8 +29,22 @@ logger = logging.getLogger("bahulu.api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await engine.dispose()
+    async def message_retention_loop() -> None:
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    await purge_expired_message_content(session)
+            except Exception:
+                logger.exception("message_retention_cleanup_failed")
+            await asyncio.sleep(3600)
+
+    retention_task = asyncio.create_task(message_retention_loop())
+    try:
+        yield
+    finally:
+        retention_task.cancel()
+        await asyncio.gather(retention_task, return_exceptions=True)
+        await engine.dispose()
 
 
 app = FastAPI(

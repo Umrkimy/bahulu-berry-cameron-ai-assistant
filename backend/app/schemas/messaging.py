@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from app.schemas.support import SupportDraftPublic
@@ -20,6 +22,26 @@ class SimulatorInboundPublic(BaseModel):
 
 
 class SupportMessagingConversationPublic(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     provider: str
     support_request_id: int
+
+
+class SupportMessagePublic(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    direction: str
+    outcome: str
+    content: str | None
+    author_admin_id: int | None
+    processed_at: datetime
+    expires_at: datetime | None
+
+
+class DashboardReplyInput(BaseModel):
+    content: str = Field(min_length=1, max_length=2_000)
+
+
+class WhatsAppLinkPublic(BaseModel):
+    url: str

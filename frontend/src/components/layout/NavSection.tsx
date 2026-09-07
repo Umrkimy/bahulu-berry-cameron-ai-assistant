@@ -12,9 +12,10 @@ interface NavItem {
 interface NavSectionProps {
   title: string;
   items: NavItem[];
+  onNavigate: () => void;
 }
 
-export default function NavSection({ title, items }: NavSectionProps) {
+export default function NavSection({ title, items, onNavigate }: NavSectionProps) {
   const location = useLocation();
   if (items.length === 0) return null;
 
@@ -39,6 +40,7 @@ export default function NavSection({ title, items }: NavSectionProps) {
           key={item.link}
           component={Link}
           to={item.link}
+          onClick={onNavigate}
           label={item.label}
           leftSection={item.icon}
           active={location.pathname === item.link}

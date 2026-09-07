@@ -4,6 +4,7 @@ import { useHotkeys } from "@mantine/hooks";
 import { IconBell, IconBox, IconBuildingWarehouse, IconCash, IconChartBar, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPlus, IconShoppingCart, IconTruck, IconUsers } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
+import type { DashboardRouteState } from "../../types/navigation";
 
 export default function CommandPalette() {
   const navigate = useNavigate();
@@ -39,11 +40,11 @@ export default function CommandPalette() {
           ...(admin?.role === "OWNER" ? [{ id: "reports", label: "Owner Reports", onClick: () => navigate("/reports"), leftSection: <IconChartBar size={18} /> }] : []),
         ] },
         { group: "Quick actions", actions: [
-          { id: "new-order", label: "Create Order", onClick: () => navigate("/orders?create=1"), leftSection: <IconPlus size={18} /> },
-          { id: "new-customer", label: "Add Customer", onClick: () => navigate("/customers?create=1"), leftSection: <IconPlus size={18} /> },
+          { id: "new-order", label: "Create Order", onClick: () => navigate("/orders", { state: { dashboardAction: "CREATE_ORDER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
+          { id: "new-customer", label: "Add Customer", onClick: () => navigate("/customers", { state: { dashboardAction: "CREATE_CUSTOMER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           ...(admin?.role === "OWNER" ? [
-            { id: "new-product", label: "Add Product", onClick: () => navigate("/products?create=1"), leftSection: <IconPlus size={18} /> },
-            { id: "new-discount", label: "Create Discount", onClick: () => navigate("/discounts?create=1"), leftSection: <IconPlus size={18} /> },
+            { id: "new-product", label: "Add Product", onClick: () => navigate("/products", { state: { dashboardAction: "CREATE_PRODUCT" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
+            { id: "new-discount", label: "Create Discount", onClick: () => navigate("/discounts", { state: { dashboardAction: "CREATE_DISCOUNT" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           ] : []),
         ] },
       ]}

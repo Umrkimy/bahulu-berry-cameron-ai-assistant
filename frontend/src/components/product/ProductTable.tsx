@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 
@@ -30,7 +30,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
 
   const products = data?.items ?? [];
 
-  function handleDelete(product: Product) {
+  const handleDelete = useCallback((product: Product) => {
     modals.openConfirmModal({
       title: `Delete ${product.name}?`,
 
@@ -67,7 +67,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         });
       },
     });
-  }
+  }, [deleteMutation]);
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
@@ -195,7 +195,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         ) : <Text c="dimmed">-</Text>,
       },
     ],
-    [deleteMutation.isPending, isOwner, onEdit],
+    [deleteMutation.isPending, handleDelete, isOwner, onEdit],
   );
 
   if (isError) {

@@ -1,4 +1,4 @@
-"""Create a repeatable, fictional dataset for the public portfolio demo.
+"""Create a repeatable, fictional dataset for safe local development.
 
 Run only with ``--fictional-demo``. This command never imports client records,
 provider credentials, or production data.
@@ -54,7 +54,7 @@ async def seed_demo() -> None:
             session,
             Admin,
             {
-                "username": "portfolio-owner",
+                "username": "demo-owner",
                 "password_hash": hash_password("DemoOwner123!"),
                 "role": "OWNER",
                 "is_superuser": True,
@@ -66,7 +66,7 @@ async def seed_demo() -> None:
             session,
             Admin,
             {
-                "username": "portfolio-staff",
+                "username": "demo-staff",
                 "password_hash": hash_password("DemoStaff123!"),
                 "role": "STAFF",
                 "is_superuser": False,
@@ -81,7 +81,7 @@ async def seed_demo() -> None:
             {
                 "full_name": "Amina Example",
                 "email": "amina@example.invalid",
-                "address": "Fictional portfolio address",
+                "address": "Fictional test address",
                 "city": "Demo City",
                 "state": "Demo State",
                 "postal_code": "00000",
@@ -93,9 +93,9 @@ async def seed_demo() -> None:
             session,
             Product,
             {
-                "description": "Fictional portfolio sample. Not a real product, price, or client offer.",
+                "description": "Fictional development sample. Not a real product, price, or client offer.",
                 "price": Decimal("18.00"),
-                "category": "Portfolio sample",
+                "category": "Development sample",
                 "is_active": True,
             },
             name="Fictional Berry Treat",
@@ -119,7 +119,7 @@ async def seed_demo() -> None:
                 "is_active": True,
             },
             product_id=product.id,
-            name="Fictional 10% portfolio promotion",
+            name="Fictional 10% test promotion",
         )
 
         order = await first_or_create(
@@ -155,7 +155,7 @@ async def seed_demo() -> None:
             session,
             Payment,
             {
-                "provider": "PORTFOLIO_DEMO",
+                "provider": "LOCAL_DEMO",
                 "provider_payment_id": "demo-payment-001",
                 "amount": Decimal("32.40"),
                 "currency": "MYR",
@@ -171,7 +171,7 @@ async def seed_demo() -> None:
                 "requested_by_admin_id": staff.id,
                 "reviewed_by_admin_id": owner.id,
                 "status": "REQUESTED",
-                "reason": "Fictional portfolio refund request for demonstration only.",
+                "reason": "Fictional refund request for local testing only.",
                 "internal_note": "No real payment or customer is involved.",
             },
             order_id=order.id,
@@ -181,10 +181,10 @@ async def seed_demo() -> None:
             session,
             SupportFAQ,
             {
-                "category": "Portfolio demo",
-                "answer_en": "This is an approved fictional answer used only in the portfolio demonstration.",
+                "category": "Local demo",
+                "answer_en": "This is an approved fictional answer used only for local testing.",
                 "question_ms": "Adakah ini jawapan demo fiksyen?",
-                "answer_ms": "Ya. Ini jawapan fiksyen yang diluluskan untuk demonstrasi portfolio sahaja.",
+                "answer_ms": "Ya. Ini jawapan fiksyen yang diluluskan untuk ujian tempatan sahaja.",
                 "is_active": True,
             },
             question_en="Is this a fictional demo answer?",
@@ -193,9 +193,9 @@ async def seed_demo() -> None:
             session,
             SupportTemplate,
             {
-                "category": "Portfolio demo",
-                "content_en": "Thanks for your message. A team member will help with this fictional portfolio request.",
-                "content_ms": "Terima kasih atas mesej anda. Seorang ahli pasukan akan membantu permintaan portfolio fiksyen ini.",
+                "category": "Local demo",
+                "content_en": "Thanks for your message. A team member will help with this fictional test request.",
+                "content_ms": "Terima kasih atas mesej anda. Seorang ahli pasukan akan membantu permintaan ujian fiksyen ini.",
                 "is_active": True,
             },
             name="Fictional human handoff",
@@ -207,7 +207,7 @@ async def seed_demo() -> None:
                 "description": "Route fictional requests for a person to the internal support queue.",
                 "is_active": True,
             },
-            trigger="portfolio-human-handoff",
+            trigger="demo-human-handoff",
         )
         ticket = await first_or_create(
             session,
@@ -230,7 +230,7 @@ async def seed_demo() -> None:
             SupportRequestNote,
             {
                 "author_admin_id": staff.id,
-                "content": "Fictional internal note for the portfolio workspace.",
+                "content": "Fictional internal note for the local test workspace.",
             },
             support_request_id=ticket.id,
         )
@@ -238,7 +238,7 @@ async def seed_demo() -> None:
             session,
             MessagingConversation,
             {"support_request_id": ticket.id},
-            provider="PORTFOLIO_SIMULATOR",
+            provider="LOCAL_DEMO_SIMULATOR",
             external_conversation_id="fictional-conversation-001",
         )
         await first_or_create(
@@ -248,23 +248,23 @@ async def seed_demo() -> None:
                 "support_request_id": ticket.id,
                 "direction": "INBOUND",
                 "outcome": "HANDOFF_CREATED",
-                "payload_hash": hashlib.sha256(b"fictional portfolio message").hexdigest(),
+                "payload_hash": hashlib.sha256(b"fictional local demo message").hexdigest(),
                 "processed_at": now,
             },
-            provider="PORTFOLIO_SIMULATOR",
+            provider="LOCAL_DEMO_SIMULATOR",
             external_message_id="fictional-message-001",
             conversation_id=conversation.id,
         )
         await session.commit()
         print(
-            "Fictional portfolio demo data is ready. "
+            "Fictional local demo data is ready. "
             "Owner: owner@demo.invalid / DemoOwner123!; "
             "Staff: staff@demo.invalid / DemoStaff123!"
         )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed fictional portfolio demo data.")
+    parser = argparse.ArgumentParser(description="Seed fictional local demo data.")
     parser.add_argument(
         "--fictional-demo",
         action="store_true",

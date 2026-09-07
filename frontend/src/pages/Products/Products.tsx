@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import CreateProductModal from "../../components/product/CreateProductModal";
 import EditProductModal from "../../components/product/EditProductModal";
@@ -9,6 +9,7 @@ import PageHeader from "../../components/common/PageHeader";
 import useAuth from "../../auth/useAuth";
 
 import type { Product } from "../../types/product";
+import type { DashboardRouteState } from "../../types/navigation";
 
 export default function ProductsPage() {
   const { admin } = useAuth();
@@ -16,14 +17,10 @@ export default function ProductsPage() {
   const [createOpened, setCreateOpened] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (isOwner && searchParams.get("create") === "1") {
-      setCreateOpened(true);
-      setSearchParams({}, { replace: true });
-    }
-  }, [isOwner, searchParams, setSearchParams]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isCreateRequested = isOwner && (location.state as DashboardRouteState | null)?.dashboardAction === "CREATE_PRODUCT";
+  const closeCreate = () => { setCreateOpened(false); if (isCreateRequested) navigate(location.pathname, { replace: true, state: null }); };
 
   function openEdit(product: Product) {
     setSelectedProduct(product);
@@ -44,8 +41,8 @@ export default function ProductsPage() {
       <ProductTable onEdit={openEdit} />
 
       <CreateProductModal
-        opened={isOwner && createOpened}
-        onClose={() => setCreateOpened(false)}
+        opened={isOwner && (createOpened || isCreateRequested)}
+        onClose={closeCreate}
       />
 
       <EditProductModal

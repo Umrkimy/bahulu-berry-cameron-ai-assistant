@@ -15,7 +15,7 @@ export default function OrderStatusCard() {
   const option = useMemo<EChartsOption>(() => ({
     animationDuration: 420,
     title: { text: `${completionRate}%`, subtext: "completed", left: "center", top: "35%", textStyle: { color: "#33232c", fontSize: 23, fontWeight: 700 }, subtextStyle: { color: "#85746c", fontSize: 11 } },
-    tooltip: { trigger: "item", valueFormatter: (value: string | number) => `${value} order${Number(value) === 1 ? "" : "s"}` },
+    tooltip: { trigger: "item", valueFormatter: (value: unknown) => `${value ?? 0} order${Number(value) === 1 ? "" : "s"}` },
     series: [{ type: "pie", radius: ["62%", "84%"], center: ["50%", "50%"], startAngle: 90, clockwise: true, label: { show: false }, labelLine: { show: false }, itemStyle: { borderColor: "#fffefd", borderWidth: 4, borderRadius: 8 }, data: [
       { value: orderSummary?.completed ?? 0, name: "Completed", itemStyle: { color: "#218c63" } },
       { value: activeOrders, name: "Active", itemStyle: { color: "#b8171c" } },

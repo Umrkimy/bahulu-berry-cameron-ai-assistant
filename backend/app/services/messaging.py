@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 import hmac
+from uuid import uuid4
 from typing import Any, Protocol
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -91,6 +93,55 @@ def _payload_hash(message: str) -> str:
     return hmac.new(settings.SECRET_KEY.get_secret_value().encode(), message.encode(), sha256).hexdigest()
 
 
+def _message_expiry() -> datetime:
+    return datetime.now(UTC) + timedelta(days=30)
+
+
+async def purge_expired_message_content(db: AsyncSession) -> None:
+    await db.execute(
+        update(MessagingEvent)
+        .where(MessagingEvent.content.is_not(None), MessagingEvent.expires_at.is_not(None), MessagingEvent.expires_at <= datetime.now(UTC))
+        .values(content=None)
+    )
+    await db.commit()
+
+
+async def create_simulated_dashboard_reply(
+    db: AsyncSession,
+    *,
+    conversation: MessagingConversation,
+    support_request: SupportRequest,
+    admin: Admin,
+    content: str,
+) -> MessagingEvent:
+    event = MessagingEvent(
+        provider=conversation.provider,
+        external_message_id=f"local-outbound-{uuid4()}",
+        conversation_id=conversation.id,
+        support_request_id=support_request.id,
+        direction="OUTBOUND",
+        outcome="SIMULATED_SENT",
+        payload_hash=_payload_hash(content),
+        content=content,
+        author_admin_id=admin.id,
+        expires_at=_message_expiry(),
+    )
+    db.add(event)
+    await db.flush()
+    await record_activity(
+        db,
+        admin=admin,
+        action="replied",
+        entity_type="support_request",
+        entity_id=support_request.id,
+        description=f"Sent a dashboard reply for support request #{support_request.id}.",
+        metadata={"provider": conversation.provider, "mode": "SIMULATED"},
+    )
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
 async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin | None = None) -> SimulatorInboundPublic:
     existing = await db.scalar(select(MessagingEvent).where(MessagingEvent.provider == message.provider, MessagingEvent.external_message_id == message.external_message_id))
     if existing is not None:
@@ -98,9 +149,11 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
 
     conversation = await db.scalar(select(MessagingConversation).where(MessagingConversation.provider == message.provider, MessagingConversation.external_conversation_id == message.external_conversation_id))
     if conversation is None:
-        conversation = MessagingConversation(provider=message.provider, external_conversation_id=message.external_conversation_id)
+        conversation = MessagingConversation(provider=message.provider, external_conversation_id=message.external_conversation_id, contact_reference=message.sender_reference)
         db.add(conversation)
         await db.flush()
+    elif conversation.contact_reference is None:
+        conversation.contact_reference = message.sender_reference
 
     draft = await create_grounded_draft(db, message=message.message, requested_language=message.language)
     support_request_id: int | None = conversation.support_request_id
@@ -111,13 +164,14 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
         if support_request_id is None:
             ticket = SupportRequest(
                 customer_name="WhatsApp customer",
-                contact=None,
+                contact=message.sender_reference,
                 source="WHATSAPP_FUTURE",
                 subject="WhatsApp support handoff",
                 notes=None,
                 handoff_reason=draft.handoff_reason,
                 priority="HIGH",
                 status="NEW",
+                handoff_state="HUMAN_REQUESTED",
                 assigned_admin_id=None,
             )
             db.add(ticket)
@@ -126,6 +180,15 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
             support_request_id = ticket.id
             ticket_created = True
             await record_activity(db, admin=actor, action="created", entity_type="support_request", entity_id=ticket.id, description=f"Created support request #{ticket.id} from an inbound support handoff.")
+        else:
+            ticket = await db.get(SupportRequest, support_request_id)
+            if ticket is not None and ticket.handoff_state == "AI_ACTIVE":
+                ticket.handoff_state = "HUMAN_REQUESTED"
+                ticket.assigned_admin_id = None
+                ticket.status = "NEW"
+                ticket.priority = "HIGH"
+                ticket.handoff_reason = draft.handoff_reason
+                await record_activity(db, admin=actor, action="reopened_for_handoff", entity_type="support_request", entity_id=ticket.id, description=f"Reopened support request #{ticket.id} for human handling.")
 
     event = MessagingEvent(
         provider=message.provider,
@@ -135,6 +198,8 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
         direction="INBOUND",
         outcome=outcome,
         payload_hash=_payload_hash(message.message),
+        content=message.message,
+        expires_at=_message_expiry(),
     )
     db.add(event)
     await db.flush()

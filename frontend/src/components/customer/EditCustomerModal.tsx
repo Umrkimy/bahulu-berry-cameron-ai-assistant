@@ -67,7 +67,7 @@ export default function EditCustomerModal({
       postal_code: customer.postal_code ?? "",
       country: customer.country ?? "Malaysia",
     });
-  }, [customer]);
+  }, [customer, form]);
 
   async function handleSubmit() {
     if (!customer) return;

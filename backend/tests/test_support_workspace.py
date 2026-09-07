@@ -2,9 +2,12 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.api.routes.support import create_request, create_request_note, requests, update_request
+from app.api.routes.support import claim_conversation, create_request, create_request_note, dashboard_reply, requests, return_conversation_to_ai, update_request
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
+from app.models.messaging import MessagingConversation
+from app.models.support import SupportRequest
+from app.schemas.messaging import DashboardReplyInput
 from app.schemas.support import SupportRequestInput, SupportRequestNoteCreate
 
 
@@ -73,3 +76,34 @@ async def test_support_ticket_notes_filters_and_safe_activity(session):
             session,
             staff,
         )
+
+
+@pytest.mark.asyncio
+async def test_human_takeover_requires_claim_and_releases_assignment(session):
+    owner = await _admin(session, username="owner")
+    owner.role = "OWNER"
+    staff = await _admin(session, username="handler")
+    coworker = await _admin(session, username="coworker")
+    ticket = SupportRequest(customer_name="WhatsApp customer", contact="60123456789", source="WHATSAPP_FUTURE", subject="Human help", handoff_reason="Human requested", priority="HIGH", status="NEW", handoff_state="HUMAN_REQUESTED")
+    session.add(ticket)
+    await session.flush()
+    session.add(MessagingConversation(provider="SIMULATOR", external_conversation_id="handoff-test", contact_reference="60123456789", support_request_id=ticket.id))
+    await session.commit()
+
+    with pytest.raises(HTTPException, match="Claim this conversation"):
+        await update_request(ticket.id, SupportRequestInput(customer_name="WhatsApp customer", source="WHATSAPP_FUTURE", subject="Changed"), session, coworker)
+
+    claimed = await claim_conversation(ticket.id, session, staff)
+    assert claimed.handoff_state == "HUMAN_HANDLING"
+    assert claimed.assigned_admin_id == staff.id
+
+    with pytest.raises(HTTPException, match="assigned staff member"):
+        await dashboard_reply(ticket.id, DashboardReplyInput(content="I can help."), session, coworker)
+
+    reply = await dashboard_reply(ticket.id, DashboardReplyInput(content="I can help."), session, staff)
+    assert reply.direction == "OUTBOUND"
+    assert reply.content == "I can help."
+
+    returned = await return_conversation_to_ai(ticket.id, session, owner)
+    assert returned.handoff_state == "AI_ACTIVE"
+    assert returned.assigned_admin_id is None

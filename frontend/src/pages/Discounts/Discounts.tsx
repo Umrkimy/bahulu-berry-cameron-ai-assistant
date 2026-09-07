@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActionIcon, Badge, Button, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
 import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { DataTable } from "../../components/common/DataTable";
 import PageHeader from "../../components/common/PageHeader";
@@ -14,6 +14,7 @@ import { useCreateDiscount, useDeleteDiscount, useDiscounts, useUpdateDiscount }
 import type { Discount, DiscountInput, DiscountType } from "../../types/discount";
 import useAuth from "../../auth/useAuth";
 import { getApiError } from "../../api/errors";
+import type { DashboardRouteState } from "../../types/navigation";
 
 interface DiscountFormValues {
   product_id: string;
@@ -70,7 +71,8 @@ export default function Discounts() {
   const deleteMutation = useDeleteDiscount();
   const [opened, setOpened] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const productNames = useMemo(() => new Map(productsData?.items.map((product) => [product.id, product.name]) ?? []), [productsData]);
 
   const form = useForm<DiscountFormValues>({
@@ -92,14 +94,10 @@ export default function Discounts() {
     setOpened(true);
   }
 
-  useEffect(() => {
-    if (isOwner && searchParams.get("create") === "1") {
-      openCreate();
-      setSearchParams({}, { replace: true });
-    }
-  }, [isOwner, searchParams, setSearchParams]);
+  const isCreateRequested = isOwner && (location.state as DashboardRouteState | null)?.dashboardAction === "CREATE_DISCOUNT";
+  const closeModal = () => { setOpened(false); setEditingDiscount(null); if (isCreateRequested) navigate(location.pathname, { replace: true, state: null }); };
 
-  function openEdit(discount: Discount) {
+  const openEdit = useCallback((discount: Discount) => {
     setEditingDiscount(discount);
     form.setValues({
       product_id: String(discount.product_id), name: discount.name, discount_type: discount.discount_type,
@@ -108,7 +106,7 @@ export default function Discounts() {
       end_at: toMalaysiaDateTime(discount.end_at), is_active: discount.is_active,
     });
     setOpened(true);
-  }
+  }, [form]);
 
   async function submit(values: DiscountFormValues) {
     const payload: DiscountInput = {
@@ -121,7 +119,7 @@ export default function Discounts() {
       if (editingDiscount) await updateMutation.mutateAsync({ discountId: editingDiscount.id, data: payload });
       else await createMutation.mutateAsync(payload);
       notifications.show({ title: editingDiscount ? "Promotion updated" : "Promotion created", message: "The product promotion has been saved.", color: "green" });
-      setOpened(false);
+      closeModal();
     } catch (error) {
       const apiError = getApiError(error);
       form.setErrors(apiError.fieldErrors);
@@ -129,16 +127,16 @@ export default function Discounts() {
     }
   }
 
-  async function deleteDiscount(discount: Discount) {
+  const deleteDiscount = useCallback(async (discount: Discount) => {
     try {
       await deleteMutation.mutateAsync(discount.id);
       notifications.show({ title: "Promotion deleted", message: discount.name, color: "green" });
     } catch (error) {
       notifications.show({ title: "Unable to delete promotion", message: getApiError(error).message, color: "red" });
     }
-  }
+  }, [deleteMutation]);
 
-  function removeDiscount(discount: Discount) {
+  const removeDiscount = useCallback((discount: Discount) => {
     modals.openConfirmModal({
       title: "Delete promotion?",
       children: <Text size="sm">Delete {discount.name}? Historical orders keep their pricing snapshot.</Text>,
@@ -146,7 +144,7 @@ export default function Discounts() {
       confirmProps: { color: "red" },
       onConfirm: () => { void deleteDiscount(discount); },
     });
-  }
+  }, [deleteDiscount]);
 
   const columns = useMemo<ColumnDef<Discount, unknown>[]>(
     () => [
@@ -158,7 +156,7 @@ export default function Discounts() {
       { id: "status", accessorFn: (row) => getStatus(row).label, header: "Status", cell: ({ row }) => { const status = getStatus(row.original); return <Badge color={status.color} variant="light">{status.label}</Badge>; } },
       { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="light" color="orange" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="light" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> : <Text c="dimmed">-</Text> },
     ],
-    [deleteMutation.isPending, isOwner, productNames],
+    [deleteMutation.isPending, isOwner, openEdit, productNames, removeDiscount],
   );
 
   const saving = createMutation.isPending || updateMutation.isPending;
@@ -171,7 +169,7 @@ export default function Discounts() {
         action={isOwner ? <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Create Discount</Button> : undefined}
       />
       <DataTable data={discounts ?? []} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage="No promotions created yet." />
-      <Modal opened={isOwner && opened} onClose={() => setOpened(false)} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
+      <Modal opened={isOwner && (opened || isCreateRequested)} onClose={closeModal} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
         <form onSubmit={form.onSubmit(submit)}><Stack>
           <Select label="Product" searchable data={productsData?.items.map((product) => ({ value: String(product.id), label: product.name })) ?? []} {...form.getInputProps("product_id")} />
           <TextInput label="Promotion Name" {...form.getInputProps("name")} />
@@ -181,7 +179,7 @@ export default function Discounts() {
           <TextInput label="Start (Malaysia time)" type="datetime-local" {...form.getInputProps("start_at")} />
           <TextInput label="End (Malaysia time)" type="datetime-local" {...form.getInputProps("end_at")} />
           <Switch label="Promotion is active" {...form.getInputProps("is_active", { type: "checkbox" })} />
-          <Group justify="flex-end"><Button variant="default" onClick={() => setOpened(false)}>Cancel</Button><Button type="submit" loading={saving}>{editingDiscount ? "Save Changes" : "Create Promotion"}</Button></Group>
+          <Group justify="flex-end"><Button variant="default" onClick={closeModal}>Cancel</Button><Button type="submit" loading={saving}>{editingDiscount ? "Save Changes" : "Create Promotion"}</Button></Group>
         </Stack></form>
       </Modal>
     </>

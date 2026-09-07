@@ -73,6 +73,8 @@ export default function DataTable<TData extends object>({
     pageSize: 10,
   });
 
+  // TanStack Table returns mutable instance methods by design; this component does not pass the instance to memoized children.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

@@ -52,7 +52,7 @@ export default function StockAdjustmentModal({
       quantity: inventory.quantity,
       low_stock_threshold: inventory.low_stock_threshold,
     });
-  }, [inventory]);
+  }, [form, inventory]);
 
   async function handleSubmit() {
     if (!inventory) return;
