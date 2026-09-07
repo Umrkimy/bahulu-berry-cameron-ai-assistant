@@ -1,3 +1,3 @@
 declare module "echarts/renderers" {
-  export const CanvasRenderer: any;
+  export { install as CanvasRenderer } from "echarts/types/src/renderer/installCanvasRenderer";
 }

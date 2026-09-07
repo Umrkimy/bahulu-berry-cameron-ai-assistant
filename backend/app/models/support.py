@@ -50,6 +50,7 @@ class SupportRequest(Base):
     handoff_reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
     priority: Mapped[str] = mapped_column(String(20), default="NORMAL", nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="NEW", nullable=False)
+    handoff_state: Mapped[str] = mapped_column(String(30), default="AI_ACTIVE", nullable=False, index=True)
     assigned_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admins.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)

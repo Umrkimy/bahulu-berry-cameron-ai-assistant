@@ -74,6 +74,7 @@ class SupportRequestInput(BaseModel):
 class SupportRequestPublic(SupportRequestInput):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    handoff_state: str
     created_at: datetime
     updated_at: datetime
 

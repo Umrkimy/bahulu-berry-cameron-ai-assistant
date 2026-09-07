@@ -16,14 +16,14 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconTrash } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useMemo, useState } from "react";
 
 import { getCustomers } from "../../api/customers";
 import { quoteOrder } from "../../api/orders";
 import { getProducts } from "../../api/products";
 import { getApiError } from "../../api/errors";
 import { useCreateOrder } from "../../hooks/useOrders";
-import type { OrderQuote } from "../../types/order";
 import type { Product } from "../../types/product";
 
 interface Props {
@@ -42,9 +42,6 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
   const [productId, setProductId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [items, setItems] = useState<OrderLine[]>([]);
-  const [quote, setQuote] = useState<OrderQuote | null>(null);
-  const [quoteLoading, setQuoteLoading] = useState(false);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const { data: customers, isLoading: isLoadingCustomers } = useQuery({
     queryKey: ["customers"],
@@ -60,44 +57,18 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
     (product) => product.is_active && (product.inventory?.quantity ?? 0) > 0,
   ) ?? [];
 
-  useEffect(() => {
-    if (!items.length) {
-      setQuote(null);
-      setQuoteError(null);
-      return;
-    }
-
-    const timeout = window.setTimeout(async () => {
-      setQuoteLoading(true);
-      setQuoteError(null);
-
-      try {
-        const nextQuote = await quoteOrder(
-          items.map((item) => ({
-            product_id: item.product.id,
-            quantity: item.quantity,
-          })),
-        );
-        setQuote(nextQuote);
-      } catch (error) {
-        const apiError = getApiError(error);
-        setQuote(null);
-        setQuoteError(apiError.message);
-      } finally {
-        setQuoteLoading(false);
-      }
-    }, 300);
-
-    return () => window.clearTimeout(timeout);
-  }, [items]);
+  const quoteItemsRequest = useMemo(() => items.map((item) => ({ product_id: item.product.id, quantity: item.quantity })), [items]);
+  const [debouncedQuoteItems] = useDebouncedValue(quoteItemsRequest, 300);
+  const quoteQuery = useQuery({ queryKey: ["order-quote", debouncedQuoteItems], queryFn: () => quoteOrder(debouncedQuoteItems), enabled: debouncedQuoteItems.length > 0, retry: false });
+  const quote = items.length ? quoteQuery.data ?? null : null;
+  const quoteLoading = items.length > 0 && (quoteQuery.isPending || quoteQuery.isFetching);
+  const quoteError = items.length > 0 && quoteQuery.isError ? getApiError(quoteQuery.error).message : null;
 
   function resetForm() {
     setCustomerId(null);
     setProductId(null);
     setQuantity(1);
     setItems([]);
-    setQuote(null);
-    setQuoteError(null);
   }
 
   function handleClose() {

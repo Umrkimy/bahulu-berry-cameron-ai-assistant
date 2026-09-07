@@ -78,7 +78,7 @@ export default function EditDeliveryModal({
       tracking_number: currentDelivery.tracking_number ?? "",
       status: currentDelivery.status,
     });
-  }, [delivery, latestDelivery]);
+  }, [delivery, form, latestDelivery]);
 
   if (!delivery) {
     return null;

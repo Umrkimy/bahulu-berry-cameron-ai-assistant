@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActionIcon, Badge, Button, Card, Divider, Drawer, Group, Modal, ScrollArea, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Textarea, Timeline, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
@@ -14,6 +14,7 @@ import { createFAQ, createRule, createSupportDraft, createSupportRequest, create
 import useAuth from "../../auth/useAuth";
 import { DataTable } from "../../components/common/DataTable";
 import MessageSimulator from "../../components/support/MessageSimulator";
+import HumanTakeoverWorkspace from "../../components/support/HumanTakeoverWorkspace";
 import MetaConnectionStatus from "../../components/support/MetaConnectionStatus";
 import PageHeader from "../../components/common/PageHeader";
 import type { HandoffRule, SupportDraft, SupportFAQ, SupportRequest, SupportStatus, SupportTemplate } from "../../types/support";
@@ -77,6 +78,12 @@ export default function WhatsApp() {
   const teamNames = useMemo(() => new Map((team.data ?? []).map((member) => [member.id, member.username])), [team.data]);
   const invalidateQueue = () => queryClient.invalidateQueries({ queryKey: ["support-requests"] });
   const setFilter = (key: keyof typeof filters, value: string | null) => { setPage(1); setFilters((current) => ({ ...current, [key]: value ?? "" })); };
+  const openTicket = useCallback((item: SupportRequest) => {
+    setSelectedRequest(item);
+    ticketForm.setValues({ customer_id: item.customer_id, customer_name: item.customer_name, contact: item.contact ?? "", source: item.source, subject: item.subject, notes: item.notes ?? "", handoff_reason: item.handoff_reason ?? "", priority: item.priority, status: item.status, assigned_admin_id: item.assigned_admin_id });
+    draftForm.reset();
+    setDraft(null);
+  }, [draftForm, ticketForm]);
 
   const createRequest = useMutation({ mutationFn: () => createSupportRequest({ ...createForm.values, customer_name: createForm.values.customer_name.trim(), contact: createForm.values.contact.trim() || null, subject: createForm.values.subject.trim(), handoff_reason: createForm.values.handoff_reason || null, notes: null }), onSuccess: (item) => { void invalidateQueue(); notifications.show({ title: "Support request created", message: "The new request is ready for the team.", color: "green" }); setCreateOpened(false); openTicket(item); }, onError: (error) => notifications.show({ title: "Unable to create request", message: getApiError(error).message, color: "red" }) });
   const saveTicket = useMutation({ mutationFn: () => updateSupportRequest(selectedRequest!.id, { ...ticketForm.values, customer_name: ticketForm.values.customer_name.trim(), contact: ticketForm.values.contact.trim() || null, subject: ticketForm.values.subject.trim(), handoff_reason: ticketForm.values.handoff_reason || null, notes: selectedRequest?.notes ?? null }), onSuccess: (item) => { setSelectedRequest(item); void invalidateQueue(); void queryClient.invalidateQueries({ queryKey: ["support-request-activity", item.id] }); notifications.show({ title: "Request updated", message: "The support ticket was updated.", color: "green" }); }, onError: (error) => notifications.show({ title: "Unable to update request", message: getApiError(error).message, color: "red" }) });
@@ -91,14 +98,7 @@ export default function WhatsApp() {
     { accessorKey: "priority", header: "Priority", cell: ({ row }) => <Badge color={row.original.priority === "URGENT" ? "red" : row.original.priority === "HIGH" ? "orange" : "gray"} variant="light">{row.original.priority}</Badge> },
     { accessorKey: "status", header: "Status", cell: ({ row }) => <Badge color={row.original.status === "RESOLVED" || row.original.status === "CLOSED" ? "green" : "bahulu"} variant="light">{row.original.status.replaceAll("_", " ")}</Badge> },
     { id: "actions", header: "", enableSorting: false, cell: ({ row }) => <Tooltip label="Open ticket"><ActionIcon aria-label="Open support ticket" variant="light" onClick={() => openTicket(row.original)}><IconClipboardText size={16} /></ActionIcon></Tooltip> },
-  ], [teamNames]);
-
-  function openTicket(item: SupportRequest) {
-    setSelectedRequest(item);
-    ticketForm.setValues({ customer_id: item.customer_id, customer_name: item.customer_name, contact: item.contact ?? "", source: item.source, subject: item.subject, notes: item.notes ?? "", handoff_reason: item.handoff_reason ?? "", priority: item.priority, status: item.status, assigned_admin_id: item.assigned_admin_id });
-    draftForm.reset();
-    setDraft(null);
-  }
+  ], [openTicket, teamNames]);
 
   function openContent(kind: ContentKind, item?: ContentItem) {
     setContentKind(kind); setEditingContent(item ?? null); contentForm.reset();
@@ -127,8 +127,9 @@ export default function WhatsApp() {
   return <Stack gap="lg">
     <PageHeader title="WhatsApp Support" description="Manage internal handoffs and approved reply drafts before WhatsApp messaging is connected." action={<Button leftSection={<IconPlus size={16} />} onClick={() => { createForm.reset(); setCreateOpened(true); }}>New support request</Button>} />
     {isOwner ? <MetaConnectionStatus /> : <Card withBorder><Group><IconBrandWhatsapp color="#25D366" /><Stack gap={0}><Text fw={600}>Draft-only support workspace</Text><Text size="sm" c="dimmed">No customer messages are sent from this dashboard. Work assigned tickets and copy approved drafts only after human review.</Text></Stack></Group></Card>}
-    <Tabs defaultValue="queue"><Tabs.List><Tabs.Tab value="queue" leftSection={<IconMessage2 size={15} />}>Support queue</Tabs.Tab>{isOwner ? <><Tabs.Tab value="content" leftSection={<IconSparkles size={15} />}>Approved content</Tabs.Tab><Tabs.Tab value="simulator" leftSection={<IconSparkles size={15} />}>Message simulator</Tabs.Tab></> : null}</Tabs.List>
+    <Tabs defaultValue="queue"><Tabs.List><Tabs.Tab value="queue" leftSection={<IconMessage2 size={15} />}>Support queue</Tabs.Tab><Tabs.Tab value="takeover" leftSection={<IconBrandWhatsapp size={15} />}>Human takeover</Tabs.Tab>{isOwner ? <><Tabs.Tab value="content" leftSection={<IconSparkles size={15} />}>Approved content</Tabs.Tab><Tabs.Tab value="simulator" leftSection={<IconSparkles size={15} />}>Message simulator</Tabs.Tab></> : null}</Tabs.List>
       <Tabs.Panel value="queue" pt="md"><Stack gap="md"><Card withBorder p="md"><Group grow align="end" wrap="wrap"><Select label="Status" clearable data={statuses} value={filters.status_filter || null} onChange={(value) => setFilter("status_filter", value)} /><Select label="Priority" clearable data={priorities} value={filters.priority || null} onChange={(value) => setFilter("priority", value)} /><Select label="Assignee" clearable data={teamOptions} value={filters.assigned_admin_id || null} onChange={(value) => setFilter("assigned_admin_id", value)} /><Select label="Source" clearable data={sources} value={filters.source || null} onChange={(value) => setFilter("source", value)} /><Select label="Handoff" clearable data={[{ value: "YES", label: "Requires handoff" }, { value: "NO", label: "No handoff" }]} value={filters.has_handoff || null} onChange={(value) => setFilter("has_handoff", value)} /></Group><Group mt="sm" align="end" wrap="wrap"><TextInput label="Created from" type="date" value={filters.start_at} onChange={(event) => setFilter("start_at", event.currentTarget.value)} /><TextInput label="Created to" type="date" value={filters.end_at} onChange={(event) => setFilter("end_at", event.currentTarget.value)} /><Button variant="subtle" color="gray" onClick={() => { setFilters({ status_filter: "", priority: "", assigned_admin_id: "", source: "", has_handoff: "", start_at: "", end_at: "", search: "" }); setPage(1); }}>Reset filters</Button></Group></Card><DataTable data={requests.data?.items ?? []} columns={requestColumns} loading={requests.isLoading} searchPlaceholder="Search customer, contact, or subject..." emptyMessage="No support requests match these filters." searchValue={filters.search} onSearchChange={(value) => { setPage(1); setFilters((current) => ({ ...current, search: value })); }} manualPagination={{ page, pageSize, total: requests.data?.total ?? 0, onPageChange: setPage, onPageSizeChange: (value) => { setPageSize(value); setPage(1); } }} /></Stack></Tabs.Panel>
+      <Tabs.Panel value="takeover" pt="md"><HumanTakeoverWorkspace currentAdmin={admin} /></Tabs.Panel>
       {isOwner ? <Tabs.Panel value="content" pt="md"><Stack gap="lg"><ContentSection title="FAQs" description="Bilingual answers the copilot may quote exactly." onAdd={() => openContent("faq")} items={faqs.data ?? []} kind="faq" onEdit={openContent} onDelete={confirmDeleteContent} /><ContentSection title="Reply templates" description="Reusable approved replies for greetings and routine support." onAdd={() => openContent("template")} items={templates.data ?? []} kind="template" onEdit={openContent} onDelete={confirmDeleteContent} /><ContentSection title="Handoff rules" description="Extra owner-managed phrases that should always go to a person." onAdd={() => openContent("rule")} items={rules.data ?? []} kind="rule" onEdit={openContent} onDelete={confirmDeleteContent} /></Stack></Tabs.Panel> : null}
       {isOwner ? <Tabs.Panel value="simulator" pt="md"><MessageSimulator /></Tabs.Panel> : null}
     </Tabs>
