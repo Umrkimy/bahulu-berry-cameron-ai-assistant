@@ -32,9 +32,11 @@ React admin dashboard -- secure cookie + CSRF --> FastAPI API --> PostgreSQL
                                                        (owner-approved records only)
 ```
 
-The provider-neutral messaging boundary is ready for a future WhatsApp
-integration. It is not connected to Meta in this repository and never sends a
-customer message.
+The provider-neutral messaging boundary includes a Meta WhatsApp Cloud API
+webhook adapter. It is disabled by default, verifies signed inbound events
+only after explicit configuration, and never sends a customer message. In v1,
+staff use WhatsApp manually while the dashboard provides cited drafts, tickets,
+and human-takeover coordination.
 
 ## Security and AI model
 

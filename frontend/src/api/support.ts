@@ -1,9 +1,9 @@
 import api from "./axios";
-import type { HandoffRule, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessagingConversation, SupportRequest, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+import type { HandoffRule, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
 export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
-export const createSupportRequest=async(data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.post<SupportRequest>("/support/requests",data)).data;
-export const updateSupportRequest=async(id:number,data:Omit<SupportRequest,"id"|"created_at"|"updated_at">)=>(await api.patch<SupportRequest>(`/support/requests/${id}`,data)).data;
+export const createSupportRequest=async(data:SupportRequestInput)=>(await api.post<SupportRequest>("/support/requests",data)).data;
+export const updateSupportRequest=async(id:number,data:SupportRequestInput)=>(await api.patch<SupportRequest>(`/support/requests/${id}`,data)).data;
 export const deleteSupportRequest=async(id:number)=>api.delete(`/support/requests/${id}`);
 export const getSupportRequestNotes=async(id:number)=> (await api.get<SupportRequestNote[]>(`/support/requests/${id}/notes`)).data;
 export const createSupportRequestNote=async(id:number, content:string)=> (await api.post<SupportRequestNote>(`/support/requests/${id}/notes`, { content })).data;
@@ -24,3 +24,9 @@ export const createSupportDraft=async(data:{message:string;language:"AUTO"|"EN"|
 export const simulateInboundMessage=async(data:{message_id:string;conversation_id:string;sender_reference:string;message:string;language:"AUTO"|"EN"|"MS"})=>(await api.post<SimulatorInboundResult>("/support/simulator/inbound",data)).data;
 export const getMetaConnectionStatus=async()=> (await api.get<MetaConnectionStatus>("/support/meta/status")).data;
 export const getSupportMessagingConversation=async(id:number)=> (await api.get<SupportMessagingConversation | null>(`/support/requests/${id}/messaging-conversation`)).data;
+export const getSupportMessages=async(id:number)=> (await api.get<SupportMessage[]>(`/support/requests/${id}/messages`)).data;
+export const claimSupportConversation=async(id:number)=> (await api.post<SupportRequest>(`/support/requests/${id}/claim`)).data;
+export const returnSupportConversationToAi=async(id:number)=> (await api.post<SupportRequest>(`/support/requests/${id}/return-to-ai`)).data;
+export const requestHumanTakeover=async(id:number)=> (await api.post<SupportRequest>(`/support/requests/${id}/request-human-takeover`)).data;
+export const sendSimulatedDashboardReply=async(id:number, content:string)=> (await api.post<SupportMessage>(`/support/requests/${id}/dashboard-replies`, { content })).data;
+export const getWhatsAppLink=async(id:number)=> (await api.get<{url:string}>(`/support/requests/${id}/whatsapp-link`)).data;

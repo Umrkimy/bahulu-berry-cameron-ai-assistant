@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import re
 from typing import Annotated, Type
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -7,19 +8,20 @@ from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.customer import Customer
-from app.models.messaging import MessagingConversation
+from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
-from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic, SupportMessagingConversationPublic
+from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.support import FAQInput, FAQPublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
-from app.services.messaging import SimulatorAdapter, process_inbound_message
+from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
 
 router = APIRouter()
 VALID_STATUS = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"}
 VALID_PRIORITY = {"LOW", "NORMAL", "HIGH", "URGENT"}
 VALID_SOURCES = {"MANUAL", "PHONE", "SOCIAL_MEDIA", "WALK_IN", "WHATSAPP_FUTURE"}
+HUMAN_HANDOFF_STATES = {"HUMAN_REQUESTED", "HUMAN_HANDLING"}
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -85,8 +87,12 @@ async def create_support_draft(
     db: Annotated[AsyncSession, Depends(get_db)],
     admin: Annotated[Admin, Depends(get_current_admin)],
 ):
-    if data.support_request_id is not None and await db.get(SupportRequest, data.support_request_id) is None:
-        raise HTTPException(404, detail="Support request not found.")
+    if data.support_request_id is not None:
+        ticket = await db.get(SupportRequest, data.support_request_id)
+        if ticket is None:
+            raise HTTPException(404, detail="Support request not found.")
+        if ticket.handoff_state in HUMAN_HANDOFF_STATES:
+            raise HTTPException(409, detail="A human is handling this conversation. AI drafts are paused.")
     draft = await create_grounded_draft(
         db,
         message=data.message,
@@ -197,6 +203,14 @@ async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[Async
         if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")
     item=await db.get(SupportRequest,item_id)
     if not item: raise HTTPException(404,detail="Support request not found.")
+    if item.handoff_state == "HUMAN_REQUESTED" and admin.role != "OWNER":
+        raise HTTPException(403, detail="Claim this conversation before updating it.")
+    if item.handoff_state == "HUMAN_REQUESTED" and data.assigned_admin_id != item.assigned_admin_id:
+        raise HTTPException(409, detail="Use the claim action to assign a human-handoff conversation.")
+    if item.handoff_state == "HUMAN_HANDLING" and admin.role != "OWNER" and item.assigned_admin_id != admin.id:
+        raise HTTPException(403, detail="This human-handled conversation belongs to another staff member.")
+    if item.handoff_state == "HUMAN_HANDLING" and admin.role != "OWNER" and data.assigned_admin_id != item.assigned_admin_id:
+        raise HTTPException(403, detail="Only an Owner can reassign a human-handled conversation.")
     changes = {key: value for key, value in data.model_dump().items() if getattr(item, key) != value}
     for key, value in changes.items(): setattr(item, key, value)
     if changes:
@@ -234,6 +248,91 @@ async def request_messaging_conversation(item_id: int, db: Annotated[AsyncSessio
     if conversation is None:
         return None
     return SupportMessagingConversationPublic(id=conversation.id, provider=conversation.provider, support_request_id=item_id)
+
+
+async def _ticket_conversation(db: AsyncSession, item_id: int) -> tuple[SupportRequest, MessagingConversation]:
+    ticket = await db.get(SupportRequest, item_id)
+    if ticket is None:
+        raise HTTPException(404, detail="Support request not found.")
+    conversation = await db.scalar(select(MessagingConversation).where(MessagingConversation.support_request_id == item_id).order_by(MessagingConversation.id.desc()))
+    if conversation is None:
+        raise HTTPException(409, detail="This support request is not linked to a messaging conversation.")
+    return ticket, conversation
+
+
+def _can_manage_handoff(ticket: SupportRequest, admin: Admin) -> bool:
+    return admin.role == "OWNER" or ticket.assigned_admin_id == admin.id
+
+
+@router.get("/requests/{item_id}/messages", response_model=list[SupportMessagePublic])
+async def request_messages(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
+    _, conversation = await _ticket_conversation(db, item_id)
+    await purge_expired_message_content(db)
+    result = await db.execute(select(MessagingEvent).where(MessagingEvent.conversation_id == conversation.id).order_by(MessagingEvent.processed_at.asc()))
+    return result.scalars().all()
+
+
+@router.post("/requests/{item_id}/claim", response_model=SupportRequestPublic)
+async def claim_conversation(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    ticket, _ = await _ticket_conversation(db, item_id)
+    if ticket.handoff_state != "HUMAN_REQUESTED" or ticket.assigned_admin_id is not None:
+        raise HTTPException(409, detail="This conversation is no longer available to claim.")
+    ticket.assigned_admin_id = admin.id
+    ticket.handoff_state = "HUMAN_HANDLING"
+    ticket.status = "IN_PROGRESS"
+    await record_activity(db, admin=admin, action="claimed", entity_type="support_request", entity_id=ticket.id, description=f"Claimed human handling for support request #{ticket.id}.")
+    await db.commit(); await db.refresh(ticket)
+    return ticket
+
+
+@router.post("/requests/{item_id}/return-to-ai", response_model=SupportRequestPublic)
+async def return_conversation_to_ai(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    ticket, _ = await _ticket_conversation(db, item_id)
+    if ticket.handoff_state != "HUMAN_HANDLING":
+        raise HTTPException(409, detail="This conversation is not being handled by a person.")
+    if not _can_manage_handoff(ticket, admin):
+        raise HTTPException(403, detail="Only the assigned staff member or an Owner can return this conversation to AI.")
+    ticket.handoff_state = "AI_ACTIVE"
+    ticket.assigned_admin_id = None
+    await record_activity(db, admin=admin, action="returned_to_ai", entity_type="support_request", entity_id=ticket.id, description=f"Returned support request #{ticket.id} to AI handling.")
+    await db.commit(); await db.refresh(ticket)
+    return ticket
+
+
+@router.post("/requests/{item_id}/request-human-takeover", response_model=SupportRequestPublic)
+async def request_human_takeover(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    ticket, _ = await _ticket_conversation(db, item_id)
+    if ticket.handoff_state != "AI_ACTIVE":
+        raise HTTPException(409, detail="This conversation is already waiting for or being handled by a person.")
+    ticket.handoff_state = "HUMAN_REQUESTED"
+    ticket.assigned_admin_id = None
+    ticket.status = "NEW"
+    ticket.priority = "HIGH"
+    ticket.handoff_reason = ticket.handoff_reason or "Human takeover requested by staff"
+    await record_activity(db, admin=admin, action="human_takeover_requested", entity_type="support_request", entity_id=ticket.id, description=f"Requested human handling for support request #{ticket.id}.")
+    await db.commit(); await db.refresh(ticket)
+    return ticket
+
+
+@router.post("/requests/{item_id}/dashboard-replies", response_model=SupportMessagePublic)
+async def dashboard_reply(item_id: int, data: DashboardReplyInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    ticket, conversation = await _ticket_conversation(db, item_id)
+    if ticket.handoff_state != "HUMAN_HANDLING":
+        raise HTTPException(409, detail="Claim this conversation before sending a dashboard reply.")
+    if not _can_manage_handoff(ticket, admin):
+        raise HTTPException(403, detail="Only the assigned staff member or an Owner can send a dashboard reply.")
+    return await create_simulated_dashboard_reply(db, conversation=conversation, support_request=ticket, admin=admin, content=data.content.strip())
+
+
+@router.get("/requests/{item_id}/whatsapp-link", response_model=WhatsAppLinkPublic)
+async def whatsapp_link(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    ticket, conversation = await _ticket_conversation(db, item_id)
+    if not _can_manage_handoff(ticket, admin):
+        raise HTTPException(403, detail="Only the assigned staff member or an Owner can open this WhatsApp conversation.")
+    number = re.sub(r"\D", "", conversation.contact_reference or ticket.contact or "")
+    if len(number) < 8:
+        raise HTTPException(409, detail="A valid WhatsApp contact is not available for this conversation.")
+    return WhatsAppLinkPublic(url=f"https://wa.me/{number}")
 
 
 @router.post("/requests/{item_id}/notes", response_model=SupportRequestNotePublic)

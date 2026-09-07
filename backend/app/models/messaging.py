@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -13,6 +13,7 @@ class MessagingConversation(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     provider: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     external_conversation_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    contact_reference: Mapped[str | None] = mapped_column(String(160), nullable=True)
     support_request_id: Mapped[int | None] = mapped_column(ForeignKey("support_requests.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
@@ -30,4 +31,7 @@ class MessagingEvent(Base):
     direction: Mapped[str] = mapped_column(String(20), default="INBOUND", nullable=False)
     outcome: Mapped[str] = mapped_column(String(30), nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    author_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admins.id"), nullable=True)
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
