@@ -1,21 +1,18 @@
 import { Button, Card } from "@mantine/core";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import CreateOrderModal from "../../components/orders/CreateOrderModal";
 import OrdersTable from "../../components/orders/OrdersTable";
 import PageHeader from "../../components/common/PageHeader";
+import type { DashboardRouteState } from "../../types/navigation";
 
 export default function Orders() {
   const [createOpened, setCreateOpened] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get("create") === "1") {
-      setCreateOpened(true);
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isCreateRequested = (location.state as DashboardRouteState | null)?.dashboardAction === "CREATE_ORDER";
+  const closeCreate = () => { setCreateOpened(false); if (isCreateRequested) navigate(location.pathname, { replace: true, state: null }); };
   return (
     <>
       <PageHeader
@@ -28,8 +25,8 @@ export default function Orders() {
       </Card>
 
       <CreateOrderModal
-        opened={createOpened}
-        onClose={() => setCreateOpened(false)}
+        opened={createOpened || isCreateRequested}
+        onClose={closeCreate}
       />
     </>
   );

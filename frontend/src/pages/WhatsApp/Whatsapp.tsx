@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActionIcon, Badge, Button, Card, Divider, Drawer, Group, Modal, ScrollArea, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Textarea, Timeline, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
@@ -78,6 +78,12 @@ export default function WhatsApp() {
   const teamNames = useMemo(() => new Map((team.data ?? []).map((member) => [member.id, member.username])), [team.data]);
   const invalidateQueue = () => queryClient.invalidateQueries({ queryKey: ["support-requests"] });
   const setFilter = (key: keyof typeof filters, value: string | null) => { setPage(1); setFilters((current) => ({ ...current, [key]: value ?? "" })); };
+  const openTicket = useCallback((item: SupportRequest) => {
+    setSelectedRequest(item);
+    ticketForm.setValues({ customer_id: item.customer_id, customer_name: item.customer_name, contact: item.contact ?? "", source: item.source, subject: item.subject, notes: item.notes ?? "", handoff_reason: item.handoff_reason ?? "", priority: item.priority, status: item.status, assigned_admin_id: item.assigned_admin_id });
+    draftForm.reset();
+    setDraft(null);
+  }, [draftForm, ticketForm]);
 
   const createRequest = useMutation({ mutationFn: () => createSupportRequest({ ...createForm.values, customer_name: createForm.values.customer_name.trim(), contact: createForm.values.contact.trim() || null, subject: createForm.values.subject.trim(), handoff_reason: createForm.values.handoff_reason || null, notes: null }), onSuccess: (item) => { void invalidateQueue(); notifications.show({ title: "Support request created", message: "The new request is ready for the team.", color: "green" }); setCreateOpened(false); openTicket(item); }, onError: (error) => notifications.show({ title: "Unable to create request", message: getApiError(error).message, color: "red" }) });
   const saveTicket = useMutation({ mutationFn: () => updateSupportRequest(selectedRequest!.id, { ...ticketForm.values, customer_name: ticketForm.values.customer_name.trim(), contact: ticketForm.values.contact.trim() || null, subject: ticketForm.values.subject.trim(), handoff_reason: ticketForm.values.handoff_reason || null, notes: selectedRequest?.notes ?? null }), onSuccess: (item) => { setSelectedRequest(item); void invalidateQueue(); void queryClient.invalidateQueries({ queryKey: ["support-request-activity", item.id] }); notifications.show({ title: "Request updated", message: "The support ticket was updated.", color: "green" }); }, onError: (error) => notifications.show({ title: "Unable to update request", message: getApiError(error).message, color: "red" }) });
@@ -92,14 +98,7 @@ export default function WhatsApp() {
     { accessorKey: "priority", header: "Priority", cell: ({ row }) => <Badge color={row.original.priority === "URGENT" ? "red" : row.original.priority === "HIGH" ? "orange" : "gray"} variant="light">{row.original.priority}</Badge> },
     { accessorKey: "status", header: "Status", cell: ({ row }) => <Badge color={row.original.status === "RESOLVED" || row.original.status === "CLOSED" ? "green" : "bahulu"} variant="light">{row.original.status.replaceAll("_", " ")}</Badge> },
     { id: "actions", header: "", enableSorting: false, cell: ({ row }) => <Tooltip label="Open ticket"><ActionIcon aria-label="Open support ticket" variant="light" onClick={() => openTicket(row.original)}><IconClipboardText size={16} /></ActionIcon></Tooltip> },
-  ], [teamNames]);
-
-  function openTicket(item: SupportRequest) {
-    setSelectedRequest(item);
-    ticketForm.setValues({ customer_id: item.customer_id, customer_name: item.customer_name, contact: item.contact ?? "", source: item.source, subject: item.subject, notes: item.notes ?? "", handoff_reason: item.handoff_reason ?? "", priority: item.priority, status: item.status, assigned_admin_id: item.assigned_admin_id });
-    draftForm.reset();
-    setDraft(null);
-  }
+  ], [openTicket, teamNames]);
 
   function openContent(kind: ContentKind, item?: ContentItem) {
     setContentKind(kind); setEditingContent(item ?? null); contentForm.reset();

@@ -55,7 +55,7 @@ export default function EditProductModal({
       category: product.category ?? "",
       is_active: product.is_active,
     });
-  }, [product]);
+  }, [form, product]);
 
   function handleSubmit(values: typeof form.values) {
     if (!product) {

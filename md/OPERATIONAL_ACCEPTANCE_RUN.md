@@ -80,6 +80,7 @@ or screenshots containing private information in this file.
 | `frontend/npm run test` | Passed | 7 tests passed. |
 | `frontend/npm run test:e2e` | Passed | Desktop and mobile sign-in smoke tests passed. |
 | `frontend/npm run build` | Passed | Local and fresh Docker builds passed. |
+| `frontend/npm run lint` | Passed | No errors or warnings. |
 | `frontend/npm audit --omit=dev --audit-level=high` | Passed | No production dependency vulnerabilities found. |
 
 ## Sign-off

@@ -14,7 +14,6 @@ export default function AppLayout() {
 
   useEffect(() => {
     nprogress.complete();
-    setMobileOpened(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -59,7 +58,7 @@ export default function AppLayout() {
       </AppShell.Header>
 
       <AppShell.Navbar className="berry-sidebar" style={{ overflowY: "auto" }}>
-        <AppSidebar />
+        <AppSidebar onNavigate={() => setMobileOpened(false)} />
       </AppShell.Navbar>
 
       <AppShell.Main>
