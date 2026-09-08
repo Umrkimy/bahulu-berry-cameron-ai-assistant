@@ -22,6 +22,7 @@ import app.schemas
 from app.api.router import api_router
 from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
 from app.services.messaging import purge_expired_message_content
+from app.services.notification_services import purge_expired_notifications
 
 
 logger = logging.getLogger("bahulu.api")
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
             try:
                 async with AsyncSessionLocal() as session:
                     await purge_expired_message_content(session)
+                    await purge_expired_notifications(session)
             except Exception:
                 logger.exception("message_retention_cleanup_failed")
             await asyncio.sleep(3600)

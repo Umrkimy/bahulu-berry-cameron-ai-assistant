@@ -22,6 +22,7 @@ from app.models.payment import Payment
 from app.payments.service import create_payment
 from app.schemas.payment import PaymentResponse
 from app.services.activity_services import record_activity
+from app.services.notification_services import notify_owners
 
 
 router = APIRouter()
@@ -278,6 +279,15 @@ async def stripe_webhook(
         payment.paid_at = datetime.now(UTC)
 
         order.payment_status = "PAID"
+
+        await notify_owners(
+            db,
+            notification_type="PAYMENT",
+            title="Payment confirmed",
+            description=f"Payment for order #{payment.order_id} was confirmed.",
+            entity_type="payment",
+            entity_id=payment.id,
+        )
 
         await record_activity(db, admin=None, action="paid", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} was confirmed.")
 

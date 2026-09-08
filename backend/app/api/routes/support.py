@@ -16,6 +16,7 @@ from app.schemas.support import FAQInput, FAQPublic, RuleInput, RulePublic, Supp
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
+from app.services.notification_services import add_notification, notify_owners
 
 router = APIRouter()
 VALID_STATUS = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"}
@@ -193,7 +194,12 @@ async def create_request(data:SupportRequestInput,db:Annotated[AsyncSession,Depe
     if data.assigned_admin_id is not None:
         assignee = await db.get(Admin, data.assigned_admin_id)
         if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")
-    item=SupportRequest(**data.model_dump());db.add(item);await db.flush();await record_activity(db,admin=admin,action="created",entity_type="support_request",entity_id=item.id,description=f"Created support request #{item.id}.");await db.commit();await db.refresh(item);return item
+    item=SupportRequest(**data.model_dump());db.add(item);await db.flush()
+    if item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
+        add_notification(db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id)
+    elif item.priority in {"HIGH", "URGENT"} or item.handoff_reason:
+        await notify_owners(db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id)
+    await record_activity(db,admin=admin,action="created",entity_type="support_request",entity_id=item.id,description=f"Created support request #{item.id}.");await db.commit();await db.refresh(item);return item
 @router.patch("/requests/{item_id}",response_model=SupportRequestPublic)
 async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]):
     if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
@@ -214,6 +220,10 @@ async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[Async
     changes = {key: value for key, value in data.model_dump().items() if getattr(item, key) != value}
     for key, value in changes.items(): setattr(item, key, value)
     if changes:
+        if "assigned_admin_id" in changes and item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
+            add_notification(db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id)
+        if item.assigned_admin_id is None and ("priority" in changes or "handoff_reason" in changes) and (item.priority in {"HIGH", "URGENT"} or item.handoff_reason):
+            await notify_owners(db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id)
         if "assigned_admin_id" in changes:
             description = f"Assigned support request #{item.id}."
             action = "assigned"
@@ -312,6 +322,7 @@ async def request_human_takeover(item_id: int, db: Annotated[AsyncSession, Depen
     ticket.status = "NEW"
     ticket.priority = "HIGH"
     ticket.handoff_reason = ticket.handoff_reason or "Human takeover requested by staff"
+    await notify_owners(db, notification_type="SUPPORT", title="Human takeover requested", description="A support conversation is waiting for a team member to claim it.", entity_type="support_request", entity_id=ticket.id)
     await record_activity(db, admin=admin, action="human_takeover_requested", entity_type="support_request", entity_id=ticket.id, description=f"Requested human handling for support request #{ticket.id}.")
     await db.commit(); await db.refresh(ticket)
     return ticket

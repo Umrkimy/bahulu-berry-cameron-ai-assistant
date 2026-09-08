@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 import useAuth from "../../auth/useAuth";
 import BrandName from "../brand/BrandName";
+import NotificationBell from "./NotificationBell";
 
 export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobileOpened: boolean; onToggleNavigation: () => void }) {
   const { logout, admin } = useAuth();
@@ -25,6 +26,7 @@ export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobile
         <ActionIcon variant="light" color="bahulu" size="lg" aria-label="Open quick search" onClick={() => window.dispatchEvent(new Event("open-command-palette"))}>
           <IconSearch size={19} />
         </ActionIcon>
+        <NotificationBell />
         <Menu shadow="md" width={200}>
           <Menu.Target>
             <UnstyledButton className="account-trigger" aria-label="Open account menu"><Group

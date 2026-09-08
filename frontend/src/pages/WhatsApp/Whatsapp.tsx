@@ -76,7 +76,7 @@ export default function WhatsApp() {
   const customerOptions = useMemo(() => (customers.data ?? []).map((customer: Customer) => ({ value: String(customer.id), label: `${customer.full_name} · ${customer.phone_number}` })), [customers.data]);
   const teamOptions = useMemo(() => (team.data ?? []).map((member) => ({ value: String(member.id), label: `${member.username} (${member.role === "OWNER" ? "Owner" : "Staff"})` })), [team.data]);
   const teamNames = useMemo(() => new Map((team.data ?? []).map((member) => [member.id, member.username])), [team.data]);
-  const invalidateQueue = () => queryClient.invalidateQueries({ queryKey: ["support-requests"] });
+  const invalidateQueue = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["support-requests"] }), queryClient.invalidateQueries({ queryKey: ["notifications"] })]);
   const setFilter = (key: keyof typeof filters, value: string | null) => { setPage(1); setFilters((current) => ({ ...current, [key]: value ?? "" })); };
   const openTicket = useCallback((item: SupportRequest) => {
     setSelectedRequest(item);

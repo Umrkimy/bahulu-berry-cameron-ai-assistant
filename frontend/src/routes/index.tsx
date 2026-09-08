@@ -22,6 +22,7 @@ const Reports = lazy(() => import("../pages/Reports/Reports"));
 const Suppliers = lazy(() => import("../pages/Suppliers/Suppliers"));
 const Tasks = lazy(() => import("../pages/Tasks/Tasks"));
 const Fulfillment = lazy(() => import("../pages/Fulfillment/Fulfillment"));
+const Notifications = lazy(() => import("../pages/Notifications/Notifications"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -75,6 +76,8 @@ export default function AppRoutes() {
         <Route path="/refund-requests" element={<RefundRequests />} />
 
         <Route path="/alerts" element={<Alerts />} />
+
+        <Route path="/notifications" element={<Notifications />} />
 
         <Route path="/reports" element={<OwnerRoute><Reports /></OwnerRoute>} />
 

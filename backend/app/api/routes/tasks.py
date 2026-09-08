@@ -12,6 +12,7 @@ from app.models.task import Task
 from app.schemas.task import TaskInput, TaskPublic, TaskUpdate
 from app.services.activity_services import record_activity
 from app.services.task_services import resolve_task_context
+from app.services.notification_services import add_notification
 
 router = APIRouter()
 
@@ -42,6 +43,16 @@ async def create_task(data: TaskInput, db: Annotated[AsyncSession, Depends(get_d
     item = Task(**data.model_dump(exclude={"context_type", "context_id"}), context_type=context_type, context_id=context_id, context_label=context_label, created_by_admin_id=admin.id)
     db.add(item)
     await db.flush()
+    if item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
+        add_notification(
+            db,
+            recipient_id=item.assigned_admin_id,
+            notification_type="TASK",
+            title="New task assigned",
+            description=f"You were assigned: {item.title}.",
+            entity_type="task",
+            entity_id=item.id,
+        )
     await record_activity(db, admin=admin, action="created", entity_type="task", entity_id=item.id, description=f"Created task {item.title}.", metadata={"context_type": context_type} if context_type else None)
     await db.commit()
     await db.refresh(item)
@@ -84,6 +95,26 @@ async def update_task(task_id: int, data: TaskUpdate, db: Annotated[AsyncSession
         return item
     for key, value in changes.items():
         setattr(item, key, value)
+    if "assigned_admin_id" in changes and item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
+        add_notification(
+            db,
+            recipient_id=item.assigned_admin_id,
+            notification_type="TASK",
+            title="Task assigned to you",
+            description=f"You were assigned: {item.title}.",
+            entity_type="task",
+            entity_id=item.id,
+        )
+    if changes.get("status") == "COMPLETED" and item.created_by_admin_id != admin.id:
+        add_notification(
+            db,
+            recipient_id=item.created_by_admin_id,
+            notification_type="TASK",
+            title="Task completed",
+            description=f"A team member completed: {item.title}.",
+            entity_type="task",
+            entity_id=item.id,
+        )
     await record_activity(db, admin=admin, action="updated", entity_type="task", entity_id=item.id, description=f"Updated task {item.title}.", metadata={"fields": sorted(changes)})
     await db.commit()
     await db.refresh(item)
