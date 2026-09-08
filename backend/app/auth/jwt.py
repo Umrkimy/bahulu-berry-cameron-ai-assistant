@@ -29,7 +29,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def verify_access_token(token: str | None) -> str | None:
+def verify_access_token(token: str | None) -> dict | None:
     try:
         payload = jwt.decode(
             token,
@@ -40,4 +40,4 @@ def verify_access_token(token: str | None) -> str | None:
     except jwt.InvalidTokenError:
         return None
 
-    return payload.get("sub")
+    return payload

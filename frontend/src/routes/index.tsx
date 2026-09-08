@@ -3,6 +3,8 @@ import { Center, Loader } from "@mantine/core";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 const Login = lazy(() => import("../pages/Auth/Login"));
+const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const Home = lazy(() => import("../pages/Dashboard/Home"));
 const Products = lazy(() => import("../pages/Products/Products"));
 const Orders = lazy(() => import("../pages/Orders/Orders"));
@@ -17,12 +19,11 @@ const Activity = lazy(() => import("../pages/Activity/Activity"));
 const Team = lazy(() => import("../pages/Team/Team"));
 const RefundRequests = lazy(() => import("../pages/RefundRequests/RefundRequests"));
 const AIUsage = lazy(() => import("../pages/AIUsage/AIUsage"));
-const Alerts = lazy(() => import("../pages/Alerts/Alerts"));
+const Updates = lazy(() => import("../pages/Updates/Updates"));
 const Reports = lazy(() => import("../pages/Reports/Reports"));
 const Suppliers = lazy(() => import("../pages/Suppliers/Suppliers"));
 const Tasks = lazy(() => import("../pages/Tasks/Tasks"));
 const Fulfillment = lazy(() => import("../pages/Fulfillment/Fulfillment"));
-const Notifications = lazy(() => import("../pages/Notifications/Notifications"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -35,6 +36,8 @@ export default function AppRoutes() {
     <Suspense fallback={<Center h="100vh"><Loader color="bahulu" /></Center>}><Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected */}
       <Route
@@ -75,9 +78,9 @@ export default function AppRoutes() {
 
         <Route path="/refund-requests" element={<RefundRequests />} />
 
-        <Route path="/alerts" element={<Alerts />} />
-
-        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/updates" element={<Updates />} />
+        <Route path="/alerts" element={<Navigate to="/updates" replace />} />
+        <Route path="/notifications" element={<Navigate to="/updates" replace />} />
 
         <Route path="/reports" element={<OwnerRoute><Reports /></OwnerRoute>} />
 

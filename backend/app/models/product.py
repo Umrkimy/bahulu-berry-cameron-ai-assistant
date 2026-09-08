@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -32,6 +32,11 @@ class Product(Base):
     )
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
+    storefront_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    storefront_name_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    storefront_name_ms: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    storefront_description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    storefront_description_ms: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

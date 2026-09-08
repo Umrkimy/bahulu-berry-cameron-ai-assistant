@@ -22,7 +22,7 @@ from app.models.payment import Payment
 from app.payments.service import create_payment
 from app.schemas.payment import PaymentResponse
 from app.services.activity_services import record_activity
-from app.services.notification_services import notify_owners
+from app.services.notification_services import notify_owners_with_email
 
 
 router = APIRouter()
@@ -236,6 +236,7 @@ async def stripe_webhook(
 
         payment.status = "EXPIRED"
 
+        await notify_owners_with_email(db, notification_type="PAYMENT", title="Payment link expired", description=f"The payment link for order #{payment.order_id} expired without a completed payment.", entity_type="payment", entity_id=payment.id, email_type="PAYMENT_FAILED", idempotency_key_prefix=f"payment-expired:{payment.id}")
         await record_activity(db, admin=None, action="expired", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} expired.")
 
         await db.commit()
@@ -280,13 +281,15 @@ async def stripe_webhook(
 
         order.payment_status = "PAID"
 
-        await notify_owners(
+        await notify_owners_with_email(
             db,
             notification_type="PAYMENT",
             title="Payment confirmed",
             description=f"Payment for order #{payment.order_id} was confirmed.",
             entity_type="payment",
             entity_id=payment.id,
+            email_type="PAYMENT_CONFIRMED",
+            idempotency_key_prefix=f"payment-confirmed:{payment.id}",
         )
 
         await record_activity(db, admin=None, action="paid", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} was confirmed.")

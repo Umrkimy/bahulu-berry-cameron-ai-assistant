@@ -11,6 +11,7 @@ from app.db.database import get_db
 from app.models.admin import Admin
 from app.schemas.admin import AdminCreate, AdminPrivate, AdminUpdate
 from app.services.activity_services import record_activity
+from app.services.email_services import send_password_setup_email
 
 
 router = APIRouter()
@@ -46,6 +47,7 @@ async def create_team_member(data: AdminCreate, db: Annotated[AsyncSession, Depe
     db.add(admin)
     await db.flush()
     await record_activity(db, admin=current_admin, action="created", entity_type="admin", entity_id=admin.id, description=f"Created {role.lower()} account for {admin.username}.")
+    await send_password_setup_email(db, admin, purpose="ACCOUNT_SETUP")
     await db.commit()
     await db.refresh(admin)
     return admin
@@ -57,7 +59,8 @@ async def update_team_member(admin_id: int, data: AdminUpdate, request: Request,
     if not member:
         raise HTTPException(status_code=404, detail="Team member not found.")
     changes = data.model_dump(exclude_unset=True)
-    if "password" in changes:
+    password_changed = "password" in changes
+    if password_changed:
         await rate_limiter.check(request, "password-reset", PASSWORD_RESET_LIMIT)
     if "username" in changes or "email" in changes:
         username = changes.get("username", member.username).strip()
@@ -79,11 +82,16 @@ async def update_team_member(admin_id: int, data: AdminUpdate, request: Request,
         raise HTTPException(status_code=400, detail="The last active owner cannot be deactivated.")
     if "password" in changes:
         changes["password_hash"] = hash_password(changes.pop("password"))
+        member.session_version += 1
     if "email" in changes:
         changes["email"] = changes["email"].lower()
     for field, value in changes.items():
         setattr(member, field, value)
     await record_activity(db, admin=current_admin, action="updated", entity_type="admin", entity_id=member.id, description=f"Updated team account for {member.username}.", metadata={"fields": sorted(changes.keys())})
+    if password_changed:
+        await send_password_setup_email(db, member)
+    if changes.get("is_active") is False:
+        member.session_version += 1
     await db.commit()
     await db.refresh(member)
     return member

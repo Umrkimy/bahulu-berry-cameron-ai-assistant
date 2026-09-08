@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_MINUTES: int = 480
     ACCESS_TOKEN_EXPIRE_MINUTES: int | None = None
 
+    EMAIL_PROVIDER: str = "console"
+    EMAIL_FROM: str = "Bahulu Berry Cameron <notifications@example.invalid>"
+    RESEND_API_KEY: SecretStr = SecretStr("")
+    APP_BASE_URL: str = "http://localhost:5173"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+
     @field_validator("ALLOWED_ORIGINS")
     @classmethod
     def parse_allowed_origins(cls, v: str) -> List[str]:

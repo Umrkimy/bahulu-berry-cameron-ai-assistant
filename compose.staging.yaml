@@ -20,9 +20,21 @@ services:
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:?Set STRIPE_SUCCESS_URL in .env.staging}
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:?Set STRIPE_CANCEL_URL in .env.staging}
       WHATSAPP_META_INBOUND_ENABLED: "false"
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      EMAIL_FROM: ${EMAIL_FROM:?Set EMAIL_FROM in .env.staging}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      APP_BASE_URL: ${APP_BASE_URL:?Set APP_BASE_URL in .env.staging}
+      PASSWORD_RESET_EXPIRE_MINUTES: ${PASSWORD_RESET_EXPIRE_MINUTES:-30}
   frontend:
     build:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:?Set VITE_API_BASE_URL in .env.staging}
+        VITE_STOREFRONT_BASE_URL: ${VITE_STOREFRONT_BASE_URL:?Set VITE_STOREFRONT_BASE_URL in .env.staging}
+  storefront:
+    build:
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${STOREFRONT_API_BASE_URL:?Set STOREFRONT_API_BASE_URL in .env.staging}
+        NEXT_PUBLIC_WHATSAPP_NUMBER: ${STOREFRONT_WHATSAPP_NUMBER:-}
+        STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
 volumes:
   postgres_staging_data:

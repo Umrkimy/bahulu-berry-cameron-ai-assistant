@@ -32,7 +32,7 @@ from app.services.inventory_services import (
 )
 from app.services.activity_services import record_activity
 from app.services.transaction_lock import acquire_transaction_lock
-from app.services.notification_services import notify_owners
+from app.services.notification_services import notify_owners_with_email
 
 
 router = APIRouter()
@@ -167,9 +167,9 @@ async def create_stock_movement(
         if data.low_stock_threshold is not None:
             inventory.low_stock_threshold = data.low_stock_threshold
         if inventory.quantity == 0 and quantity_before != 0:
-            await notify_owners(db, notification_type="INVENTORY", title="Product is out of stock", description=f"{inventory.product.name} has reached zero stock.", entity_type="inventory", entity_id=inventory.id)
+            await notify_owners_with_email(db, notification_type="INVENTORY", title="Product is out of stock", description=f"{inventory.product.name} has reached zero stock.", entity_type="inventory", entity_id=inventory.id, email_type="STOCK_OUT", idempotency_key_prefix=f"stock-out:{inventory.id}:{inventory.quantity}")
         elif inventory.quantity <= inventory.low_stock_threshold and quantity_before > inventory.low_stock_threshold:
-            await notify_owners(db, notification_type="INVENTORY", title="Product is low in stock", description=f"{inventory.product.name} is at or below its stock threshold.", entity_type="inventory", entity_id=inventory.id)
+            await notify_owners_with_email(db, notification_type="INVENTORY", title="Product is low in stock", description=f"{inventory.product.name} is at or below its stock threshold.", entity_type="inventory", entity_id=inventory.id, email_type="STOCK_LOW", idempotency_key_prefix=f"stock-low:{inventory.id}:{inventory.quantity}")
         await record_activity(db, admin=admin, action="stock_moved", entity_type="inventory", entity_id=inventory.id, description=f"Recorded {data.movement_type.lower().replace('_', ' ')} for {inventory.product.name}.", metadata={"quantity_change": data.quantity_change, "movement_type": data.movement_type})
         await db.commit()
     except HTTPException:

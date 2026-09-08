@@ -14,9 +14,9 @@ async def get_current_admin(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> Admin:
     token = request.cookies.get(settings.SESSION_COOKIE_NAME)
-    admin_id = verify_access_token(token)
+    payload = verify_access_token(token)
 
-    if admin_id is None:
+    if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -24,7 +24,7 @@ async def get_current_admin(
         )
 
     try:
-        admin_id = int(admin_id)
+        admin_id = int(payload.get("sub", ""))
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,6 +42,9 @@ async def get_current_admin(
             detail="Admin not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if payload.get("sv") != admin.session_version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
 
     return admin
 
