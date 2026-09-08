@@ -37,12 +37,12 @@ export default function Tasks() {
 
   const save = useMutation({
     mutationFn: () => createTask({ ...form.values, assigned_admin_id: form.values.assigned_admin_id ? Number(form.values.assigned_admin_id) : null, due_at: form.values.due_at ? new Date(`${form.values.due_at}+08:00`).toISOString() : null, context_type: form.values.context_type || null, context_id: form.values.context_id ? Number(form.values.context_id) : null }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); setOpened(false); form.reset(); navigate(location.pathname, { replace: true, state: null }); notifications.show({ title: "Task created", message: "The task is ready for the assigned team member.", color: "green" }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); setOpened(false); form.reset(); navigate(location.pathname, { replace: true, state: null }); notifications.show({ title: "Task created", message: "The task is ready for the assigned team member.", color: "green" }); },
     onError: (error) => { const parsed = getApiError(error); form.setErrors(parsed.fieldErrors); notifications.show({ title: "Could not create task", message: parsed.message, color: "red" }); },
   });
   const change = useMutation({
     mutationFn: ({ id, status, completion_note }: { id: number; status: Task["status"]; completion_note?: string }) => updateTask(id, { status, completion_note }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); setCompletionTask(null); completionForm.reset(); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); setCompletionTask(null); completionForm.reset(); },
     onError: (error) => notifications.show({ title: "Could not update task", message: getApiError(error).message, color: "red" }),
   });
   const contextOptions = form.values.context_type === "ORDER" ? (orders.data ?? []).map((order) => ({ value: String(order.id), label: `Order #${order.id} · ${order.status}` })) : form.values.context_type === "DELIVERY" ? (deliveries.data ?? []).map((delivery) => ({ value: String(delivery.id), label: `Delivery for Order #${delivery.order_id} · ${delivery.status}` })) : (inventory.data ?? []).map((item) => ({ value: String(item.id), label: `${item.product_name} · ${item.quantity} in stock` }));
