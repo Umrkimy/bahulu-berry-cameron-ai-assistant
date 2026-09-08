@@ -107,6 +107,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
         items={[
           { label: "Fulfilment", link: "/fulfillment", icon: <IconClipboardCheck size={18} /> },
           { label: "Tasks", link: "/tasks", icon: <IconChecklist size={18} /> },
+          { label: "Notifications", link: "/notifications", icon: <IconBell size={18} /> },
           {
             label: "Alerts",
             link: "/alerts",

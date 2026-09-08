@@ -17,6 +17,7 @@ function useRefundInvalidation() {
       queryClient.invalidateQueries({ queryKey: ["orders"] }),
       queryClient.invalidateQueries({ queryKey: ["payment"] }),
       queryClient.invalidateQueries({ queryKey: ["activity"] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
     ]);
   };
 }
