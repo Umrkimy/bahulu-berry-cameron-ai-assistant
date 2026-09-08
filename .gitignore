@@ -3,6 +3,10 @@
 # =====================
 
 frontend/node_modules/
+storefront/node_modules/
+storefront/.next/
+storefront/out/
+storefront/.env
 frontend/dist/
 frontend/dist-ssr/
 

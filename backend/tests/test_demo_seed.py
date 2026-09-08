@@ -16,7 +16,7 @@ async def test_fictional_demo_seed_is_idempotent(session, monkeypatch):
         count = await session.scalar(select(func.count()).select_from(model))
         assert count == (2 if model is Admin else 1)
 
-    owner = await session.scalar(select(Admin).where(Admin.email == "owner@demo.invalid"))
-    staff = await session.scalar(select(Admin).where(Admin.email == "staff@demo.invalid"))
+    owner = await session.scalar(select(Admin).where(Admin.email == "owner@example.com"))
+    staff = await session.scalar(select(Admin).where(Admin.email == "staff@example.com"))
     assert owner.role == "OWNER" and owner.is_superuser is True
     assert staff.role == "STAFF" and staff.is_superuser is False

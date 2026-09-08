@@ -19,7 +19,7 @@ export default function OperationsAlertPanel() {
           <Text fw={700}>Operations attention</Text>
           <Text size="sm" c="dimmed">Live issues that resolve when the underlying work is completed.</Text>
         </Stack>
-        <Button component={Link} to="/alerts" size="xs" variant="light" rightSection={<IconArrowUpRight size={14} />}>View all alerts</Button>
+        <Button component={Link} to="/updates" size="xs" variant="light" rightSection={<IconArrowUpRight size={14} />}>View all updates</Button>
       </Group>
 
       {isLoading ? <Text size="sm" c="dimmed">Loading current alerts…</Text> : null}

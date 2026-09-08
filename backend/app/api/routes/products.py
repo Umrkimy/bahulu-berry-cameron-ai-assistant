@@ -32,6 +32,7 @@ async def get_products(
         AsyncSession,
         Depends(get_db),
     ],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
     search: str | None = Query(
         default=None,
         description="Search by product name",
@@ -278,7 +279,7 @@ async def get_admin_products(
 
 # GET SINGLE PRODUCT
 @router.get("/{product_id}", response_model=ProductPublic)
-async def get_product(product_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_product(product_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
     result = await db.execute(
         select(Product)
         .options(
@@ -396,6 +397,15 @@ async def update_product(
             )
 
     update_data = product_data.model_dump(exclude_unset=True)
+
+    publishing = update_data.get("storefront_published", product.storefront_published)
+    name_en = update_data.get("storefront_name_en", product.storefront_name_en)
+    name_ms = update_data.get("storefront_name_ms", product.storefront_name_ms)
+    if publishing and (not name_en or not name_en.strip() or not name_ms or not name_ms.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Add approved English and Bahasa Melayu storefront names before publishing this product.",
+        )
 
     for field, value in update_data.items():
         setattr(product, field, value)

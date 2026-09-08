@@ -42,6 +42,11 @@ class ProductPublic(BaseModel):
 
 class ProductPrivate(ProductPublic):
     is_active: bool
+    storefront_published: bool
+    storefront_name_en: str | None
+    storefront_name_ms: str | None
+    storefront_description_en: str | None
+    storefront_description_ms: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -53,3 +58,31 @@ class ProductUpdate(BaseModel):
     image_file: str | None = None
     category: str | None = Field(default=None, max_length=50)
     is_active: bool | None = None
+    storefront_published: bool | None = None
+    storefront_name_en: str | None = Field(default=None, max_length=100)
+    storefront_name_ms: str | None = Field(default=None, max_length=100)
+    storefront_description_en: str | None = None
+    storefront_description_ms: str | None = None
+
+
+class StorefrontPromotion(BaseModel):
+    label: str
+    discount_type: str
+    discount_value: Decimal
+    bundle_quantity: int | None = None
+
+
+class StorefrontProduct(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name_en: str
+    name_ms: str
+    description_en: str | None
+    description_ms: str | None
+    category: str | None
+    price: Decimal
+    sale_price: Decimal | None
+    image_path: str | None
+    is_available: bool
+    promotions: list[StorefrontPromotion]

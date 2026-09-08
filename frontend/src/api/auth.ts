@@ -4,6 +4,16 @@ export interface LoginResponse {
   authenticated: boolean;
 }
 
+export async function requestPasswordReset(email: string) {
+  const response = await api.post<{ message: string }>("/auth/password-reset/request", { email });
+  return response.data;
+}
+
+export async function confirmPasswordReset(token: string, password: string) {
+  const response = await api.post<{ message: string }>("/auth/password-reset/confirm", { token, password });
+  return response.data;
+}
+
 export interface Admin {
   id: number;
   username: string;
