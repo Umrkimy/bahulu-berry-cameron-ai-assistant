@@ -19,8 +19,12 @@ out of source control.
   limits, warning threshold, and a backend-enforced monthly budget cap.
 - Owner-only reports and responsive operational views for desktop, tablet, and
   phone, including Apache ECharts sales and fulfilment visualisations.
+- A separate Next.js bilingual storefront with Owner-controlled catalogue
+  publishing and WhatsApp enquiries; checkout remains intentionally deferred.
 - Calm, reduced-motion-aware UI feedback, safe dashboard crash recovery, and
   automated frontend/browser regression checks.
+- Secure account setup and password-reset links, safe local email preview, and
+  owner-only critical email alerts through a provider-neutral email boundary.
 
 ## Architecture
 
@@ -28,8 +32,11 @@ out of source control.
 React admin dashboard -- secure cookie + CSRF --> FastAPI API --> PostgreSQL
                                                    |
                                                    +-- Stripe test webhooks
+                                                   +-- Transactional email provider
                                                    +-- Grounded support retrieval
                                                        (owner-approved records only)
+
+Next.js storefront -- public catalogue API --------^
 ```
 
 The provider-neutral messaging boundary includes a Meta WhatsApp Cloud API
@@ -54,7 +61,8 @@ and human-takeover coordination.
 1. Copy `.env.example` to `.env` and use local test values only.
 2. Run `docker compose up --build`.
 3. Open `http://localhost:5173`. API checks are at
-   `http://localhost:8000/health` and `http://localhost:8000/ready`.
+   `http://localhost:8000/health` and `http://localhost:8000/ready`. The
+   storefront is at `http://localhost:3000` after it is configured and built.
 
 Useful checks:
 
@@ -70,6 +78,16 @@ data and never call Stripe or production services.
 
 Compose runs Alembic migrations before the API starts. Production should use a
 managed, client-owned PostgreSQL database and an explicit migration job.
+
+## Transactional email
+
+Local Docker defaults to `EMAIL_PROVIDER=console`; it records safe delivery
+metadata and does not send real mail. Production can use Resend after the
+client verifies a sender domain and configures `RESEND_API_KEY`, `EMAIL_FROM`,
+and the public `APP_BASE_URL`. The first email scope is account setup/password
+reset and Owner-only critical payment, refund, and stock alerts. Email bodies,
+reset tokens, customer records, and provider secrets are never stored in the
+delivery ledger.
 
 Do not commit `.env` files, API keys, webhook secrets, real addresses, phone
 numbers, payment identifiers, or approved business content.

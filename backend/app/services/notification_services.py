@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin import Admin
 from app.models.notification import Notification
+from app.services.email_services import email_owners
 
 
 ROUTES = {
@@ -70,6 +71,14 @@ async def notify_owners(
                 entity_type=entity_type,
                 entity_id=entity_id,
             )
+
+
+async def notify_owners_with_email(
+    db: AsyncSession, *, notification_type: str, title: str, description: str,
+    entity_type: str | None = None, entity_id: int | None = None, email_type: str, idempotency_key_prefix: str,
+) -> None:
+    await notify_owners(db, notification_type=notification_type, title=title, description=description, entity_type=entity_type, entity_id=entity_id)
+    await email_owners(db, email_type=email_type, subject=title, body=description, idempotency_key_prefix=idempotency_key_prefix)
 
 
 async def purge_expired_notifications(db: AsyncSession, *, days: int = 90) -> int:

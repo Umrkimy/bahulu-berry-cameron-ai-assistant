@@ -1,0 +1,14 @@
+import type { Locale } from "./types";
+
+export const copy = {
+  en: {
+    navProducts: "Products", navPickup: "Pickup & delivery", navAbout: "About", browse: "Browse products", enquire: "Enquire on WhatsApp", available: "Available", unavailable: "Currently unavailable", regularPrice: "Regular price", offers: "Current offers", back: "Back to products", catalogue: "Our catalogue", catalogueIntro: "Browse the products currently approved for the storefront.", noProducts: "Products will appear here once they are approved for the storefront.", heroEyebrow: "Bahulu Berry Cameron", heroTitle: "Bakery treats, ready for your next visit.", heroText: "Explore the current collection and speak directly with the team on WhatsApp for availability and arrangements.", pickupTitle: "Pickup & delivery", pickupText: "Pickup and local delivery arrangements are confirmed directly with the team so each order can be handled with care.", aboutTitle: "About Bahulu Berry Cameron", aboutText: "A Cameron Highlands bakery centred on bahulu and berry-inspired products.", contactTitle: "Questions about an order?", contactText: "Message the team on WhatsApp for current availability, pickup, or delivery arrangements.", language: "BM", imagePending: "Product image awaiting approval", notFound: "This product is not currently available.", home: "Home",
+  },
+  ms: {
+    navProducts: "Produk", navPickup: "Ambil & penghantaran", navAbout: "Tentang", browse: "Lihat produk", enquire: "Tanya di WhatsApp", available: "Tersedia", unavailable: "Tidak tersedia buat masa ini", regularPrice: "Harga biasa", offers: "Promosi semasa", back: "Kembali ke produk", catalogue: "Katalog kami", catalogueIntro: "Lihat produk yang kini diluluskan untuk laman pelanggan.", noProducts: "Produk akan dipaparkan di sini selepas diluluskan untuk laman pelanggan.", heroEyebrow: "Bahulu Berry Cameron", heroTitle: "Kudapan bakeri untuk kunjungan anda yang seterusnya.", heroText: "Terokai koleksi semasa dan hubungi pasukan kami di WhatsApp untuk ketersediaan serta urusan pesanan.", pickupTitle: "Ambil & penghantaran", pickupText: "Urusan ambil sendiri dan penghantaran tempatan akan disahkan terus bersama pasukan kami supaya setiap pesanan diurus dengan teliti.", aboutTitle: "Tentang Bahulu Berry Cameron", aboutText: "Bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri.", contactTitle: "Ada soalan tentang pesanan?", contactText: "Hubungi pasukan kami di WhatsApp untuk ketersediaan, ambil sendiri, atau urusan penghantaran semasa.", language: "EN", imagePending: "Imej produk menunggu kelulusan", notFound: "Produk ini tidak tersedia buat masa ini.", home: "Laman utama",
+  },
+} as const;
+
+export function money(value: string): string {
+  return new Intl.NumberFormat("en-MY", { style: "currency", currency: "MYR" }).format(Number(value));
+}

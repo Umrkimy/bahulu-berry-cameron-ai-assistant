@@ -14,6 +14,11 @@ export interface Product {
   category: string | null;
   inventory: Inventory | null;
   is_active: boolean;
+  storefront_published: boolean;
+  storefront_name_en: string | null;
+  storefront_name_ms: string | null;
+  storefront_description_en: string | null;
+  storefront_description_ms: string | null;
   created_at: string;
   updated_at: string;
   active_discount: ActiveDiscount | null;
@@ -53,4 +58,9 @@ export interface UpdateProductData {
   price: number;
   category?: string;
   is_active: boolean;
+  storefront_published?: boolean;
+  storefront_name_en?: string;
+  storefront_name_ms?: string;
+  storefront_description_en?: string;
+  storefront_description_ms?: string;
 }
