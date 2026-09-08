@@ -18,15 +18,13 @@ jobs:
       TRUSTED_HOSTS: localhost,127.0.0.1,testserver
       SECRET_KEY: ci-only-secret-key-with-more-than-thirty-two-characters
       OPENAI_API_KEY: ci-placeholder
-      STRIPE_SECRET_KEY: sk_test_placeholder
-      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_SECRET_KEY: stripe_test_key_ci_only
+      STRIPE_WEBHOOK_SECRET: stripe_webhook_secret_ci_only
       STRIPE_SUCCESS_URL: http://localhost:5173/payment/success
       STRIPE_CANCEL_URL: http://localhost:5173/payment/cancel
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v7
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v9
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: uv sync --locked --group dev
         working-directory: backend
       - run: uv run pytest
@@ -39,9 +37,7 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -87,13 +83,13 @@ jobs:
       TRUSTED_HOSTS: localhost,127.0.0.1,testserver
       SECRET_KEY: ci-only-secret-key-with-more-than-thirty-two-characters
       OPENAI_API_KEY: ci-placeholder
-      STRIPE_SECRET_KEY: sk_test_placeholder
-      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_SECRET_KEY: stripe_test_key_ci_only
+      STRIPE_WEBHOOK_SECRET: stripe_webhook_secret_ci_only
       STRIPE_SUCCESS_URL: http://localhost:5173/payment/success
       STRIPE_CANCEL_URL: http://localhost:5173/payment/cancel
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v9
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - run: uv sync --locked --group dev
         working-directory: backend
       - run: uv run alembic upgrade head
@@ -104,8 +100,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v3

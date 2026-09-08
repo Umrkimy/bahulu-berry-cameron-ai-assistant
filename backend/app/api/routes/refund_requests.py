@@ -17,6 +17,7 @@ from app.models.refund_request import RefundRequest
 from app.payments.service import refund_payment
 from app.schemas.refund_request import RefundRequestCreate, RefundRequestPublic, RefundRequestUpdate
 from app.services.activity_services import record_activity
+from app.services.notification_services import notify_owners
 
 
 router = APIRouter()
@@ -112,6 +113,7 @@ async def create_refund_request(
     request = RefundRequest(order_id=data.order_id, requested_by_admin_id=current_admin.id, reason=data.reason.strip())
     db.add(request)
     await db.flush()
+    await notify_owners(db, notification_type="REFUND", title="New refund request", description=f"Refund request for order #{data.order_id} is ready for review.", entity_type="refund_request", entity_id=request.id)
     await record_activity(db, admin=current_admin, action="requested", entity_type="refund_request", entity_id=request.id, description=f"Recorded a refund request for order #{data.order_id}.")
     await db.commit()
     request = await get_request_with_order(db, request.id)
@@ -138,6 +140,7 @@ async def update_refund_request(
     request.internal_note = data.internal_note.strip() if data.internal_note else None
     request.reviewed_by_admin_id = current_admin.id
     request.reviewed_at = datetime.now(UTC)
+    await notify_owners(db, notification_type="REFUND", title="Refund request updated", description=f"Refund request for order #{request.order_id} is now {data.status.lower().replace('_', ' ')}.", entity_type="refund_request", entity_id=request.id)
     await record_activity(db, admin=current_admin, action=data.status.lower(), entity_type="refund_request", entity_id=request.id, description=f"Marked refund request for order #{request.order_id} as {data.status.lower().replace('_', ' ')}.")
     await db.commit()
     updated_request = await get_request_with_order(db, request.id)
@@ -177,6 +180,7 @@ async def execute_refund_request(
         request.status = "REFUNDED"
         request.reviewed_by_admin_id = current_admin.id
         request.refunded_at = datetime.now(UTC)
+        await notify_owners(db, notification_type="REFUND", title="Payment refunded", description=f"The refund for order #{request.order_id} was confirmed.", entity_type="refund_request", entity_id=request.id)
         await record_activity(db, admin=current_admin, action="refunded", entity_type="refund_request", entity_id=request.id, description=f"Refunded approved request for order #{request.order_id}.")
         await record_activity(db, admin=current_admin, action="refunded", entity_type="payment", entity_id=payment.id, description=f"Refunded Stripe test payment for order #{request.order_id}.")
         await db.commit()

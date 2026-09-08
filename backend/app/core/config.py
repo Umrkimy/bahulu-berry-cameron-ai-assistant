@@ -70,6 +70,14 @@ class Settings(BaseSettings):
         return self.ENVIRONMENT.lower() == "production"
 
     @property
+    def is_staging(self) -> bool:
+        return self.ENVIRONMENT.lower() == "staging"
+
+    @property
+    def requires_strict_runtime_security(self) -> bool:
+        return self.is_production or self.is_staging
+
+    @property
     def cookie_secure(self) -> bool:
         return self.is_production
 
@@ -78,16 +86,16 @@ class Settings(BaseSettings):
         return "none" if self.is_production else "lax"
 
     def validate_runtime_security(self) -> None:
-        if not self.is_production:
+        if not self.requires_strict_runtime_security:
             return
         if self.DEBUG:
-            raise RuntimeError("DEBUG must be false in production.")
+            raise RuntimeError("DEBUG must be false outside local development.")
         if not self.ALLOWED_ORIGINS or "*" in self.ALLOWED_ORIGINS:
-            raise RuntimeError("Production requires explicit ALLOWED_ORIGINS.")
+            raise RuntimeError("Staging and production require explicit ALLOWED_ORIGINS.")
         if not self.TRUSTED_HOSTS or "*" in self.TRUSTED_HOSTS:
-            raise RuntimeError("Production requires explicit TRUSTED_HOSTS.")
+            raise RuntimeError("Staging and production require explicit TRUSTED_HOSTS.")
         if len(self.SECRET_KEY.get_secret_value()) < 32:
-            raise RuntimeError("SECRET_KEY must be at least 32 characters in production.")
+            raise RuntimeError("SECRET_KEY must be at least 32 characters outside local development.")
 
 
 settings = Settings()

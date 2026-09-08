@@ -4,7 +4,7 @@ Secure operations platform for a Malaysian bakery. Real credentials, customer
 records, payment details, contacts, and unconfirmed business details are kept
 out of source control.
 
-## What it demonstrates
+## Core capabilities
 
 - React, TypeScript, Vite, Mantine, TanStack Query, and TanStack Table.
 - FastAPI, async SQLAlchemy, Alembic, PostgreSQL-compatible persistence, and
@@ -70,13 +70,6 @@ data and never call Stripe or production services.
 
 Compose runs Alembic migrations before the API starts. Production should use a
 managed, client-owned PostgreSQL database and an explicit migration job.
-
-## Safe local demo data
-
-The optional local demo seed creates clearly fictional records for development,
-testing, and interface review. It never imports or changes client records. See
-the [local demo guide](LOCAL_DEMO_GUIDE.md) for the opt-in command and safe
-Docker reset instructions.
 
 Do not commit `.env` files, API keys, webhook secrets, real addresses, phone
 numbers, payment identifiers, or approved business content.

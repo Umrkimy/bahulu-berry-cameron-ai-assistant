@@ -17,3 +17,4 @@ from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.supplier import Supplier
 from app.models.stock_movement import StockMovement
 from app.models.task import Task
+from app.models.notification import Notification
