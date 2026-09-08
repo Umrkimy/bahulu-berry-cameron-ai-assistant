@@ -34,7 +34,7 @@ async def list_activity(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
-    query = select(ActivityLog).order_by(ActivityLog.created_at.desc())
+    query = select(ActivityLog, Admin.username).outerjoin(Admin, Admin.id == ActivityLog.admin_id).order_by(ActivityLog.created_at.desc())
     if current_admin.role != "OWNER":
         query = query.where(or_(ActivityLog.entity_type != "task", ActivityLog.entity_id.in_(select(Task.id).where(Task.assigned_admin_id == current_admin.id))))
     if entity_type:
@@ -50,4 +50,7 @@ async def list_activity(
     if end_at:
         query = query.where(ActivityLog.created_at < _as_utc(end_at))
     result = await db.execute(query.offset(offset).limit(limit))
-    return result.scalars().all()
+    return [
+        ActivityPublic.model_validate(activity).model_copy(update={"admin_username": username})
+        for activity, username in result.all()
+    ]
