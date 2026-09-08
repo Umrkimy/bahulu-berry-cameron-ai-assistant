@@ -1,3 +1,3 @@
-# Historical CI-only sk_test_placeholder values, verified on 2026-09-07.
+# Historical CI test-placeholder fingerprints.
 fc4828eb25b6794291223be02654deaba11f8e1c:.github/workflows/security.yml:stripe-access-token:78
 2a871bf119ee139afc83429b21c773da94d81cf5:.github/workflows/security.yml:stripe-access-token:21
