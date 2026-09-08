@@ -23,6 +23,8 @@ from app.api.routes import (
     suppliers,
     tasks,
     notifications,
+    storefront,
+    settings,
 )
 
 api_router = APIRouter()
@@ -44,6 +46,9 @@ api_router.include_router(
     prefix="/inventories",
     tags=["inventories"],
 )
+
+api_router.include_router(storefront.router, prefix="/storefront", tags=["storefront"])
+api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 
 api_router.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])

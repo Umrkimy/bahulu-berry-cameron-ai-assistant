@@ -9,6 +9,7 @@ class ActivityPublic(BaseModel):
 
     id: int
     admin_id: int | None
+    admin_username: str | None = None
     action: str
     entity_type: str
     entity_id: int | None

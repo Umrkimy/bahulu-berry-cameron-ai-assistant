@@ -7,7 +7,7 @@ from app.core.config import settings
 
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-CSRF_EXEMPT_PATHS = {"/api/auth/csrf", "/api/auth/token", "/api/payments/webhook", "/webhooks/meta/whatsapp"}
+CSRF_EXEMPT_PATHS = {"/api/auth/csrf", "/api/auth/token", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm", "/api/payments/webhook", "/webhooks/meta/whatsapp"}
 
 
 def create_csrf_token() -> str:

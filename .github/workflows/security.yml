@@ -58,6 +58,24 @@ jobs:
       - run: npm run build
         working-directory: frontend
 
+  storefront:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - run: npm ci
+        working-directory: storefront
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: storefront
+      - run: npm run lint -- --max-warnings=0
+        working-directory: storefront
+      - run: npm run build
+        working-directory: storefront
+
   postgres-integration:
     runs-on: ubuntu-latest
     services:

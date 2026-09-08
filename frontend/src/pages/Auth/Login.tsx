@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import BrandName from "../../components/brand/BrandName";
 
@@ -129,9 +129,7 @@ export default function Login() {
 
             <Text size="sm" ta="center" c="dimmed">
               Forgot password?{" "}
-              <Anchor href="#" onClick={(event) => event.preventDefault()}>
-                Contact administrator
-              </Anchor>
+              <Anchor component={Link} to="/forgot-password">Reset your password</Anchor>
             </Text>
           </Stack>
         </Paper>

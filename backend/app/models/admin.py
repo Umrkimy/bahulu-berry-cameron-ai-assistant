@@ -42,6 +42,7 @@ class Admin(Base):
 
     role: Mapped[str] = mapped_column(String(20), default="OWNER", nullable=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    session_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

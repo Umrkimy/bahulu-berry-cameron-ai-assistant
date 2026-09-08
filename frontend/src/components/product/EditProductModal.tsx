@@ -1,4 +1,4 @@
-import { NumberInput, Stack, Switch, TextInput, Textarea } from "@mantine/core";
+import { Anchor, Divider, NumberInput, Stack, Switch, Text, TextInput, Textarea } from "@mantine/core";
 
 import { notifications } from "@mantine/notifications";
 
@@ -33,6 +33,11 @@ export default function EditProductModal({
       price: 0,
       category: "",
       is_active: true,
+      storefront_published: false,
+      storefront_name_en: "",
+      storefront_name_ms: "",
+      storefront_description_en: "",
+      storefront_description_ms: "",
     },
 
     validate: {
@@ -54,6 +59,11 @@ export default function EditProductModal({
       price: Number(product.price),
       category: product.category ?? "",
       is_active: product.is_active,
+      storefront_published: product.storefront_published,
+      storefront_name_en: product.storefront_name_en ?? "",
+      storefront_name_ms: product.storefront_name_ms ?? "",
+      storefront_description_en: product.storefront_description_en ?? "",
+      storefront_description_ms: product.storefront_description_ms ?? "",
     });
   }, [form, product]);
 
@@ -69,7 +79,14 @@ export default function EditProductModal({
       values.category !== (product.category ?? "") ||
       values.is_active !== product.is_active;
 
-    if (!hasChanges) {
+    const storefrontChanged =
+      values.storefront_published !== product.storefront_published ||
+      values.storefront_name_en.trim() !== (product.storefront_name_en ?? "") ||
+      values.storefront_name_ms.trim() !== (product.storefront_name_ms ?? "") ||
+      values.storefront_description_en.trim() !== (product.storefront_description_en ?? "") ||
+      values.storefront_description_ms.trim() !== (product.storefront_description_ms ?? "");
+
+    if (!hasChanges && !storefrontChanged) {
       notifications.show({
         title: "No Changes",
         message: "No product information has been changed.",
@@ -89,6 +106,11 @@ export default function EditProductModal({
           price: values.price,
           category: values.category.trim(),
           is_active: values.is_active,
+          storefront_published: values.storefront_published,
+          storefront_name_en: values.storefront_name_en.trim(),
+          storefront_name_ms: values.storefront_name_ms.trim(),
+          storefront_description_en: values.storefront_description_en.trim(),
+          storefront_description_ms: values.storefront_description_ms.trim(),
         },
       },
       {
@@ -188,6 +210,47 @@ export default function EditProductModal({
             form.setFieldValue("is_active", event.currentTarget.checked)
           }
         />
+
+        <Divider label="Customer storefront" labelPosition="center" />
+        <Text size="sm" c="dimmed">
+          Publish only content that the business has approved in both languages.
+        </Text>
+        <TextInput
+          label="Storefront name — English"
+          placeholder="Approved English product name"
+          disabled={updateMutation.isPending}
+          {...form.getInputProps("storefront_name_en")}
+        />
+        <TextInput
+          label="Storefront name — Bahasa Melayu"
+          placeholder="Approved Bahasa Melayu product name"
+          disabled={updateMutation.isPending}
+          {...form.getInputProps("storefront_name_ms")}
+        />
+        <Textarea
+          label="Storefront description — English"
+          placeholder="Optional approved English description"
+          autosize
+          minRows={2}
+          disabled={updateMutation.isPending}
+          {...form.getInputProps("storefront_description_en")}
+        />
+        <Textarea
+          label="Storefront description — Bahasa Melayu"
+          placeholder="Optional approved Bahasa Melayu description"
+          autosize
+          minRows={2}
+          disabled={updateMutation.isPending}
+          {...form.getInputProps("storefront_description_ms")}
+        />
+        <Switch
+          label="Publish on storefront"
+          description="Only active products with approved bilingual names can be published."
+          checked={form.values.storefront_published}
+          disabled={updateMutation.isPending}
+          onChange={(event) => form.setFieldValue("storefront_published", event.currentTarget.checked)}
+        />
+        {product && product.storefront_published ? <Anchor href={`${import.meta.env.VITE_STOREFRONT_BASE_URL ?? "http://localhost:3000"}/products/${product.id}`} target="_blank" rel="noreferrer" size="sm">Preview published product ↗</Anchor> : null}
       </Stack>
     </FormModal>
   );

@@ -28,7 +28,7 @@ export default function ActivityPage() {
           <Timeline active={data.length} bulletSize={28} lineWidth={2}>
             {data.map((item) => (
               <Timeline.Item key={item.id} bullet={<IconActivity size={15} />} title={<Group gap="xs"><Text fw={600}>{item.description}</Text><Badge variant="light" color="bahulu">{item.action}</Badge></Group>}>
-                <Text size="xs" c="dimmed">{new Date(item.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })} · {item.admin_id ? `Admin #${item.admin_id}` : "System"}</Text>
+                <Text size="xs" c="dimmed">{new Date(item.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })} · {item.admin_username ?? (item.admin_id ? "Former team member" : "System")}</Text>
               </Timeline.Item>
             ))}
           </Timeline>

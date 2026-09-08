@@ -34,13 +34,13 @@ export default function NotificationBell() {
       </ActionIcon>
     </Menu.Target>
     <Menu.Dropdown p="sm">
-      <Group justify="space-between" mb="xs"><Text fw={700}>Notifications</Text>{(unread.data?.unread_count ?? 0) > 0 ? <Button variant="subtle" size="compact-xs" leftSection={<IconCheck size={14} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button> : null}</Group>
+      <Group justify="space-between" mb="xs"><Text fw={700}>Updates</Text>{(unread.data?.unread_count ?? 0) > 0 ? <Button variant="subtle" size="compact-xs" leftSection={<IconCheck size={14} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button> : null}</Group>
       <Divider mb="xs" />
       {latest.isLoading ? <Text size="sm" c="dimmed" py="md">Loading notifications…</Text> : latest.isError ? <Text size="sm" c="red" py="md">{getApiError(latest.error).message}</Text> : !latest.data?.items.length ? <Text size="sm" c="dimmed" py="md">You are all caught up.</Text> : <Stack gap={4}>{latest.data.items.map((item) => <Menu.Item key={item.id} onClick={() => open(item)} leftSection={<IconBell size={15} />} rightSection={!item.read_at ? <Badge size="xs" color="bahulu">New</Badge> : null}>
         <Text size="sm" fw={item.read_at ? 500 : 700} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={2}>{item.description}</Text><Text size="xs" c="dimmed">{formatTime(item.created_at)}</Text>
       </Menu.Item>)}</Stack>}
       <Divider my="xs" />
-      <Menu.Item leftSection={<IconExternalLink size={15} />} onClick={() => navigate("/notifications")}>View all notifications</Menu.Item>
+      <Menu.Item leftSection={<IconExternalLink size={15} />} onClick={() => navigate("/updates")}>View all updates</Menu.Item>
     </Menu.Dropdown>
   </Menu>;
 }
