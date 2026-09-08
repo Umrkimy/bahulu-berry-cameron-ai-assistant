@@ -78,10 +78,10 @@ async def create_password_reset_token(db: AsyncSession, admin: Admin, *, purpose
     return token
 
 
-async def send_password_setup_email(db: AsyncSession, admin: Admin, *, purpose: str = "PASSWORD_RESET") -> None:
+async def send_password_setup_email(db: AsyncSession, admin: Admin, *, purpose: str = "PASSWORD_RESET") -> EmailDelivery | None:
     token = await create_password_reset_token(db, admin, purpose=purpose)
     label = "Set up password" if purpose == "ACCOUNT_SETUP" else "Reset password"
-    await send_email(db, recipient=admin, email_type=purpose, subject=f"{label} for your admin account", body=f"Use this secure link within {settings.PASSWORD_RESET_EXPIRE_MINUTES} minutes. If you did not request it, you can ignore this email.", action_url=_reset_url(token), action_label=label)
+    return await send_email(db, recipient=admin, email_type=purpose, subject=f"{label} for your admin account", body=f"Use this secure link within {settings.PASSWORD_RESET_EXPIRE_MINUTES} minutes. If you did not request it, you can ignore this email.", action_url=_reset_url(token), action_label=label)
 
 
 async def email_owners(db: AsyncSession, *, email_type: str, subject: str, body: str, idempotency_key_prefix: str) -> None:

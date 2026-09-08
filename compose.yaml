@@ -27,12 +27,12 @@ services:
   api:
     build: ./backend
     environment:
-      ENVIRONMENT: development
+      ENVIRONMENT: ${APP_ENVIRONMENT:-development}
       DEBUG: "false"
       TZ: Asia/Kuala_Lumpur
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
-      TRUSTED_HOSTS: localhost,127.0.0.1,api
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-localhost,127.0.0.1,api}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
@@ -66,19 +66,19 @@ services:
       timeout: 5s
       retries: 6
     ports:
-      - "${API_BIND_ADDRESS:-0.0.0.0}:${API_PORT:-8000}:8000"
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
         VITE_STOREFRONT_BASE_URL: ${VITE_STOREFRONT_BASE_URL:-http://localhost:3000}
     depends_on:
       api:
         condition: service_healthy
     ports:
-      - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-5173}:80"
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-5173}:80"
 
   storefront:
     build:
@@ -91,7 +91,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "${STOREFRONT_BIND_ADDRESS:-0.0.0.0}:${STOREFRONT_PORT:-3000}:3000"
+      - "${STOREFRONT_BIND_ADDRESS:-127.0.0.1}:${STOREFRONT_PORT:-3000}:3000"
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.63.0-noble

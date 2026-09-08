@@ -46,10 +46,25 @@ async def first_or_create(session, model, defaults: dict, **filters):
     return record
 
 
+async def normalize_legacy_demo_emails(session) -> None:
+    """Keep previously seeded fictional accounts compatible with email validation."""
+    replacements = (
+        (Admin, "owner@demo.invalid", "owner@example.com"),
+        (Admin, "staff@demo.invalid", "staff@example.com"),
+        (Customer, "amina@example.invalid", "amina@example.com"),
+    )
+    for model, legacy_email, current_email in replacements:
+        legacy_record = await session.scalar(select(model).where(model.email == legacy_email))
+        current_record = await session.scalar(select(model).where(model.email == current_email))
+        if legacy_record is not None and current_record is None:
+            legacy_record.email = current_email
+
+
 async def seed_demo() -> None:
     """Seed fictional examples without overwriting existing records."""
     now = datetime.now(UTC)
     async with AsyncSessionLocal() as session:
+        await normalize_legacy_demo_emails(session)
         owner = await first_or_create(
             session,
             Admin,
@@ -60,7 +75,7 @@ async def seed_demo() -> None:
                 "is_superuser": True,
                 "is_active": True,
             },
-            email="owner@demo.invalid",
+            email="owner@example.com",
         )
         staff = await first_or_create(
             session,
@@ -72,7 +87,7 @@ async def seed_demo() -> None:
                 "is_superuser": False,
                 "is_active": True,
             },
-            email="staff@demo.invalid",
+            email="staff@example.com",
         )
 
         customer = await first_or_create(
@@ -80,7 +95,7 @@ async def seed_demo() -> None:
             Customer,
             {
                 "full_name": "Amina Example",
-                "email": "amina@example.invalid",
+                "email": "amina@example.com",
                 "address": "Fictional test address",
                 "city": "Demo City",
                 "state": "Demo State",
@@ -258,8 +273,8 @@ async def seed_demo() -> None:
         await session.commit()
         print(
             "Fictional local demo data is ready. "
-            "Owner: owner@demo.invalid / DemoOwner123!; "
-            "Staff: staff@demo.invalid / DemoStaff123!"
+            "Owner: owner@example.com / DemoOwner123!; "
+            "Staff: staff@example.com / DemoStaff123!"
         )
 
 

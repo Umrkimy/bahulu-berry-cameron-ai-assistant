@@ -3,6 +3,7 @@ import api from "./axios";
 export interface Activity {
   id: number;
   admin_id: number | null;
+  admin_username: string | null;
   action: string;
   entity_type: string;
   entity_id: number | null;
