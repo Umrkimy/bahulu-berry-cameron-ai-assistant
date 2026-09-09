@@ -104,9 +104,22 @@ export type FulfillmentStage = "NEEDS_ATTENTION" | "READY_TO_PREPARE" | "IN_PREP
 export interface FulfillmentDelivery {
   id: number;
   status: DeliveryStatus;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string;
   courier: string | null;
   tracking_number: string | null;
   updated_at: string;
+}
+
+export interface FulfillmentItem {
+  id: number;
+  product_name: string;
+  quantity: number;
 }
 
 export interface FulfillmentOrder {
@@ -117,6 +130,7 @@ export interface FulfillmentOrder {
   total_amount: number | string;
   created_at: string;
   queue_stage: FulfillmentStage;
+  items: FulfillmentItem[];
   delivery: FulfillmentDelivery | null;
 }
 

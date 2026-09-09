@@ -29,7 +29,7 @@ export function useFulfillmentQueue() {
 export function useDispatchOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderId, courier, tracking_number }: { orderId: number; courier?: string | null; tracking_number?: string | null }) => dispatchOrder(orderId, { courier, tracking_number }),
+    mutationFn: ({ orderId, courier, tracking_number }: { orderId: number; courier?: string | null; tracking_number?: string | null }) => dispatchOrder(orderId, { packing_confirmed: true, courier, tracking_number }),
     onSuccess: async () => {
       await Promise.all([
         ...["fulfillment-queue", "operation-alerts", "activity", "reports", "report-summary", "order", "delivery", "deliveries"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),

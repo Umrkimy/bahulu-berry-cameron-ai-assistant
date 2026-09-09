@@ -32,7 +32,7 @@ export async function getFulfillmentQueue() {
   return response.data;
 }
 
-export async function dispatchOrder(orderId: number, data: { courier?: string | null; tracking_number?: string | null }) {
+export async function dispatchOrder(orderId: number, data: { packing_confirmed: true; courier?: string | null; tracking_number?: string | null }) {
   const response = await api.post<Order>(`/orders/${orderId}/dispatch`, data);
   return response.data;
 }

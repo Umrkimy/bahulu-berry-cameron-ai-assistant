@@ -53,6 +53,7 @@ class OrderUpdate(BaseModel):
 
 
 class OrderDispatch(BaseModel):
+    packing_confirmed: Literal[True]
     courier: str | None = Field(default=None, max_length=100)
     tracking_number: str | None = Field(default=None, max_length=100)
 
