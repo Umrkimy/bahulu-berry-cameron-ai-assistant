@@ -8,9 +8,22 @@ from pydantic import BaseModel
 class FulfillmentDelivery(BaseModel):
     id: int
     status: str
+    recipient_name: str | None
+    recipient_phone: str | None
+    address: str | None
+    city: str | None
+    state: str | None
+    postal_code: str | None
+    country: str
     courier: str | None
     tracking_number: str | None
     updated_at: datetime
+
+
+class FulfillmentItem(BaseModel):
+    id: int
+    product_name: str
+    quantity: int
 
 
 class FulfillmentOrder(BaseModel):
@@ -21,6 +34,7 @@ class FulfillmentOrder(BaseModel):
     total_amount: Decimal
     created_at: datetime
     queue_stage: Literal["NEEDS_ATTENTION", "READY_TO_PREPARE", "IN_PREPARATION", "IN_DELIVERY"]
+    items: list[FulfillmentItem]
     delivery: FulfillmentDelivery | None
 
 

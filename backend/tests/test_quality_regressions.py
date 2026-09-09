@@ -20,6 +20,8 @@ from app.models.support import SupportRequest
 from app.schemas.order import OrderDispatch
 from app.schemas.task import TaskInput, TaskUpdate
 from app.models.order import Order
+from app.models.order_item import OrderItem
+from app.models.product import Product
 from app.services.ai_usage_services import AIBudgetExceeded, calculate_cost_usd, reserve_ai_usage
 from app.services.delivery_services import update_delivery
 from app.services import messaging, ai_assistant_services as ai
@@ -41,6 +43,10 @@ async def paid_order(db):
     order = Order(customer_id=customer.id, status="PROCESSING", payment_status="PAID", total_amount=Decimal("10.00"))
     db.add(order)
     await db.flush()
+    product = Product(name="Fictional test product", price=Decimal("10.00"))
+    db.add(product)
+    await db.flush()
+    db.add(OrderItem(order_id=order.id, product_id=product.id, quantity=1, unit_price=Decimal("10.00"), subtotal=Decimal("10.00"), total_amount=Decimal("10.00")))
     delivery = Delivery(order_id=order.id, status="PENDING", courier="Test courier", tracking_number="fictional-reference")
     db.add(delivery)
     await db.commit()
@@ -51,7 +57,7 @@ async def paid_order(db):
 async def test_dispatch_preserves_details_and_delivery_cannot_regress(session):
     owner, _, _ = await actors(session)
     order, delivery = await paid_order(session)
-    await dispatch_order(order.id, OrderDispatch(), session, owner)
+    await dispatch_order(order.id, OrderDispatch(packing_confirmed=True), session, owner)
     assert delivery.tracking_number == "fictional-reference"
     assert delivery.courier == "Test courier"
     await update_delivery(session, order.id, {"status": "IN_TRANSIT"})
@@ -76,7 +82,7 @@ async def test_dispatch_audit_failure_rolls_back_both_records(session, monkeypat
         raise RuntimeError("simulated audit failure")
     monkeypatch.setattr(orders, "record_activity", fail)
     with pytest.raises(RuntimeError):
-        await dispatch_order(order_id, OrderDispatch(), session, owner)
+        await dispatch_order(order_id, OrderDispatch(packing_confirmed=True), session, owner)
     await session.rollback()
     assert (await session.get(Order, order_id)).status == "PROCESSING"
     assert (await session.get(Delivery, delivery_id)).status == "PENDING"
@@ -187,12 +193,12 @@ async def test_postgres_dispatch_and_confirmation_are_once_only(session, monkeyp
     async def dispatch():
         async with factory() as db:
             try:
-                await dispatch_order(order_id, OrderDispatch(), db, owner)
+                await dispatch_order(order_id, OrderDispatch(packing_confirmed=True), db, owner)
                 return True
             except HTTPException:
                 return False
     assert sorted(await asyncio.gather(dispatch(), dispatch())) == [False, True]
-    assert await session.scalar(select(func.count()).select_from(ActivityLog)) == 2
+    assert await session.scalar(select(func.count()).select_from(ActivityLog)) == 3
     await session.commit()
     calls = []
     async def handler(**kwargs):

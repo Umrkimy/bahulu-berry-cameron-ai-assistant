@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, Group, Loader, Select, SimpleGrid, Stack, Text, TextInput, ThemeIcon } from "@mantine/core";
 import { IconArrowRight, IconPackage, IconSearch, IconTruck } from "@tabler/icons-react";
-import { notifications } from "@mantine/notifications";
 import RecordWorkspace from "../../components/fulfillment/RecordWorkspace";
 
-import { getApiError } from "../../api/errors";
 import PageHeader from "../../components/common/PageHeader";
-import DispatchOrderModal from "../../components/fulfillment/DispatchOrderModal";
-import { useFulfillmentQueue, useUpdateOrder } from "../../hooks/useOrders";
+import PackingOrderModal from "../../components/fulfillment/PackingOrderModal";
+import { useFulfillmentQueue } from "../../hooks/useOrders";
 import type { FulfillmentOrder, FulfillmentStage } from "../../types/order";
 
 const SECTIONS: Array<{ stage: FulfillmentStage; title: string; description: string; color: string }> = [
@@ -23,27 +21,16 @@ function label(value: string) { return value.replaceAll("_", " "); }
 
 export default function Fulfillment() {
   const { data, isLoading, isError, refetch } = useFulfillmentQueue();
-  const updateOrder = useUpdateOrder();
   const [record, setRecord] = useState<{ id: number; kind: "order" | "delivery" } | null>(null);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string | null>(null);
-  const [dispatchOrder, setDispatchOrder] = useState<FulfillmentOrder | null>(null);
+  const [packingOrder, setPackingOrder] = useState<{ order: FulfillmentOrder; mode: "prepare" | "dispatch" } | null>(null);
   const normalizedSearch = search.trim().toLowerCase();
   const items = useMemo(() => (data?.items ?? []).filter((item) => (!stageFilter || item.queue_stage === stageFilter) && (!normalizedSearch || [item.id, item.customer_name, item.status, item.payment_status, item.delivery?.status, item.delivery?.courier, item.delivery?.tracking_number].filter(Boolean).join(" ").toLowerCase().includes(normalizedSearch))), [data?.items, normalizedSearch, stageFilter]);
 
-  async function startPreparation(order: FulfillmentOrder) {
-    try {
-      await updateOrder.mutateAsync({ orderId: order.id, data: { status: "PROCESSING" } });
-      await refetch();
-      notifications.show({ title: "Preparation started", message: `Order #${order.id} is now in preparation.`, color: "green" });
-    } catch (error) {
-      notifications.show({ title: "Could not start preparation", message: getApiError(error).message, color: "red" });
-    }
-  }
-
   function cardAction(order: FulfillmentOrder) {
-    if (order.queue_stage === "READY_TO_PREPARE") return <Button size="sm" rightSection={<IconArrowRight size={14} />} loading={updateOrder.isPending} onClick={() => startPreparation(order)}>Start preparation</Button>;
-    if (order.queue_stage === "IN_PREPARATION") return <Button size="sm" rightSection={<IconTruck size={14} />} onClick={() => setDispatchOrder(order)}>Mark as shipped</Button>;
+    if (order.queue_stage === "READY_TO_PREPARE") return <Button size="sm" rightSection={<IconArrowRight size={14} />} onClick={() => setPackingOrder({ order, mode: "prepare" })}>Open packing</Button>;
+    if (order.queue_stage === "IN_PREPARATION") return <Button size="sm" rightSection={<IconTruck size={14} />} onClick={() => setPackingOrder({ order, mode: "dispatch" })}>Pack and dispatch</Button>;
     if (order.queue_stage === "IN_DELIVERY" || order.delivery?.status === "FAILED") return <Button size="sm" variant="light" onClick={() => setRecord({ id: order.id, kind: "delivery" })}>Open delivery</Button>;
     return <Button size="sm" variant="light" onClick={() => setRecord({ id: order.id, kind: "order" })}>Open order</Button>;
   }
@@ -69,7 +56,7 @@ export default function Fulfillment() {
         </Card>;
       })}
     </Stack>
-    {dispatchOrder && <DispatchOrderModal key={dispatchOrder.id} opened order={dispatchOrder} onClose={() => setDispatchOrder(null)} />}
+    {packingOrder && <PackingOrderModal key={`${packingOrder.order.id}-${packingOrder.mode}`} opened order={packingOrder.order} mode={packingOrder.mode} onClose={() => setPackingOrder(null)} />}
     {record && <RecordWorkspace key={`${record.kind}-${record.id}`} orderId={record.id} kind={record.kind} onClose={() => setRecord(null)} />}
   </>;
 }
