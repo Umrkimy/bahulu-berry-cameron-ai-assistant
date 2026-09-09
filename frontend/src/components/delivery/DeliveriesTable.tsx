@@ -50,7 +50,7 @@ function formatDate(date: string) {
 }
 
 export default function DeliveriesTable() {
-  const { data, isLoading, isError } = useDeliveries();
+  const { data, isLoading, isError, refetch } = useDeliveries();
 
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
     null,
@@ -194,10 +194,6 @@ export default function DeliveriesTable() {
     [],
   );
 
-  if (isError) {
-    return <Text c="red">Failed to load deliveries.</Text>;
-  }
-
   return (
     <>
       <Card
@@ -212,6 +208,9 @@ export default function DeliveriesTable() {
           data={deliveries}
           columns={columns}
           loading={isLoading}
+          error={isError}
+          errorMessage="We couldn't load deliveries."
+          onRetry={() => void refetch()}
           searchPlaceholder="Search deliveries..."
           emptyMessage="No deliveries found."
         />

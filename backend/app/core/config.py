@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     MAX_REQUEST_BODY_BYTES: int = 1_048_576
     SESSION_COOKIE_NAME: str = "bbc_admin_session"
     CSRF_COOKIE_NAME: str = "bbc_csrf_token"
+    TRUST_CLOUDFLARE_CLIENT_IP: bool = False
 
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL: str = "gpt-4o-mini"

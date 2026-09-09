@@ -63,7 +63,7 @@ export default function Updates() {
   const counts = alerts.data?.counts ?? { critical: 0, warning: 0, total: 0 };
 
   return <Stack gap="xl">
-    <PageHeader title="Updates" description="Live work that needs attention, followed by your saved operational updates." action={<Button variant="default" leftSection={<IconCheck size={16} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button>} />
+    <PageHeader title="Updates" description="Live work that needs attention, followed by your saved operational updates." action={<Group gap="xs"><Button variant="default" onClick={() => { void alerts.refetch(); void notifications.refetch(); }}>Refresh</Button><Button variant="default" leftSection={<IconCheck size={16} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button></Group>} />
     <Card withBorder p="lg">
       <Group justify="space-between" align="flex-start" mb="md" wrap="wrap">
         <Group gap="sm"><ThemeIcon color="bahulu" variant="light" radius="xl" size="lg"><IconAlertTriangle size={20} /></ThemeIcon><div><Text fw={700}>Needs attention</Text><Text size="sm" c="dimmed">Live issues clear automatically when the underlying work is resolved.</Text></div></Group>

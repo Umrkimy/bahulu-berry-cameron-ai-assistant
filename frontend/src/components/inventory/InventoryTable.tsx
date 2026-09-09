@@ -18,7 +18,7 @@ import StockAdjustmentModal from "./StockAdjustmentModal";
 
 export default function InventoryTable() {
   const { admin } = useAuth();
-  const { data, isLoading } = useInventories();
+  const { data, isLoading, isError, refetch } = useInventories();
 
   const [selectedInventory, setSelectedInventory] = useState<Inventory | null>(
     null,
@@ -144,6 +144,9 @@ export default function InventoryTable() {
           data={inventories}
           columns={columns}
           loading={isLoading}
+          error={isError}
+          errorMessage="We couldn't load inventory."
+          onRetry={() => void refetch()}
           searchPlaceholder="Search inventory..."
           emptyMessage="No inventory found."
           renderMobileCard={(inventory) => {
