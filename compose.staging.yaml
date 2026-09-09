@@ -36,5 +36,13 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${STOREFRONT_API_BASE_URL:?Set STOREFRONT_API_BASE_URL in .env.staging}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${STOREFRONT_WHATSAPP_NUMBER:-}
         STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
+  cloudflared:
+    image: cloudflare/cloudflared@sha256:51c9cefcb4569df44e1ad403ab1d3d8065aa8e84339bcfc6aee75502e1140339
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.demo}
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
 volumes:
   postgres_staging_data:
