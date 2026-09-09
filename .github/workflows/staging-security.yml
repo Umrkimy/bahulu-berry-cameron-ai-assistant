@@ -1,0 +1,91 @@
+name: Staging security scans
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 2"
+
+permissions:
+  contents: read
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COMPOSE_FILE: compose.yaml:compose.staging.yaml
+      ZAP_IMAGE: ghcr.io/zaproxy/zaproxy@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create disposable staging configuration
+        shell: bash
+        run: |
+          cat > .env.security-ci <<'EOF'
+          APP_ENV_FILE=.env.security-ci
+          POSTGRES_DB=bahulu_security_ci
+          POSTGRES_USER=bahulu_security_ci
+          POSTGRES_PASSWORD=ci-only-not-a-real-password
+          SECRET_KEY=ci-only-secret-key-with-more-than-thirty-two-characters
+          OPENAI_API_KEY=ci-placeholder
+          STRIPE_SECRET_KEY=stripe_test_key_ci_only
+          STRIPE_WEBHOOK_SECRET=stripe_webhook_secret_ci_only
+          STRIPE_SUCCESS_URL=http://localhost:15173/payment/success
+          STRIPE_CANCEL_URL=http://localhost:15173/payment/cancel
+          VITE_API_BASE_URL=/api
+          VITE_STOREFRONT_BASE_URL=http://localhost:13000
+          STOREFRONT_API_BASE_URL=http://localhost:18000/api
+          STOREFRONT_SERVER_API_BASE_URL=http://api:8000/api
+          API_BIND_ADDRESS=127.0.0.1
+          API_PORT=18000
+          FRONTEND_BIND_ADDRESS=127.0.0.1
+          FRONTEND_PORT=15173
+          STOREFRONT_BIND_ADDRESS=127.0.0.1
+          STOREFRONT_PORT=13000
+          STAGING_ALLOWED_ORIGINS=http://localhost:15173,http://localhost:13000
+          STAGING_TRUSTED_HOSTS=localhost,127.0.0.1,api
+          WHATSAPP_META_INBOUND_ENABLED=false
+          EMAIL_PROVIDER=console
+          EMAIL_FROM=Bahulu Berry Cameron <notifications@example.invalid>
+          RESEND_API_KEY=
+          APP_BASE_URL=http://localhost:15173
+          PASSWORD_RESET_EXPIRE_MINUTES=30
+          EOF
+          mkdir -p security-reports
+      - name: Build disposable staging stack
+        run: docker compose --env-file .env.security-ci up -d --build
+      - name: Wait for API readiness
+        shell: bash
+        run: |
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18000/ready > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker compose --env-file .env.security-ci ps
+          docker compose --env-file .env.security-ci logs api
+          exit 1
+      - name: Run passive dashboard baseline scan
+        continue-on-error: true
+        run: |
+          docker run --network host --rm -w /zap/wrk -v "$GITHUB_WORKSPACE/security-reports:/zap/wrk:rw" "$ZAP_IMAGE" \
+            zap-baseline.py -t http://127.0.0.1:15173 -I -J dashboard-baseline.json -r dashboard-baseline.html
+      - name: Run passive storefront baseline scan
+        continue-on-error: true
+        run: |
+          docker run --network host --rm -w /zap/wrk -v "$GITHUB_WORKSPACE/security-reports:/zap/wrk:rw" "$ZAP_IMAGE" \
+            zap-baseline.py -t http://127.0.0.1:13000 -I -J storefront-baseline.json -r storefront-baseline.html
+      - name: Run disposable API scan from OpenAPI
+        continue-on-error: true
+        run: |
+          docker run --network host --rm -w /zap/wrk -v "$GITHUB_WORKSPACE/security-reports:/zap/wrk:rw" "$ZAP_IMAGE" \
+            zap-api-scan.py -t http://127.0.0.1:18000/openapi.json -f openapi -I -J api-scan.json -r api-scan.html
+      - name: Upload private scan reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: staging-zap-reports
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove disposable staging stack
+        if: always()
+        run: docker compose --env-file .env.security-ci down --volumes --remove-orphans

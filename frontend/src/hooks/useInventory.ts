@@ -8,12 +8,13 @@ import {
   adjustInventory,
   createOpeningBalance,
   createStockMovement,
+  receiveStockReceipt,
   getStockMovements,
   getInventories,
   updateInventory,
 } from "../api/inventory";
 
-import type { InventoryUpdateData, StockMovementInput } from "../types/inventory";
+import type { BatchStockReceiptInput, InventoryUpdateData, StockMovementInput } from "../types/inventory";
 
 export function useInventories() {
   return useQuery({
@@ -74,6 +75,21 @@ export function useStockMovements(params: Record<string, string | number | undef
 export function useCreateStockMovement() {
   const queryClient = useQueryClient();
   return useMutation({ mutationFn: ({ inventoryId, data }: { inventoryId: number; data: StockMovementInput }) => createStockMovement(inventoryId, data), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["inventories"] }); void queryClient.invalidateQueries({ queryKey: ["stock-movements"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); } });
+}
+export function useBatchStockReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BatchStockReceiptInput) => receiveStockReceipt(data),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["inventories"] }),
+        queryClient.invalidateQueries({ queryKey: ["stock-movements"] }),
+        queryClient.invalidateQueries({ queryKey: ["activity"] }),
+        queryClient.invalidateQueries({ queryKey: ["operation-alerts"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
+    },
+  });
 }
 export function useOpeningBalance() {
   const queryClient = useQueryClient();
