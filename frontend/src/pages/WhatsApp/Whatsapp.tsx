@@ -7,10 +7,9 @@ import { IconBrandWhatsapp, IconClipboardText, IconCopy, IconEdit, IconMessage2,
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getActivity } from "../../api/activity";
 import { getCustomers, type Customer } from "../../api/customers";
 import { getApiError } from "../../api/errors";
-import { createFAQ, createRule, createSupportDraft, createSupportRequest, createSupportRequestNote, createTemplate, deleteFAQ, deleteRule, deleteSupportRequest, deleteTemplate, getFAQs, getRules, getSupportAssignees, getSupportRequestNotes, getSupportRequests, getTemplates, updateFAQ, updateRule, updateSupportRequest, updateTemplate } from "../../api/support";
+import { createFAQ, createRule, createSupportDraft, createSupportRequest, createSupportRequestNote, createTemplate, deleteFAQ, deleteRule, deleteSupportRequest, deleteTemplate, getFAQs, getRules, getSupportAssignees, getSupportRequestActivity, getSupportRequestNotes, getSupportRequests, getTemplates, updateFAQ, updateRule, updateSupportRequest, updateTemplate } from "../../api/support";
 import useAuth from "../../auth/useAuth";
 import { DataTable } from "../../components/common/DataTable";
 import MessageSimulator from "../../components/support/MessageSimulator";
@@ -62,7 +61,7 @@ export default function WhatsApp() {
   const customers = useQuery({ queryKey: ["customers"], queryFn: getCustomers });
   const team = useQuery({ queryKey: ["support-assignees"], queryFn: getSupportAssignees });
   const notes = useQuery({ queryKey: ["support-request-notes", selectedRequest?.id], queryFn: () => getSupportRequestNotes(selectedRequest!.id), enabled: Boolean(selectedRequest) });
-  const activity = useQuery({ queryKey: ["support-request-activity", selectedRequest?.id], queryFn: () => getActivity({ entity_type: "support_request", entity_id: selectedRequest!.id, limit: 20 }), enabled: Boolean(selectedRequest) });
+  const activity = useQuery({ queryKey: ["support-request-activity", selectedRequest?.id], queryFn: () => getSupportRequestActivity(selectedRequest!.id), enabled: Boolean(selectedRequest) });
   const faqs = useQuery({ queryKey: ["support-faqs"], queryFn: getFAQs, enabled: isOwner });
   const templates = useQuery({ queryKey: ["support-templates"], queryFn: getTemplates, enabled: isOwner });
   const rules = useQuery({ queryKey: ["handoff-rules"], queryFn: getRules, enabled: isOwner });

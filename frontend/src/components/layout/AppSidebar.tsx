@@ -103,7 +103,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
           { label: "Discounts", link: "/discounts", icon: <IconDiscount2 size={18} /> },
           ...(admin?.role === "OWNER" ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={18} /> }] : []),
           { label: "Refund Requests", link: "/refund-requests", icon: <IconCash size={18} /> },
-          { label: "Activity", link: "/activity", icon: <IconActivity size={18} /> },
+          ...(admin?.role === "OWNER" ? [{ label: "Activity", link: "/activity", icon: <IconActivity size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "Reports", link: "/reports", icon: <IconChartBar size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "AI Usage", link: "/ai-usage", icon: <IconChartBar size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),

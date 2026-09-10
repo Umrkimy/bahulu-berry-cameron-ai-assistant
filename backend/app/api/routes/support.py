@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.db.database import get_db
 from app.models.admin import Admin
+from app.models.activity_log import ActivityLog
 from app.models.customer import Customer
 from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
 from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
+from app.schemas.activity import ActivityPublic
 from app.schemas.support import FAQInput, FAQPublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
@@ -138,6 +140,23 @@ async def support_assignees(
     _: Annotated[Admin, Depends(get_current_admin)],
 ):
     return (await db.execute(select(Admin).where(Admin.is_active.is_(True)).order_by(Admin.username))).scalars().all()
+
+
+@router.get("/requests/{request_id}/activity", response_model=list[ActivityPublic])
+async def request_activity(
+    request_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Admin, Depends(get_current_admin)],
+):
+    if await db.get(SupportRequest, request_id) is None:
+        raise HTTPException(404, detail="Support request not found.")
+    rows = await db.execute(
+        select(ActivityLog, Admin.username)
+        .outerjoin(Admin, Admin.id == ActivityLog.admin_id)
+        .where(ActivityLog.entity_type == "support_request", ActivityLog.entity_id == request_id)
+        .order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+    )
+    return [ActivityPublic.model_validate(activity).model_copy(update={"admin_username": username}) for activity, username in rows.all()]
 
 @router.get("/requests", response_model=PaginatedResponse[SupportRequestPublic])
 async def requests(
