@@ -78,7 +78,7 @@ export default function AppRoutes() {
 
         <Route path="/discounts" element={<Discounts />} />
 
-        <Route path="/activity" element={<Activity />} />
+        <Route path="/activity" element={<OwnerRoute><Activity /></OwnerRoute>} />
 
         <Route path="/refund-requests" element={<RefundRequests />} />
 

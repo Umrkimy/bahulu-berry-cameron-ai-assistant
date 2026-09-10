@@ -2,16 +2,14 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-from sqlalchemy import or_
-from app.models.task import Task
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_admin
+from app.auth.dependencies import get_current_superuser
 from app.db.database import get_db
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
-from app.schemas.activity import ActivityPublic
+from app.schemas.activity import ActivityListPublic, ActivityPublic
 
 
 router = APIRouter()
@@ -21,10 +19,10 @@ def _as_utc(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
-@router.get("", response_model=list[ActivityPublic])
+@router.get("", response_model=ActivityListPublic)
 async def list_activity(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    _: Annotated[Admin, Depends(get_current_superuser)],
     entity_type: str | None = None,
     entity_id: int | None = None,
     action: str | None = None,
@@ -34,23 +32,20 @@ async def list_activity(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
-    query = select(ActivityLog, Admin.username).outerjoin(Admin, Admin.id == ActivityLog.admin_id).order_by(ActivityLog.created_at.desc())
-    if current_admin.role != "OWNER":
-        query = query.where(or_(ActivityLog.entity_type != "task", ActivityLog.entity_id.in_(select(Task.id).where(Task.assigned_admin_id == current_admin.id))))
+    filters = []
     if entity_type:
-        query = query.where(ActivityLog.entity_type == entity_type)
+        filters.append(ActivityLog.entity_type == entity_type)
     if entity_id is not None:
-        query = query.where(ActivityLog.entity_id == entity_id)
+        filters.append(ActivityLog.entity_id == entity_id)
     if action:
-        query = query.where(ActivityLog.action == action)
+        filters.append(ActivityLog.action == action)
     if admin_id:
-        query = query.where(ActivityLog.admin_id == admin_id)
+        filters.append(ActivityLog.admin_id == admin_id)
     if start_at:
-        query = query.where(ActivityLog.created_at >= _as_utc(start_at))
+        filters.append(ActivityLog.created_at >= _as_utc(start_at))
     if end_at:
-        query = query.where(ActivityLog.created_at < _as_utc(end_at))
+        filters.append(ActivityLog.created_at < _as_utc(end_at))
+    query = select(ActivityLog, Admin.username).outerjoin(Admin, Admin.id == ActivityLog.admin_id).where(*filters).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+    total = await db.scalar(select(func.count(ActivityLog.id)).where(*filters))
     result = await db.execute(query.offset(offset).limit(limit))
-    return [
-        ActivityPublic.model_validate(activity).model_copy(update={"admin_username": username})
-        for activity, username in result.all()
-    ]
+    return ActivityListPublic(items=[ActivityPublic.model_validate(activity).model_copy(update={"admin_username": username}) for activity, username in result.all()], total=total or 0)

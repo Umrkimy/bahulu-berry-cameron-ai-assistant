@@ -16,3 +16,8 @@ class ActivityPublic(BaseModel):
     description: str
     metadata_json: dict[str, Any] | None
     created_at: datetime
+
+
+class ActivityListPublic(BaseModel):
+    items: list[ActivityPublic]
+    total: int

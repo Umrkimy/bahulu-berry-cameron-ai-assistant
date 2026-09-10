@@ -16,11 +16,19 @@ export interface ActivityFilters {
   entity_type?: string;
   entity_id?: number;
   action?: string;
+  admin_id?: number;
+  start_at?: string;
+  end_at?: string;
   limit?: number;
   offset?: number;
 }
 
+export interface ActivityList {
+  items: Activity[];
+  total: number;
+}
+
 export async function getActivity(filters: ActivityFilters = {}) {
-  const response = await api.get<Activity[]>("/activity", { params: filters });
+  const response = await api.get<ActivityList>("/activity", { params: filters });
   return response.data;
 }

@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.api.routes.activity import list_activity
+from app.auth.dependencies import get_current_superuser
 from app.api.routes.orders import dispatch_order
 from app.api.routes.tasks import create_task, list_tasks, update_task
 from app.core.config import settings
@@ -94,8 +95,8 @@ async def test_task_permissions_and_activity_privacy(session):
     private = await create_task(TaskInput(title="Owner private work", assigned_admin_id=owner.id), session, owner)
     own = await create_task(TaskInput(title="Staff work", assigned_admin_id=staff.id), session, owner)
     assert [task.id for task in await list_tasks(session, staff)] == [own.id]
-    log = await list_activity(session, staff, limit=50, offset=0)
-    assert all(entry.entity_id != private.id for entry in log)
+    with pytest.raises(HTTPException, match="Permission denied"):
+        await get_current_superuser(staff)
     for task_id, data in [(private.id, TaskUpdate(status="COMPLETED")), (own.id, TaskUpdate(description="Changed"))]:
         with pytest.raises(HTTPException) as exc:
             await update_task(task_id, data, session, staff)

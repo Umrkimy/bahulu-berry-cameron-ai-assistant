@@ -12,5 +12,5 @@ async def test_activity_includes_the_staff_name_when_available(session):
 
     activity = await list_activity(session, owner, entity_type=None, entity_id=None, action=None, admin_id=None, start_at=None, end_at=None, limit=50, offset=0)
 
-    assert activity[0].admin_id == owner.id
-    assert activity[0].admin_username == "umar"
+    assert activity.items[0].admin_id == owner.id
+    assert activity.items[0].admin_username == "umar"
