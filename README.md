@@ -4,6 +4,9 @@ Secure operations platform for a Malaysian bakery. Real credentials, customer
 records, payment details, contacts, and unconfirmed business details are kept
 out of source control.
 
+Before changing customer-facing content, integrations, demo access, or release
+configuration, review [the product quality and launch gate](md/PRODUCT_QUALITY_GATE.md).
+
 ## Core capabilities
 
 - React, TypeScript, Vite, Mantine, TanStack Query, and TanStack Table.
