@@ -33,7 +33,12 @@ $databaseCreated = $false
 $dumpCopied = $false
 
 try {
-    Invoke-Compose @("cp", $resolvedBackup, "db:$containerDump")
+    # Docker writes normal copy-progress output to stderr. Start-Process avoids
+    # PowerShell treating that successful output as a terminating error.
+    $copyProcess = Start-Process -FilePath "docker" -ArgumentList @("compose", "cp", $resolvedBackup, "db:$containerDump") -NoNewWindow -Wait -PassThru
+    if ($copyProcess.ExitCode -ne 0) {
+        throw "Docker Compose could not copy the backup archive into the database container."
+    }
     $dumpCopied = $true
 
     $createCommand = "set -eu; createdb --username=`"`$POSTGRES_USER`" --owner=`"`$POSTGRES_USER`" '$restoreDatabase'"

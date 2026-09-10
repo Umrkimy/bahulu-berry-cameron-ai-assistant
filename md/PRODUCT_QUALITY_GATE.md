@@ -5,6 +5,9 @@ Review it before a meaningful feature, commit, demo share, integration, or
 deployment. It is an internal engineering checklist, not legal advice and not
 approval to publish customer-facing policy text.
 
+For local operating, private-demo, and recovery instructions, use the
+[Owner Operations Runbook](OWNER_OPERATIONS_RUNBOOK.md).
+
 ## 1. Demo-safe now
 
 The current Cloudflare demo remains private and must not add:
