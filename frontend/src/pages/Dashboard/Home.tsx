@@ -67,7 +67,7 @@ export default function Home() {
     <Stack gap="lg">
       <PageHeader
         title={`Good day, ${admin?.username || "there"}`}
-        description="A clear view of your business. Orders, revenue, and what needs your attention."
+        description="A clear view of today’s work, orders, and business performance. Open the bell for live updates."
         action={<Group><Button component={Link} to="/orders" leftSection={<IconShoppingCart size={16} />}>Manage Orders</Button><Button component={Link} to="/inventory" variant="default" leftSection={<IconPackage size={16} />}>View Inventory</Button></Group>}
       />
 
