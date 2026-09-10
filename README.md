@@ -6,6 +6,8 @@ out of source control.
 
 Before changing customer-facing content, integrations, demo access, or release
 configuration, review [the product quality and launch gate](md/PRODUCT_QUALITY_GATE.md).
+Owners should also use the [local operations runbook](md/OWNER_OPERATIONS_RUNBOOK.md)
+for normal startup, the private demo, and recovery rehearsals.
 
 ## Core capabilities
 
