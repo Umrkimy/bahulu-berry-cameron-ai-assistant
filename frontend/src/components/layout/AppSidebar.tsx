@@ -19,6 +19,7 @@ import {
   IconTruckLoading,
   IconChecklist,
   IconClipboardCheck,
+  IconMessageDots,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -107,6 +108,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
           ...(admin?.role === "OWNER" ? [{ label: "AI Usage", link: "/ai-usage", icon: <IconChartBar size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ label: "Settings", link: "/settings", icon: <IconSettings size={18} /> }] : []),
+          ...(admin?.role === "OWNER" ? [{ label: "Enquiries", link: "/enquiries", icon: <IconMessageDots size={18} /> }] : []),
         ]}
       />
     </Stack>
