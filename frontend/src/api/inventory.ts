@@ -1,6 +1,6 @@
 import api from "./axios";
 
-import type { Inventory, InventoryUpdateData, StockMovement, StockMovementInput } from "../types/inventory";
+import type { BatchStockReceiptInput, BatchStockReceiptResult, Inventory, InventoryUpdateData, StockMovement, StockMovementInput } from "../types/inventory";
 
 export async function getInventories() {
   const response = await api.get<Inventory[]>("/inventories");
@@ -36,6 +36,9 @@ export async function adjustInventory(
 
 export async function createStockMovement(inventoryId: number, data: StockMovementInput) {
   return (await api.post<Inventory>(`/inventories/${inventoryId}/movements`, data)).data;
+}
+export async function receiveStockReceipt(data: BatchStockReceiptInput) {
+  return (await api.post<BatchStockReceiptResult>("/inventories/receipts", data)).data;
 }
 export async function createOpeningBalance(inventoryId: number, reason: string) {
   return (await api.post<Inventory>(`/inventories/${inventoryId}/opening-balance`, { reason })).data;

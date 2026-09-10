@@ -3,6 +3,8 @@ import axios from "axios";
 export interface ApiError {
   message: string;
   fieldErrors: Record<string, string>;
+  status?: number;
+  retryAfterSeconds?: number;
 }
 
 type ValidationDetail = {
@@ -36,12 +38,24 @@ export function getApiError(error: unknown): ApiError {
 
   const { status, data } = error.response;
   const detail = data?.detail;
+  const retryAfterHeader = (error.response.headers as Record<string, unknown> | undefined)?.["retry-after"];
+  const retryAfter = Number(typeof detail === "object" && detail !== null ? detail.retry_after_seconds ?? retryAfterHeader : retryAfterHeader);
+  const retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : undefined;
+
+  if (status === 429) {
+    return {
+      message: retryAfterSeconds ? `Too many requests. Try again in ${retryAfterSeconds} seconds.` : "Too many requests. Please wait a moment and try again.",
+      fieldErrors: {},
+      status,
+      retryAfterSeconds,
+    };
+  }
 
   if (status === 401) {
-    return { message: window.location.pathname === "/login" ? "Invalid email or password." : "Your session has expired. Please sign in again.", fieldErrors: {} };
+    return { message: window.location.pathname === "/login" ? "Invalid email or password." : "Your session has expired. Please sign in again.", fieldErrors: {}, status };
   }
   if (status === 403) {
-    return { message: "You don't have permission to do this.", fieldErrors: {} };
+    return { message: "You don't have permission to do this.", fieldErrors: {}, status };
   }
   if (status === 404) {
     return { message: "This record is no longer available. Refresh and try again.", fieldErrors: {} };

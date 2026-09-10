@@ -15,7 +15,7 @@ const initialValues = { username: "", email: "", password: "", role: "STAFF" as 
 
 export default function Team() {
   const queryClient = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ["team"], queryFn: getTeam });
+  const { data = [], isLoading, isError, refetch } = useQuery({ queryKey: ["team"], queryFn: getTeam });
   const [opened, setOpened] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const form = useForm({ initialValues, validate: { username: (value) => value.trim().length >= 3 ? null : "Enter at least 3 characters", email: (value) => /^\S+@\S+\.\S+$/.test(value) ? null : "Enter a valid email", password: (value) => editing || value.length >= 8 ? null : "Use at least 8 characters" } });
@@ -33,7 +33,7 @@ export default function Team() {
   ], [changeActive, openEdit]);
   return <>
     <PageHeader title="Team & Roles" description="Manage owner and staff access to the dashboard." action={<Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Add team member</Button>} />
-    <DataTable data={data} columns={columns} loading={isLoading} searchPlaceholder="Search team members..." emptyMessage="No team members found." />
+    <DataTable data={data} columns={columns} loading={isLoading} error={isError} errorMessage="We couldn't load team members." onRetry={() => void refetch()} searchPlaceholder="Search team members..." emptyMessage="No team members found." />
     <Modal opened={opened} onClose={() => !save.isPending && setOpened(false)} title={editing ? "Edit team member" : "Add team member"} centered>
       <form onSubmit={form.onSubmit(() => save.mutate())}><Stack>
         <TextInput label="Name" withAsterisk {...form.getInputProps("username")} />

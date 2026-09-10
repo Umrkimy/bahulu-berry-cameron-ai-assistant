@@ -3,6 +3,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.order import Order
+from app.models.order_item import OrderItem
 
 
 def _queue_stage(order: Order) -> str | None:
@@ -26,7 +27,11 @@ def _queue_stage(order: Order) -> str | None:
 async def get_fulfillment_queue(db: AsyncSession) -> dict:
     result = await db.execute(
         select(Order)
-        .options(selectinload(Order.customer), selectinload(Order.delivery))
+        .options(
+            selectinload(Order.customer),
+            selectinload(Order.delivery),
+            selectinload(Order.items).selectinload(OrderItem.product),
+        )
         .where(Order.status.notin_(("COMPLETED", "CANCELLED")))
         .order_by(Order.created_at.asc())
     )
@@ -45,9 +50,24 @@ async def get_fulfillment_queue(db: AsyncSession) -> dict:
             "total_amount": order.total_amount,
             "created_at": order.created_at,
             "queue_stage": stage,
+            "items": [
+                {
+                    "id": item.id,
+                    "product_name": item.product.name if item.product else f"Product #{item.product_id}",
+                    "quantity": item.quantity,
+                }
+                for item in order.items
+            ],
             "delivery": None if delivery is None else {
                 "id": delivery.id,
                 "status": delivery.status,
+                "recipient_name": delivery.recipient_name,
+                "recipient_phone": delivery.recipient_phone,
+                "address": delivery.address,
+                "city": delivery.city,
+                "state": delivery.state,
+                "postal_code": delivery.postal_code,
+                "country": delivery.country,
                 "courier": delivery.courier,
                 "tracking_number": delivery.tracking_number,
                 "updated_at": delivery.updated_at,

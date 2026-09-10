@@ -1,7 +1,7 @@
 from typing import Annotated
 
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,8 +19,71 @@ from app.schemas.product import (
     ProductPublic,
     ProductUpdate,
 )
+from app.schemas.product_import import ProductImportPreview, ProductImportResult
+from app.services.product_import_services import CSV_HEADERS, read_product_import
 
 router = APIRouter()
+
+
+@router.get("/import/template")
+async def download_product_import_template(_: Annotated[Admin, Depends(get_current_superuser)]):
+    template = ",".join(CSV_HEADERS) + "\nExample product,Bahulu,Optional internal description,12.50,0,10\n"
+    return Response(
+        content=template,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="bahulu-product-import-template.csv"'},
+    )
+
+
+@router.post("/import/preview", response_model=ProductImportPreview)
+async def preview_product_import(
+    file: Annotated[UploadFile, File(...)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Admin, Depends(get_current_superuser)],
+):
+    return await read_product_import(file, db)
+
+
+@router.post("/import", response_model=ProductImportResult, status_code=status.HTTP_201_CREATED)
+async def import_products(
+    file: Annotated[UploadFile, File(...)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_superuser)],
+):
+    preview = await read_product_import(file, db)
+    if not preview.can_import:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": "Correct every CSV error before importing.", "errors": [error.model_dump() for error in preview.errors]},
+        )
+
+    for row in preview.rows:
+        product = Product(
+            name=row.name,
+            category=row.category,
+            description=row.description,
+            price=row.price_myr,
+            is_active=True,
+            storefront_published=False,
+        )
+        db.add(product)
+        await db.flush()
+        db.add(Inventory(
+            product_id=product.id,
+            quantity=row.opening_stock,
+            low_stock_threshold=row.low_stock_threshold,
+        ))
+    await record_activity(
+        db,
+        admin=current_admin,
+        action="imported",
+        entity_type="product",
+        entity_id=None,
+        description=f"Imported {len(preview.rows)} products from CSV.",
+        metadata={"count": len(preview.rows)},
+    )
+    await db.commit()
+    return ProductImportResult(imported_count=len(preview.rows), message=f"Imported {len(preview.rows)} products.")
 
 
 @router.get(

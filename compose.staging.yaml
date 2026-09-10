@@ -5,16 +5,18 @@ services:
 
   migrate:
     environment:
-      ENVIRONMENT: staging
+      ENVIRONMENT: ${APP_ENVIRONMENT:-staging}
       DEBUG: "false"
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       ALLOWED_ORIGINS: ${STAGING_ALLOWED_ORIGINS:?Set STAGING_ALLOWED_ORIGINS in .env.staging}
       TRUSTED_HOSTS: ${STAGING_TRUSTED_HOSTS:?Set STAGING_TRUSTED_HOSTS in .env.staging}
+      TRUST_CLOUDFLARE_CLIENT_IP: ${TRUST_CLOUDFLARE_CLIENT_IP:-false}
 
   api:
     environment:
-      ENVIRONMENT: staging
+      ENVIRONMENT: ${APP_ENVIRONMENT:-staging}
       DEBUG: "false"
+      TRUST_CLOUDFLARE_CLIENT_IP: ${TRUST_CLOUDFLARE_CLIENT_IP:-false}
       ALLOWED_ORIGINS: ${STAGING_ALLOWED_ORIGINS:?Set STAGING_ALLOWED_ORIGINS in .env.staging}
       TRUSTED_HOSTS: ${STAGING_TRUSTED_HOSTS:?Set STAGING_TRUSTED_HOSTS in .env.staging}
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:?Set STRIPE_SUCCESS_URL in .env.staging}
@@ -36,5 +38,13 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${STOREFRONT_API_BASE_URL:?Set STOREFRONT_API_BASE_URL in .env.staging}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${STOREFRONT_WHATSAPP_NUMBER:-}
         STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
+  cloudflared:
+    image: cloudflare/cloudflared@sha256:51c9cefcb4569df44e1ad403ab1d3d8065aa8e84339bcfc6aee75502e1140339
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.demo}
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
 volumes:
   postgres_staging_data:

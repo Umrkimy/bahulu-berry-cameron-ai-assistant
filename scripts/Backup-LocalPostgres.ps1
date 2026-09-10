@@ -28,7 +28,12 @@ $dumpCommand = "set -eu; pg_dump --format=custom --compress=9 --no-owner --no-pr
 
 try {
     Invoke-Compose @("exec", "-T", "db", "sh", "-lc", $dumpCommand)
-    Invoke-Compose @("cp", "db:$containerDump", $localDump)
+    # Docker writes normal copy-progress output to stderr. Start-Process avoids
+    # PowerShell treating that successful output as a terminating error.
+    $copyProcess = Start-Process -FilePath "docker" -ArgumentList @("compose", "cp", "db:$containerDump", $localDump) -NoNewWindow -Wait -PassThru
+    if ($copyProcess.ExitCode -ne 0) {
+        throw "Docker Compose could not copy the backup archive from the database container."
+    }
 
     if (-not (Test-Path $localDump) -or (Get-Item $localDump).Length -eq 0) {
         throw "Backup creation did not produce a usable archive."

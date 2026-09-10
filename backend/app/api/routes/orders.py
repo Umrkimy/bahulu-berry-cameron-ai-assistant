@@ -12,6 +12,7 @@ from app.auth.dependencies import (
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.order import Order
+from app.models.order_item import OrderItem
 from app.schemas.order import (
     OrderCreate,
     OrderPrivate,
@@ -125,7 +126,7 @@ async def dispatch_order(
 ):
     result = await db.execute(
         select(Order)
-        .options(selectinload(Order.delivery))
+        .options(selectinload(Order.delivery), selectinload(Order.items))
         .with_for_update()
         .execution_options(populate_existing=True)
         .where(Order.id == order_id)
@@ -139,14 +140,17 @@ async def dispatch_order(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only orders in preparation can be marked as shipped.")
     if order.delivery is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Delivery record not found for this order.")
+    if not order.items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="An order must contain items before it can be dispatched.")
 
     delivery: Delivery = order.delivery
-    for field, value in dispatch_data.model_dump(exclude_unset=True).items():
+    for field, value in dispatch_data.model_dump(exclude={"packing_confirmed"}, exclude_unset=True).items():
         setattr(delivery, field, value.strip() or None if value else None)
     delivery.status = "SHIPPED"
     delivery.shipped_at = datetime.now(UTC)
     order.status = "SHIPPED"
     await db.flush()
+    await record_activity(db, admin=current_admin, action="confirmed", entity_type="order", entity_id=order.id, description=f"Confirmed packing for {len(order.items)} item line{'s' if len(order.items) != 1 else ''} and dispatched order #{order.id}.")
     await record_activity(db, admin=current_admin, action="updated", entity_type="delivery", entity_id=delivery.id, description=f"Marked delivery for order #{order.id} as shipped.")
     await record_activity(db, admin=current_admin, action="updated", entity_type="order", entity_id=order.id, description=f"Marked order #{order.id} as shipped.")
     await db.commit()

@@ -28,7 +28,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && window.location.pathname !== "/login") {
-      window.location.assign("/login");
+      const next = `${window.location.pathname}${window.location.search}`;
+      window.location.assign(`/login?reason=session-expired&next=${encodeURIComponent(next)}`);
     }
     return Promise.reject(error);
   },

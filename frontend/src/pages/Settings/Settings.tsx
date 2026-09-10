@@ -48,6 +48,7 @@ export default function Settings() {
       <Card withBorder p="lg"><Stack gap="md">
         <Group gap="sm"><ThemeIcon color={status?.delivery_enabled ? "green" : "orange"} variant="light" radius="xl"><IconMail size={18} /></ThemeIcon><div><Text fw={700}>Email delivery</Text><Text size="sm" c="dimmed">Password and account-security messages</Text></div></Group>
         {emailStatus.isLoading ? <Text c="dimmed" size="sm">Checking email configuration…</Text> : null}
+        {emailStatus.isError ? <Alert color="red" variant="light">We couldn't load email readiness. <Button size="compact-xs" variant="subtle" color="red" onClick={() => void emailStatus.refetch()}>Try again</Button></Alert> : null}
         {status ? <>
           <Group justify="space-between"><Text size="sm">Status</Text><Badge color={status.delivery_enabled ? "green" : status.mode === "test" ? "orange" : "red"} variant="light">{status.delivery_enabled ? "Delivery enabled" : status.mode === "test" ? "Test mode" : "Not configured"}</Badge></Group>
           {status.sender ? <Group justify="space-between" align="flex-start"><Text size="sm">Sender</Text><Text size="sm" ta="right">{status.sender}</Text></Group> : null}
@@ -59,7 +60,8 @@ export default function Settings() {
     <Card withBorder p="lg"><Stack gap="md">
       <Group gap="sm"><ThemeIcon color="bahulu" variant="light" radius="xl"><IconKey size={18} /></ThemeIcon><div><Text fw={700}>Send a password reset link</Text><Text size="sm" c="dimmed">The account holder receives the link; reset activity stays in the internal audit trail.</Text></div></Group>
       <Select label="Active team member" placeholder={team.isLoading ? "Loading team…" : "Choose an account"} data={members.map((member) => ({ value: String(member.id), label: `${member.username} — ${member.email}` }))} value={selectedAdminId} onChange={setSelectedAdminId} searchable disabled={team.isLoading || reset.isPending} />
-      <Group justify="space-between" wrap="wrap"><Group gap="xs"><IconShieldCheck size={16} color="var(--mantine-color-green-6)" /><Text size="xs" c="dimmed">Single-use link; prior unused links are invalidated.</Text></Group><Button leftSection={<IconMail size={16} />} onClick={requestReset} loading={reset.isPending} disabled={!selectedAdminId}>Send reset link</Button></Group>
+      {team.isError ? <Alert color="red" variant="light">We couldn't load active team members. <Button size="compact-xs" variant="subtle" color="red" onClick={() => void team.refetch()}>Try again</Button></Alert> : null}
+      <Group justify="space-between" wrap="wrap"><Group gap="xs"><IconShieldCheck size={16} color="var(--mantine-color-green-6)" /><Text size="xs" c="dimmed">Single-use link; prior unused links are invalidated.</Text></Group><Button leftSection={<IconMail size={16} />} onClick={requestReset} loading={reset.isPending} disabled={!selectedAdminId || team.isError}>Send reset link</Button></Group>
     </Stack></Card>
   </Stack>;
 }

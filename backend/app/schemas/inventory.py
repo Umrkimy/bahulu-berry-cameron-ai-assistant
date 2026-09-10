@@ -51,6 +51,22 @@ class StockMovementCreate(BaseModel):
     reference: str | None = Field(default=None, max_length=160)
 
 
+class BatchStockReceiptLine(BaseModel):
+    inventory_id: int = Field(gt=0)
+    quantity: int = Field(ge=1)
+
+
+class BatchStockReceiptCreate(BaseModel):
+    supplier_id: int = Field(gt=0)
+    reference: str = Field(min_length=2, max_length=160)
+    items: list[BatchStockReceiptLine] = Field(min_length=1, max_length=50)
+
+
+class BatchStockReceiptResult(BaseModel):
+    received_count: int
+    inventories: list[InventoryPublic]
+
+
 class OpeningBalanceCreate(BaseModel):
     reason: str = Field(min_length=2, max_length=2_000)
 
