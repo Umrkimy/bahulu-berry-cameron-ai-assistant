@@ -38,7 +38,7 @@ export function getApiError(error: unknown): ApiError {
 
   const { status, data } = error.response;
   const detail = data?.detail;
-  const retryAfterHeader = (error.response.headers as Record<string, unknown>)["retry-after"];
+  const retryAfterHeader = (error.response.headers as Record<string, unknown> | undefined)?.["retry-after"];
   const retryAfter = Number(typeof detail === "object" && detail !== null ? detail.retry_after_seconds ?? retryAfterHeader : retryAfterHeader);
   const retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : undefined;
 
