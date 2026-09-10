@@ -37,8 +37,8 @@ function formatOrderDate(value: string) {
 }
 
 export default function OrdersTable() {
-  const { data: orders, isLoading: isLoadingOrders } = useOrders();
-  const { data: customers, isLoading: isLoadingCustomers } = useQuery({
+  const { data: orders, isLoading: isLoadingOrders, isError: ordersError, refetch: refetchOrders } = useOrders();
+  const { data: customers, isLoading: isLoadingCustomers, isError: customersError, refetch: refetchCustomers } = useQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
   });
@@ -123,6 +123,9 @@ export default function OrdersTable() {
         data={orders ?? []}
         columns={columns}
         loading={isLoadingOrders || isLoadingCustomers}
+        error={ordersError || customersError}
+        errorMessage="We couldn't load orders and customer details."
+        onRetry={() => { void refetchOrders(); void refetchCustomers(); }}
         searchPlaceholder="Search orders, customers, statuses..."
         emptyMessage="No orders found."
         renderMobileCard={(order) => (

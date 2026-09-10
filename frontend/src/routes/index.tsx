@@ -24,6 +24,7 @@ const Reports = lazy(() => import("../pages/Reports/Reports"));
 const Suppliers = lazy(() => import("../pages/Suppliers/Suppliers"));
 const Tasks = lazy(() => import("../pages/Tasks/Tasks"));
 const Fulfillment = lazy(() => import("../pages/Fulfillment/Fulfillment"));
+const Enquiries = lazy(() => import("../pages/Enquiries/Enquiries"));
 
 import ProtectedRoute from "../auth/ProtectedRoute";
 import OwnerRoute from "../auth/OwnerRoute";
@@ -70,11 +71,14 @@ export default function AppRoutes() {
 
         <Route path="/settings" element={<OwnerRoute><Settings /></OwnerRoute>} />
 
+        <Route path="/enquiries" element={<OwnerRoute><Enquiries /></OwnerRoute>} />
+        <Route path="/client-feedback" element={<Navigate to="/enquiries" replace />} />
+
         <Route path="/deliveries" element={<Deliveries />} />
 
         <Route path="/discounts" element={<Discounts />} />
 
-        <Route path="/activity" element={<Activity />} />
+        <Route path="/activity" element={<OwnerRoute><Activity /></OwnerRoute>} />
 
         <Route path="/refund-requests" element={<RefundRequests />} />
 

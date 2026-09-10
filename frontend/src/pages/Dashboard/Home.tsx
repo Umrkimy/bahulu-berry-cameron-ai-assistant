@@ -1,10 +1,9 @@
-import { Alert, Button, Group, SimpleGrid, Stack } from "@mantine/core";
+import { Alert, Button, Group, SimpleGrid, Stack, Text } from "@mantine/core";
 
 import {
   IconCurrencyDollar,
   IconShoppingCart,
   IconPackage,
-  IconAlertTriangle,
   IconCalendarMonth,
 } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
@@ -21,7 +20,7 @@ import RecentOrders from "../../components/dashboard/RecentOrders";
 import OrderStatusCard from "../../components/dashboard/OrderStatusCard";
 
 import InventoryCard from "../../components/dashboard/InventoryCard";
-import OperationsAlertPanel from "../../components/dashboard/OperationsAlertPanel";
+import TodayWorkPanel from "../../components/dashboard/TodayWorkPanel";
 
 import { useDashboard } from "../../hooks/useDashboard";
 import useAuth from "../../auth/useAuth";
@@ -68,17 +67,11 @@ export default function Home() {
     <Stack gap="lg">
       <PageHeader
         title={`Good day, ${admin?.username || "there"}`}
-        description="A clear view of your business. Orders, revenue, and what needs your attention."
+        description="A clear view of today’s work, orders, and business performance. Open the bell for live updates."
         action={<Group><Button component={Link} to="/orders" leftSection={<IconShoppingCart size={16} />}>Manage Orders</Button><Button component={Link} to="/inventory" variant="default" leftSection={<IconPackage size={16} />}>View Inventory</Button></Group>}
       />
 
-      {(data.inventory.low_stock > 0 || data.inventory.out_of_stock > 0) && (
-        <Alert color="bahulu" variant="light" radius="lg" title="Inventory needs attention" icon={<IconAlertTriangle size={18} />}>
-          {data.inventory.out_of_stock > 0 ? `${data.inventory.out_of_stock} product${data.inventory.out_of_stock === 1 ? " is" : "s are"} out of stock. ` : ""}{data.inventory.low_stock > 0 ? `${data.inventory.low_stock} product${data.inventory.low_stock === 1 ? " is" : "s are"} low in stock.` : ""}
-        </Alert>
-      )}
-
-      {/* Stats */}
+      <TodayWorkPanel dashboard={data} role={admin?.role} />
 
       <SimpleGrid
         cols={{
@@ -92,9 +85,10 @@ export default function Home() {
         ))}
       </SimpleGrid>
 
-      <OperationsAlertPanel />
-
-      {/* Charts */}
+      <Stack gap={2} mt="sm">
+        <Text fw={750} fz="lg">Business snapshot</Text>
+        <Text size="sm" c="dimmed">Sales and order performance after today’s operational work.</Text>
+      </Stack>
 
       <SimpleGrid
         cols={{

@@ -36,6 +36,9 @@ interface DataTableProps<TData extends object> {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
   loading?: boolean;
+  error?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
   searchPlaceholder?: string;
   emptyMessage?: string;
   pageSizeOptions?: string[];
@@ -56,6 +59,9 @@ export default function DataTable<TData extends object>({
   data,
   columns,
   loading = false,
+  error = false,
+  errorMessage = "We couldn't load these records.",
+  onRetry,
   searchPlaceholder = "Search...",
   emptyMessage = "No records found.",
   pageSizeOptions = ["10", "20", "30", "50"],
@@ -266,7 +272,9 @@ export default function DataTable<TData extends object>({
 
           <tbody>
             {/* LOADING */}
-            {loading ? (
+            {error ? (
+              <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red">{errorMessage}</Text>{onRetry ? <ActionIcon variant="light" color="bahulu" aria-label="Try loading records again" onClick={onRetry}><IconRefresh size={16} /></ActionIcon> : null}</Stack></td></tr>
+            ) : loading ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -326,7 +334,9 @@ export default function DataTable<TData extends object>({
       </div>
 
       <Box className="data-table-mobile" p="sm">
-        {loading ? (
+        {error ? (
+          <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center">{errorMessage}</Text>{onRetry ? <ActionIcon variant="light" color="bahulu" aria-label="Try loading records again" onClick={onRetry}><IconRefresh size={16} /></ActionIcon> : null}</Stack>
+        ) : loading ? (
           <Text c="dimmed" ta="center" py="xl">Loading...</Text>
         ) : rows.length === 0 ? (
           <Text c="dimmed" ta="center" py="xl">{emptyMessage}</Text>

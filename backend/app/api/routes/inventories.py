@@ -3,7 +3,7 @@ from typing import Annotated
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,6 +22,8 @@ from app.schemas.inventory import (
     InventoryPublic,
     InventoryUpdate,
     OpeningBalanceCreate,
+    BatchStockReceiptCreate,
+    BatchStockReceiptResult,
     StockMovementCreate,
     StockMovementPublic,
 )
@@ -134,8 +136,15 @@ async def get_stock_movements(
     if supplier_id is not None: filters.append(StockMovement.supplier_id == supplier_id)
     if start_at: filters.append(StockMovement.created_at >= start_at)
     if end_at: filters.append(StockMovement.created_at <= end_at)
-    if search: filters.append(func.lower(Product.name).contains(search.lower()))
-    total = await db.scalar(select(func.count()).select_from(StockMovement).join(Product).where(*filters)) or 0
+    if search:
+        normalized_search = search.strip().lower()
+        if normalized_search:
+            filters.append(or_(
+                func.lower(Product.name).contains(normalized_search),
+                func.lower(Supplier.name).contains(normalized_search),
+                func.lower(StockMovement.reference).contains(normalized_search),
+            ))
+    total = await db.scalar(select(func.count()).select_from(StockMovement).join(Product).outerjoin(Supplier).where(*filters)) or 0
     query = select(StockMovement, Product.name, Supplier.name, Admin.username).join(Product).outerjoin(Supplier).outerjoin(Admin).where(*filters).order_by(StockMovement.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.execute(query)).all()
     return PaginatedResponse.create(items=[serialize_movement(row) for row in rows], page=page, page_size=page_size, total=total)
@@ -145,6 +154,72 @@ async def get_stock_movements(
 async def supplier_options(db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
     rows = await db.execute(select(Supplier.id, Supplier.name).where(Supplier.is_active.is_(True)).order_by(Supplier.name))
     return [{"id": row.id, "name": row.name} for row in rows]
+
+
+@router.post("/receipts", response_model=BatchStockReceiptResult)
+async def receive_stock_receipt(
+    data: BatchStockReceiptCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    reference = data.reference.strip()
+    if len(reference) < 2:
+        raise HTTPException(status_code=400, detail={"field": "reference", "message": "Enter a delivery-note or invoice reference."})
+    inventory_ids = [item.inventory_id for item in data.items]
+    if len(inventory_ids) != len(set(inventory_ids)):
+        raise HTTPException(status_code=400, detail="Each product can appear only once in a receipt.")
+    supplier = await db.get(Supplier, data.supplier_id)
+    if supplier is None or not supplier.is_active:
+        raise HTTPException(status_code=400, detail="Choose an active supplier.")
+
+    try:
+        result = await db.execute(
+            select(Inventory)
+            .options(selectinload(Inventory.product))
+            .where(Inventory.id.in_(inventory_ids))
+            .order_by(Inventory.product_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        inventories = result.scalars().all()
+        if len(inventories) != len(inventory_ids):
+            raise HTTPException(status_code=400, detail="One or more selected inventory records no longer exist.")
+        quantities = {item.inventory_id: item.quantity for item in data.items}
+        for inventory in inventories:
+            quantity_before = inventory.quantity
+            quantity_change = quantities[inventory.id]
+            inventory.quantity += quantity_change
+            db.add(StockMovement(
+                inventory_id=inventory.id,
+                product_id=inventory.product_id,
+                supplier_id=supplier.id,
+                admin_id=admin.id,
+                movement_type="SUPPLIER_RECEIPT",
+                quantity_change=quantity_change,
+                quantity_before=quantity_before,
+                quantity_after=inventory.quantity,
+                reference=reference,
+            ))
+        await record_activity(
+            db,
+            admin=admin,
+            action="stock_received",
+            entity_type="inventory",
+            entity_id=None,
+            description=f"Received stock for {len(inventories)} product{'s' if len(inventories) != 1 else ''} from {supplier.name}. Reference: {reference}.",
+            metadata={"supplier_id": supplier.id, "reference": reference, "received_count": len(inventories)},
+        )
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Unable to receive stock. No quantities were changed.")
+
+    for inventory in inventories:
+        await db.refresh(inventory, attribute_names=["product"])
+    return BatchStockReceiptResult(received_count=len(inventories), inventories=[serialize_inventory(inventory) for inventory in inventories])
 
 
 @router.post("/{inventory_id}/movements", response_model=InventoryPublic)

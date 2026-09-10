@@ -1,8 +1,11 @@
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from ipaddress import ip_address
 from time import monotonic
 
 from fastapi import HTTPException, Request, status
+
+from app.core.config import settings
 
 
 @dataclass(frozen=True)
@@ -16,7 +19,7 @@ class InMemoryRateLimiter:
         self._requests: dict[str, deque[float]] = defaultdict(deque)
 
     async def check(self, request: Request, scope: str, limit: RateLimit) -> None:
-        client = request.client.host if request.client else "unknown"
+        client = self._client_identity(request)
         key = f"{scope}:{client}"
         now = monotonic()
         timestamps = self._requests[key]
@@ -26,10 +29,29 @@ class InMemoryRateLimiter:
             retry_after = max(1, int(limit.window_seconds - (now - timestamps[0])))
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests. Please wait a moment and try again.",
+                detail={
+                    "message": "Too many requests. Please wait a moment and try again.",
+                    "retry_after_seconds": retry_after,
+                },
                 headers={"Retry-After": str(retry_after)},
             )
         timestamps.append(now)
+
+    @staticmethod
+    def _client_identity(request: Request) -> str:
+        """Use Cloudflare's single client-IP header only when explicitly enabled.
+
+        The dashboard API is private behind the internal frontend proxy. Local
+        development deliberately keeps using the socket peer address, avoiding
+        trust in browser-supplied forwarding headers.
+        """
+        if settings.TRUST_CLOUDFLARE_CLIENT_IP:
+            forwarded_client = request.headers.get("X-Client-IP", "").strip()
+            try:
+                return str(ip_address(forwarded_client))
+            except ValueError:
+                pass
+        return request.client.host if request.client else "unknown"
 
 
 rate_limiter = InMemoryRateLimiter()

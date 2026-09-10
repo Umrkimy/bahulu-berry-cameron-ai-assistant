@@ -20,3 +20,4 @@ from app.models.task import Task
 from app.models.notification import Notification
 from app.models.password_reset_token import PasswordResetToken
 from app.models.email_delivery import EmailDelivery
+from app.models.enquiry import Enquiry
