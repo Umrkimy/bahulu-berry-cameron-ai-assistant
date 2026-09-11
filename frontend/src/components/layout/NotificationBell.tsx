@@ -32,7 +32,7 @@ export default function NotificationBell() {
     navigate(item.route);
   };
 
-  return <Menu shadow="md" width={360} position="bottom-end" withinPortal onChange={setMenuOpened}>
+  return <Menu shadow="md" width="min(360px, calc(100vw - 24px))" position="bottom-end" withinPortal onChange={setMenuOpened} styles={{ dropdown: { maxHeight: "calc(100dvh - 88px)", overflowY: "auto" } }}>
     <Menu.Target>
       <ActionIcon variant="light" color="bahulu" size="lg" aria-label={bellLabel} style={{ position: "relative" }}>
         <IconBell size={19} />

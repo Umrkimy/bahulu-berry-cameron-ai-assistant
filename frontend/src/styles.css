@@ -115,6 +115,11 @@ button, input, textarea, select {
   }
 }
 
+@media (max-width: 30em) {
+  .header-brand .mantine-Text-root { display: none; }
+  .header-actions { gap: 6px !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

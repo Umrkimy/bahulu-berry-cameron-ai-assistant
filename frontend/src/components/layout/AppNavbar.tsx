@@ -20,9 +20,9 @@ export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobile
   const { logout, admin } = useAuth();
 
   return (
-    <Group h="100%" px="lg" justify="space-between">
+    <Group h="100%" px={{ base: "sm", sm: "lg" }} justify="space-between" wrap="nowrap" gap="xs">
       <Group gap="sm" wrap="nowrap"><Burger opened={mobileOpened} onClick={onToggleNavigation} hiddenFrom="sm" size="sm" aria-label="Toggle navigation" /><div className="header-brand"><BrandName showDescription={false} /></div></Group>
-      <Group gap="sm">
+      <Group className="header-actions" gap="xs" wrap="nowrap">
         <ActionIcon variant="light" color="bahulu" size="lg" aria-label="Open quick search" onClick={() => window.dispatchEvent(new Event("open-command-palette"))}>
           <IconSearch size={19} />
         </ActionIcon>
