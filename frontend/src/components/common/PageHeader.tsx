@@ -11,7 +11,7 @@ export default function PageHeader({ title, description, action }: PageHeaderPro
   return (
     <div className="app-page-header">
       <Stack gap={4}>
-        <Title order={2}>{title}</Title>
+        <Title order={1}>{title}</Title>
         <Text c="dimmed">{description}</Text>
       </Stack>
       {action}

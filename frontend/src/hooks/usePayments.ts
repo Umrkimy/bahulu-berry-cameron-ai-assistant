@@ -4,6 +4,7 @@ import {
   createOrderPayment,
   getOrderPayment,
 } from "../api/payments";
+import { invalidateDashboardQueries } from "../queryPolicy";
 
 export function useOrderPayment(orderId: number, enabled = true) {
   return useQuery({
@@ -30,6 +31,7 @@ export function useCreateOrderPayment() {
         queryClient.invalidateQueries({
           queryKey: ["payment", payment.order_id],
         }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });

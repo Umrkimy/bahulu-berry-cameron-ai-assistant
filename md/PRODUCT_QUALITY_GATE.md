@@ -92,6 +92,24 @@ approval**, with a short evidence link or note.
   payment, delivery, refund, stock, or support outcomes that the system cannot
   actually provide.
 
+### Efficient verification policy
+
+Use the smallest check that gives useful evidence while actively building:
+
+- for a focused change, run the relevant targeted test, type/lint check, or
+  inspection only;
+- before a local commit, run the relevant frontend/backend tests and `git diff
+  --check`;
+- before a push, private-demo rebuild, deployment, security-sensitive change,
+  migration, integration, or cross-application change, run the full relevant
+  lint, test, production-build, and health/readiness checks;
+- do not rebuild Docker or run browser checks for ordinary isolated UI changes
+  unless they affect Docker, authentication, integration, responsive layout,
+  or the requested demo.
+
+Record any deliberately deferred full verification with the next commit or
+demo-release evidence.
+
 ## Evidence required before release
 
 For a demo share or production release, confirm:

@@ -2,6 +2,7 @@ import { ActionIcon, Badge, Button, Divider, Group, Menu, Stack, Text, ThemeIcon
 import { IconAlertTriangle, IconBell, IconCheck, IconExternalLink } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import { getApiError } from "../../api/errors";
 import { getNotifications, getUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from "../../api/notifications";
@@ -15,7 +16,8 @@ function formatTime(value: string) {
 export default function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const latest = useQuery({ queryKey: ["notifications", "latest"], queryFn: () => getNotifications({ page: 1, page_size: 5 }), refetchInterval: 60_000, refetchOnWindowFocus: true });
+  const [menuOpened, setMenuOpened] = useState(false);
+  const latest = useQuery({ queryKey: ["notifications", "latest"], queryFn: () => getNotifications({ page: 1, page_size: 5 }), enabled: menuOpened });
   const unread = useQuery({ queryKey: ["notifications", "unread-count"], queryFn: getUnreadNotificationCount, refetchInterval: 60_000, refetchOnWindowFocus: true });
   const alerts = useOperationAlerts({ limit: 3 });
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["notifications"] }), queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })]);
@@ -30,7 +32,7 @@ export default function NotificationBell() {
     navigate(item.route);
   };
 
-  return <Menu shadow="md" width={360} position="bottom-end" withinPortal>
+  return <Menu shadow="md" width={360} position="bottom-end" withinPortal onChange={setMenuOpened}>
     <Menu.Target>
       <ActionIcon variant="light" color="bahulu" size="lg" aria-label={bellLabel} style={{ position: "relative" }}>
         <IconBell size={19} />

@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getDashboard, getDashboardInventory } from "../api/dashboard";
+import { dashboardQueryKeys } from "../queryPolicy";
 
 export function useDashboard() {
   return useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: dashboardQueryKeys.stats,
 
     queryFn: getDashboard,
   });
@@ -12,7 +13,7 @@ export function useDashboard() {
 
 export function useDashboardInventory() {
   return useQuery({
-    queryKey: ["dashboard"],
+    queryKey: dashboardQueryKeys.inventory,
 
     queryFn: getDashboardInventory,
   });

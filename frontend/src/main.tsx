@@ -17,8 +17,9 @@ import { theme } from "./theme";
 import "./styles.css";
 
 import { AuthProvider } from "./auth/AuthProvider";
+import { routineQueryDefaults } from "./queryPolicy";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({ defaultOptions: { queries: routineQueryDefaults } });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

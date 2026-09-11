@@ -15,6 +15,7 @@ import {
 } from "../api/inventory";
 
 import type { BatchStockReceiptInput, InventoryUpdateData, StockMovementInput } from "../types/inventory";
+import { invalidateDashboardQueries } from "../queryPolicy";
 
 export function useInventories() {
   return useQuery({
@@ -36,10 +37,11 @@ export function useUpdateInventory() {
     }) => updateInventory(inventoryId, data),
 
     onSuccess() {
-      queryClient.invalidateQueries({
-        queryKey: ["inventories"],
-      });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["inventories"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+        invalidateDashboardQueries(queryClient),
+      ]);
     },
   });
 }
@@ -61,10 +63,11 @@ export function useAdjustInventory() {
       ),
 
     onSuccess() {
-      queryClient.invalidateQueries({
-        queryKey: ["inventories"],
-      });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["inventories"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+        invalidateDashboardQueries(queryClient),
+      ]);
     },
   });
 }
@@ -74,7 +77,7 @@ export function useStockMovements(params: Record<string, string | number | undef
 }
 export function useCreateStockMovement() {
   const queryClient = useQueryClient();
-  return useMutation({ mutationFn: ({ inventoryId, data }: { inventoryId: number; data: StockMovementInput }) => createStockMovement(inventoryId, data), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["inventories"] }); void queryClient.invalidateQueries({ queryKey: ["stock-movements"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); } });
+  return useMutation({ mutationFn: ({ inventoryId, data }: { inventoryId: number; data: StockMovementInput }) => createStockMovement(inventoryId, data), onSuccess: () => { void Promise.all([queryClient.invalidateQueries({ queryKey: ["inventories"] }), queryClient.invalidateQueries({ queryKey: ["stock-movements"] }), queryClient.invalidateQueries({ queryKey: ["notifications"] }), invalidateDashboardQueries(queryClient)]); } });
 }
 export function useBatchStockReceipt() {
   const queryClient = useQueryClient();
@@ -86,12 +89,12 @@ export function useBatchStockReceipt() {
         queryClient.invalidateQueries({ queryKey: ["stock-movements"] }),
         queryClient.invalidateQueries({ queryKey: ["activity"] }),
         queryClient.invalidateQueries({ queryKey: ["operation-alerts"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });
 }
 export function useOpeningBalance() {
   const queryClient = useQueryClient();
-  return useMutation({ mutationFn: ({ inventoryId, reason }: { inventoryId: number; reason: string }) => createOpeningBalance(inventoryId, reason), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["stock-movements"] }); } });
+  return useMutation({ mutationFn: ({ inventoryId, reason }: { inventoryId: number; reason: string }) => createOpeningBalance(inventoryId, reason), onSuccess: () => { void Promise.all([queryClient.invalidateQueries({ queryKey: ["inventories"] }), queryClient.invalidateQueries({ queryKey: ["stock-movements"] }), invalidateDashboardQueries(queryClient)]); } });
 }

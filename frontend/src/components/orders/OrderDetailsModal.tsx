@@ -65,11 +65,13 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const { data: customers } = useQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
+    enabled: opened && order !== null,
   });
 
   const { data: productsData } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
+    enabled: opened && order !== null,
   });
 
   const { data: items, isLoading: isLoadingItems } = useQuery({
@@ -82,7 +84,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
     order?.id ?? 0,
     opened && order !== null,
   );
-  const { data: refundRequest } = useOrderRefundRequest(order?.id ?? 0);
+  const { data: refundRequest } = useOrderRefundRequest(order?.id ?? 0, opened && order !== null);
 
   const { data: delivery, isLoading: isLoadingDelivery } = useQuery({
     queryKey: ["delivery", order?.id],

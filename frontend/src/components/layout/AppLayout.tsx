@@ -1,7 +1,7 @@
 import { AppShell } from "@mantine/core";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { Outlet, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AppNavbar from "./AppNavbar";
 import AppSidebar from "./AppSidebar";
@@ -11,9 +11,16 @@ import PageReveal from "../common/motion/PageReveal";
 export default function AppLayout() {
   const location = useLocation();
   const [mobileOpened, setMobileOpened] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
     nprogress.complete();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (hasMounted.current) mainContentRef.current?.focus();
+    hasMounted.current = true;
   }, [location.pathname]);
 
   useEffect(() => {
@@ -27,6 +34,7 @@ export default function AppLayout() {
 
   return (
     <>
+      <a className="skip-to-content" href="#main-content">Skip to main content</a>
       <NavigationProgress color="bahulu" />
       <CommandPalette />
       <AppShell
@@ -57,11 +65,11 @@ export default function AppLayout() {
         <AppNavbar mobileOpened={mobileOpened} onToggleNavigation={() => setMobileOpened((value) => !value)} />
       </AppShell.Header>
 
-      <AppShell.Navbar className="berry-sidebar" style={{ overflowY: "auto" }}>
+      <AppShell.Navbar component="nav" aria-label="Primary navigation" className="berry-sidebar" style={{ overflowY: "auto" }}>
         <AppSidebar onNavigate={() => setMobileOpened(false)} />
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main id="main-content" ref={mainContentRef} tabIndex={-1} aria-label="Admin workspace">
         <div className="workspace-content"><PageReveal pageKey={location.pathname}><Outlet /></PageReveal></div>
       </AppShell.Main>
       </AppShell>

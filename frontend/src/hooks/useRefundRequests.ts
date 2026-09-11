@@ -8,6 +8,7 @@ import {
   updateRefundRequest,
 } from "../api/refundRequests";
 import type { RefundRequestStatus } from "../types/refundRequest";
+import { invalidateDashboardQueries } from "../queryPolicy";
 
 function useRefundInvalidation() {
   const queryClient = useQueryClient();
@@ -18,6 +19,7 @@ function useRefundInvalidation() {
       queryClient.invalidateQueries({ queryKey: ["payment"] }),
       queryClient.invalidateQueries({ queryKey: ["activity"] }),
       queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      invalidateDashboardQueries(queryClient),
     ]);
   };
 }
@@ -26,11 +28,11 @@ export function useRefundRequests() {
   return useQuery({ queryKey: ["refund-requests"], queryFn: getRefundRequests });
 }
 
-export function useOrderRefundRequest(orderId: number) {
+export function useOrderRefundRequest(orderId: number, enabled = true) {
   return useQuery({
     queryKey: ["refund-requests", "order", orderId],
     queryFn: () => getOrderRefundRequest(orderId),
-    enabled: orderId > 0,
+    enabled: enabled && orderId > 0,
     retry: false,
   });
 }
