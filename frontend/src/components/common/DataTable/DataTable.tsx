@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Box,
+  Button,
   Card,
   Group,
   Paper,
@@ -28,7 +29,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatedList, AnimatedListItem } from "../motion/AnimatedList";
 
@@ -53,6 +54,7 @@ interface DataTableProps<TData extends object> {
     onPageSizeChange: (pageSize: number) => void;
   };
   renderMobileCard?: (record: TData) => ReactNode;
+  tableLabel?: string;
 }
 
 export default function DataTable<TData extends object>({
@@ -70,7 +72,9 @@ export default function DataTable<TData extends object>({
   onSearchChange,
   manualPagination,
   renderMobileCard,
+  tableLabel = "Records",
 }: DataTableProps<TData>) {
+  const scrollGuidanceId = useId();
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -122,6 +126,13 @@ export default function DataTable<TData extends object>({
   const rows = table.getRowModel().rows;
 
   const totalRows = manualPagination ? manualPagination.total : table.getFilteredRowModel().rows.length;
+  const stateMessage = error
+    ? errorMessage
+    : loading
+      ? `Loading ${tableLabel.toLowerCase()}.`
+      : rows.length === 0
+        ? `No ${tableLabel.toLowerCase()} are currently displayed.`
+        : `${totalRows} ${totalRows === 1 ? "record" : "records"} loaded.`;
 
   const startRow =
     totalRows === 0
@@ -158,6 +169,7 @@ export default function DataTable<TData extends object>({
         borderColor: "#f0dcd8",
       }}
     >
+      <Text className="sr-only" aria-live="polite">{stateMessage}</Text>
       {/* SEARCH */}
       <Group
         className="data-table-toolbar"
@@ -172,6 +184,7 @@ export default function DataTable<TData extends object>({
           <TextInput
             className="data-table-search"
             placeholder={searchPlaceholder}
+            aria-label={`Search ${tableLabel.toLowerCase()}`}
             leftSection={<IconSearch size={16} />}
             value={searchValue ?? globalFilter}
             onChange={(event) => {
@@ -194,10 +207,15 @@ export default function DataTable<TData extends object>({
 
       {/* TABLE */}
       <div className="data-table-desktop"
+        role="region"
+        tabIndex={0}
+        aria-label={`${tableLabel} table`}
+        aria-describedby={scrollGuidanceId}
         style={{
           overflowX: "auto",
         }}
       >
+        <Text id={scrollGuidanceId} className="sr-only">This table may scroll horizontally when there is not enough room to show every column.</Text>
         <table
           style={{
             width: "100%",
@@ -215,6 +233,7 @@ export default function DataTable<TData extends object>({
                   return (
                     <th
                       key={header.id}
+                      aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"}
                       style={{
                         padding: "14px 16px",
                         textAlign: "left",
@@ -229,6 +248,7 @@ export default function DataTable<TData extends object>({
                       {header.isPlaceholder ? null : canSort ? (
                         <UnstyledButton
                           onClick={header.column.getToggleSortingHandler()}
+                          aria-label={`Sort by ${typeof header.column.columnDef.header === "string" ? header.column.columnDef.header : header.column.id}${sorted ? `, currently ${sorted === "asc" ? "ascending" : "descending"}` : ""}`}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -273,7 +293,7 @@ export default function DataTable<TData extends object>({
           <tbody>
             {/* LOADING */}
             {error ? (
-              <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red">{errorMessage}</Text>{onRetry ? <ActionIcon variant="light" color="bahulu" aria-label="Try loading records again" onClick={onRetry}><IconRefresh size={16} /></ActionIcon> : null}</Stack></td></tr>
+              <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="light" color="bahulu" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack></td></tr>
             ) : loading ? (
               <tr>
                 <td
@@ -283,7 +303,7 @@ export default function DataTable<TData extends object>({
                     textAlign: "center",
                   }}
                 >
-                  <Text c="dimmed">
+                  <Text c="dimmed" role="status">
                     Loading...
                   </Text>
                 </td>
@@ -335,9 +355,9 @@ export default function DataTable<TData extends object>({
 
       <Box className="data-table-mobile" p="sm">
         {error ? (
-          <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center">{errorMessage}</Text>{onRetry ? <ActionIcon variant="light" color="bahulu" aria-label="Try loading records again" onClick={onRetry}><IconRefresh size={16} /></ActionIcon> : null}</Stack>
+          <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="light" color="bahulu" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack>
         ) : loading ? (
-          <Text c="dimmed" ta="center" py="xl">Loading...</Text>
+          <Text c="dimmed" ta="center" py="xl" role="status">Loading...</Text>
         ) : rows.length === 0 ? (
           <Text c="dimmed" ta="center" py="xl">{emptyMessage}</Text>
         ) : (
@@ -386,6 +406,7 @@ export default function DataTable<TData extends object>({
             size="xs"
             w={80}
             value={String(manualPagination?.pageSize ?? pagination.pageSize)}
+            aria-label="Rows per page"
             data={pageSizeOptions}
             onChange={(value) => {
               if (!value) return;

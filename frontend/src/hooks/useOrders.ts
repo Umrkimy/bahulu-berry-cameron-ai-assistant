@@ -10,6 +10,7 @@ import {
 } from "../api/orders";
 
 import type { CreateOrderData, Order, UpdateOrderData } from "../types/order";
+import { invalidateDashboardQueries } from "../queryPolicy";
 
 export function useOrders() {
   return useQuery({
@@ -36,7 +37,7 @@ export function useDispatchOrder() {
         queryClient.invalidateQueries({ queryKey: ["fulfillment-queue"] }),
         queryClient.invalidateQueries({ queryKey: ["orders"] }),
         queryClient.invalidateQueries({ queryKey: ["deliveries"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });
@@ -63,9 +64,7 @@ export function useCreateOrder() {
           queryKey: ["inventories"],
         }),
 
-        queryClient.invalidateQueries({
-          queryKey: ["dashboard"],
-        }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });
@@ -100,9 +99,7 @@ export function useUpdateOrder() {
           queryKey: ["orders"],
         }),
 
-        queryClient.invalidateQueries({
-          queryKey: ["dashboard"],
-        }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });
@@ -139,9 +136,7 @@ export function useCancelOrder() {
           queryKey: ["inventories"],
         }),
 
-        queryClient.invalidateQueries({
-          queryKey: ["dashboard"],
-        }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });

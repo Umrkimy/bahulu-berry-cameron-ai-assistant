@@ -7,6 +7,7 @@ import {
 } from "../api/deliveries";
 
 import type { UpdateDeliveryData } from "../types/delivery";
+import { invalidateDashboardQueries } from "../queryPolicy";
 
 export function useDeliveries() {
   return useQuery({
@@ -55,9 +56,7 @@ export function useUpdateOrderDelivery() {
           queryKey: ["orders"],
         }),
 
-        queryClient.invalidateQueries({
-          queryKey: ["dashboard"],
-        }),
+        invalidateDashboardQueries(queryClient),
       ]);
     },
   });
