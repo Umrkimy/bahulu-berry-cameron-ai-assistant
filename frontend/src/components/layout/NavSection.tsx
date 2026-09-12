@@ -26,7 +26,13 @@ export default function NavSection(props: NavSectionProps) {
 function NavSectionContent({ title, items, onNavigate, collapsible = false, initiallyCollapsed = false }: NavSectionProps) {
   const location = useLocation();
   const containsActivePage = items.some((item) => location.pathname === item.link);
-  const [collapsed, setCollapsed] = useState(initiallyCollapsed && !containsActivePage);
+  const storageKey = `bahulu-cameron-nav-section:${title.toLowerCase().replaceAll(" ", "-")}`;
+  const [collapsed, setCollapsed] = useState(() => {
+    if (!collapsible) return false;
+    const savedState = localStorage.getItem(storageKey);
+    if (savedState !== null) return savedState === "collapsed";
+    return initiallyCollapsed && !containsActivePage;
+  });
   const opened = !collapsed;
   if (items.length === 0) return null;
 
@@ -63,7 +69,7 @@ function NavSectionContent({ title, items, onNavigate, collapsible = false, init
 
   return (
     <Stack gap={4}>
-      {collapsible ? <UnstyledButton onClick={() => setCollapsed((value) => !value)} aria-label={`Toggle ${title}`} aria-expanded={opened} style={{ borderRadius: 10 }}><Group justify="space-between" wrap="nowrap" px={4}>{heading}{opened ? <IconChevronDown size={16} aria-hidden="true" /> : <IconChevronRight size={16} aria-hidden="true" />}</Group></UnstyledButton> : heading}
+      {collapsible ? <UnstyledButton onClick={() => setCollapsed((value) => { const next = !value; localStorage.setItem(storageKey, next ? "collapsed" : "expanded"); return next; })} aria-label={`Toggle ${title}`} aria-expanded={opened} style={{ borderRadius: 10 }}><Group justify="space-between" wrap="nowrap" px={4}>{heading}{opened ? <IconChevronDown size={16} aria-hidden="true" /> : <IconChevronRight size={16} aria-hidden="true" />}</Group></UnstyledButton> : heading}
       {collapsible ? <Collapse expanded={opened}><Stack gap={4}>{links}</Stack></Collapse> : links}
     </Stack>
   );
