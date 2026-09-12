@@ -105,6 +105,27 @@ Berry Cameron order volume, sales, or prices.
 7. Continue monitoring production and perform a backup restore rehearsal at
    least quarterly.
 
+## Meta WhatsApp staging inbound test
+
+This is a controlled, draft-only rehearsal using a temporary Meta app, test
+phone number, and approved test recipient. It does not authorise live customer
+support, outbound messaging, or use of a production Meta account.
+
+- Leave `WHATSAPP_META_INBOUND_ENABLED=false` by default. Enable it only for
+  the test window through the ignored staging environment file or host secret
+  manager.
+- Store `WHATSAPP_META_APP_SECRET`, `WHATSAPP_META_VERIFY_TOKEN`, and
+  `WHATSAPP_META_PHONE_NUMBER_ID` only in that staging secret store.
+- Set Meta's callback to
+  `https://wa-staging.<controlled-domain>/webhooks/meta/whatsapp` and subscribe
+  only to `messages`. Route that hostname to the API, include it in
+  `STAGING_TRUSTED_HOSTS`, and protect every non-webhook path at the edge.
+- Verify one signed fictional message creates a grounded draft and an explicit
+  human request creates a handoff ticket. The status must remain `DRAFT_ONLY`
+  with outbound messaging disabled.
+- Disable intake, remove the Meta subscription, rotate staging secrets, and
+  remove the temporary hostname when the staging environment is retired.
+
 ## Sources to recheck before purchase
 
 - [Bank Negara Malaysia USD/MYR reference rate](https://www.bnm.gov.my/kuala-lumpur-usd/myr-reference-rate)
@@ -114,4 +135,3 @@ Berry Cameron order volume, sales, or prices.
 - [Vercel pricing](https://vercel.com/pricing)
 - [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/)
 - [Stripe Malaysia pricing](https://stripe.com/en-my/pricing)
-
