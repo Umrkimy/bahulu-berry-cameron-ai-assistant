@@ -94,4 +94,5 @@ backend/scripts/
 # =====================
 
 AGENTS.md
-md/
+md/*
+!md/INFRASTRUCTURE_DEPLOYMENT_BUDGET.md
