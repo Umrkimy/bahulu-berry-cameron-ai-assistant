@@ -131,7 +131,7 @@ api_router.include_router(
 api_router.include_router(
     ai_assistant.router,
     prefix="/ai-assistant",
-    tags=["AI Assistant"],
+    tags=["Operations Copilot"],
 )
 
 api_router.include_router(

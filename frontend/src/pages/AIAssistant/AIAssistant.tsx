@@ -10,8 +10,10 @@ import {
   Text,
 } from "@mantine/core";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import ChatMessage from "../../components/ai/ChatMessage";
+import ConfirmationCard from "../../components/ai/ConfirmationCard";
 import ChatInput from "../../components/ai/ChatInput";
 import OperationCards from "../../components/ai/OperationCards";
 import OwnerQuickPrompts from "../../components/ai/OwnerQuickPrompts";
@@ -19,9 +21,10 @@ import StaffQuickPrompts from "../../components/ai/StaffQuickPrompts";
 
 import type { ChatMessageData } from "../../types/ai";
 
-import { sendAIMessage } from "../../api/aiAssistant";
+import { cancelAIAction, confirmAIAction, sendAIMessage } from "../../api/aiAssistant";
 import { getApiError } from "../../api/errors";
 import useAuth from "../../auth/useAuth";
+import { invalidateDashboardQueries } from "../../queryPolicy";
 
 const STORAGE_KEY = "bahulu-cameron-ai-chat";
 const CONVERSATION_ID_KEY = "bahulu-cameron-ai-conversation-id";
@@ -69,6 +72,7 @@ export default function AIAssistant() {
 
 function AccountChat() {
   const { admin } = useAuth();
+  const queryClient = useQueryClient();
   const storageKey = `${STORAGE_KEY}:${admin?.id}`;
   const conversationKey = `${CONVERSATION_ID_KEY}:${admin?.id}`;
   const [messages, setMessages] = useState<ChatMessageData[]>(() =>
@@ -80,6 +84,8 @@ function AccountChat() {
   );
 
   const [loading, setLoading] = useState(false);
+  const [confirmationLoadingIndex, setConfirmationLoadingIndex] = useState<number | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
 
   const [resetOpened, setResetOpened] = useState(false);
 
@@ -132,6 +138,7 @@ function AccountChat() {
         role: "assistant",
         content: response.response,
         cards: response.cards,
+        confirmation: response.confirmation,
         outcome: response.outcome,
       };
 
@@ -146,6 +153,32 @@ function AccountChat() {
       setMessages((previous) => [...previous, errorMessage]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmation = async (messageIndex: number, action: "confirm" | "cancel") => {
+    setConfirmationLoadingIndex(messageIndex);
+    setConfirmationError(null);
+    try {
+      const response = action === "confirm"
+        ? await confirmAIAction(conversationId)
+        : await cancelAIAction(conversationId);
+
+      setMessages((previous) => [
+        ...previous.map((message, index) => index === messageIndex
+          ? { ...message, confirmation: undefined, outcome: response.outcome }
+          : message),
+        { role: "assistant", content: response.response, cards: response.cards, outcome: response.outcome },
+      ]);
+
+      if (response.outcome === "COMPLETED") {
+        await invalidateDashboardQueries(queryClient);
+        await queryClient.invalidateQueries({ refetchType: "active" });
+      }
+    } catch (error) {
+      setConfirmationError(getApiError(error).message);
+    } finally {
+      setConfirmationLoadingIndex(null);
     }
   };
 
@@ -202,7 +235,7 @@ function AccountChat() {
             }}
           >
             <Text fw={600} size="lg">
-              AI Assistant
+              Operations Copilot
             </Text>
 
             <Text size="xs" c="dimmed" ml="auto" mr="md">
@@ -212,7 +245,7 @@ function AccountChat() {
               {admin?.role !== "STAFF" ? (
                 <>
                   {admin?.role === "OWNER"
-                    ? "Changes always need your confirmation"
+                    ? "Previewed changes need your confirmation"
                     : "Read-only help for staff — no dashboard changes"}
                 </>
               ) : null}
@@ -256,6 +289,15 @@ function AccountChat() {
                     <ChatMessage message={message} />
                     {message.role === "assistant" && message.cards?.length ? (
                       <OperationCards cards={message.cards} />
+                    ) : null}
+                    {message.role === "assistant" && message.confirmation && admin?.role === "OWNER" ? (
+                      <ConfirmationCard
+                        preview={message.confirmation}
+                        loading={confirmationLoadingIndex === index}
+                        error={confirmationLoadingIndex === index ? confirmationError : null}
+                        onConfirm={() => handleConfirmation(index, "confirm")}
+                        onCancel={() => handleConfirmation(index, "cancel")}
+                      />
                     ) : null}
                   </Stack>
                 ))}

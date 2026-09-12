@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -22,7 +23,14 @@ class AIOperationCard(BaseModel):
     href: str | None = None
 
 
+class AIConfirmationPreview(BaseModel):
+    action_title: str
+    details: list[str] = Field(default_factory=list, max_length=6)
+    expires_at: datetime
+
+
 class AIChatResponse(BaseModel):
     response: str
     cards: list[AIOperationCard] = Field(default_factory=list)
-    outcome: Literal["ANSWER", "CONFIRMATION_REQUIRED", "COMPLETED", "FAILED"] = "ANSWER"
+    confirmation: AIConfirmationPreview | None = None
+    outcome: Literal["ANSWER", "CONFIRMATION_REQUIRED", "COMPLETED", "CANCELLED", "FAILED"] = "ANSWER"

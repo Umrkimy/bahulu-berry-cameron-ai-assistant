@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_REASONING_EFFORT: str = "none"
-    AI_MONTHLY_BUDGET_USD: float = 8.0
+    AI_MONTHLY_BUDGET_USD: float = 15.0
     AI_DISPLAY_EXCHANGE_RATE: float = 4.4
     AI_BUDGET_WARNING_THRESHOLD: float = 0.8
-    AI_MAX_COMPLETION_TOKENS: int = 600
+    AI_MAX_COMPLETION_TOKENS: int = 350
     AI_MAX_RESERVED_INPUT_TOKENS: int = 32_000
 
     WHATSAPP_META_INBOUND_ENABLED: bool = False
