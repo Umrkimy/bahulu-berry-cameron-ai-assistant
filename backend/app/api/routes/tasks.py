@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin, get_current_superuser
@@ -27,7 +27,23 @@ async def _active_assignee(db: AsyncSession, admin_id: int | None) -> None:
 
 @router.get("", response_model=list[TaskPublic])
 async def list_tasks(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
-    query = select(Task).order_by(Task.status, Task.due_at.desc())
+    status_order = case(
+        (Task.status == "IN_PROGRESS", 0),
+        (Task.status == "OPEN", 1),
+        else_=2,
+    )
+    priority_order = case(
+        (Task.priority == "HIGH", 0),
+        (Task.priority == "NORMAL", 1),
+        else_=2,
+    )
+    query = select(Task).order_by(
+        status_order,
+        priority_order,
+        Task.due_at.is_(None),
+        Task.due_at.asc(),
+        Task.created_at.desc(),
+    )
     if admin.role != "OWNER":
         query = query.where(Task.assigned_admin_id == admin.id)
     return (await db.execute(query)).scalars().all()

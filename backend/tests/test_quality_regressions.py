@@ -107,6 +107,21 @@ async def test_task_permissions_and_activity_privacy(session):
 
 
 @pytest.mark.asyncio
+async def test_task_list_prioritises_active_high_priority_work(session):
+    owner, _, _ = await actors(session)
+    completed = await create_task(TaskInput(title="Completed first", priority="HIGH"), session, owner)
+    await update_task(completed.id, TaskUpdate(status="COMPLETED"), session, owner)
+    low = await create_task(TaskInput(title="Low priority", priority="LOW"), session, owner)
+    high = await create_task(TaskInput(title="Urgent work", priority="HIGH"), session, owner)
+    in_progress = await create_task(TaskInput(title="Already started", priority="LOW"), session, owner)
+    await update_task(in_progress.id, TaskUpdate(status="IN_PROGRESS"), session, owner)
+
+    tasks = await list_tasks(session, owner)
+
+    assert [task.id for task in tasks] == [in_progress.id, high.id, low.id, completed.id]
+
+
+@pytest.mark.asyncio
 async def test_human_takeover_suppresses_inbound_drafts_and_retention(session, monkeypatch):
     owner, staff, _ = await actors(session)
     first = await messaging.process_inbound_message(session, message=messaging.NormalizedInboundMessage("SIMULATOR", "first", "conversation", "fictional", "I want a human", "EN"), actor=owner)

@@ -81,8 +81,8 @@ async def update_delivery(
                 raise ValueError("This delivery cannot move to that status.")
             if order.payment_status != "PAID":
                 raise ValueError("Only paid orders can progress through delivery.")
-            if new_status == "SHIPPED" and order.status not in {"PROCESSING", "SHIPPED"}:
-                raise ValueError("Start order preparation before dispatching.")
+            if new_status == "SHIPPED":
+                raise ValueError("Use the packing and dispatch action to mark a delivery as shipped.")
             if new_status != "SHIPPED" and order.status != "SHIPPED":
                 raise ValueError("Dispatch the order before updating delivery progress.")
 
