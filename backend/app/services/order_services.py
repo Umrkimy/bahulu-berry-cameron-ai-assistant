@@ -474,16 +474,19 @@ async def update_order(
                 "error": "Only paid orders can begin preparation.",
             }
 
-        order.status = normalized_status
+        if normalized_status == "SHIPPED":
+            return {
+                "success": False,
+                "error": "Use the packing and dispatch action to mark an order as shipped.",
+            }
 
-        delivery = await db.scalar(select(Delivery).where(Delivery.order_id == order.id))
-        if delivery is not None:
-            if normalized_status == "SHIPPED" and delivery.status == "PENDING":
-                delivery.status = "SHIPPED"
-                delivery.shipped_at = datetime.now(UTC)
-            elif normalized_status == "COMPLETED":
-                delivery.status = "DELIVERED"
-                delivery.delivered_at = datetime.now(UTC)
+        if normalized_status == "COMPLETED":
+            return {
+                "success": False,
+                "error": "Update the delivery to delivered to complete an order.",
+            }
+
+        order.status = normalized_status
 
     if payment_status is not None:
         normalized_payment_status = (

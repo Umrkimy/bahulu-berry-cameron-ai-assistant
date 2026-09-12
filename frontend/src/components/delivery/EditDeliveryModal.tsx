@@ -32,14 +32,14 @@ interface Props {
   onClose: () => void;
 }
 
-const DELIVERY_STATUSES: DeliveryStatus[] = [
-  "PENDING",
-  "SHIPPED",
-  "IN_TRANSIT",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "FAILED",
-];
+function getDeliveryStatusOptions(status: DeliveryStatus): DeliveryStatus[] {
+  if (status === "PENDING") return ["PENDING"];
+  if (status === "SHIPPED") return ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];
+  if (status === "IN_TRANSIT") return ["IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];
+  if (status === "OUT_FOR_DELIVERY") return ["OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];
+  if (status === "FAILED") return ["FAILED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"];
+  return ["DELIVERED"];
+}
 
 function formatStatus(status: DeliveryStatus) {
   return status.replaceAll("_", " ");
@@ -90,6 +90,7 @@ export default function EditDeliveryModal({
   }
 
   const currentDelivery: Delivery = latestDelivery ?? delivery;
+  const deliveryStatusOptions = getDeliveryStatusOptions(currentDelivery.status);
 
   async function saveDelivery(values: typeof form.values) {
     const courier = values.courier.trim();
@@ -227,13 +228,15 @@ export default function EditDeliveryModal({
           <Select
             label="Delivery Status"
             placeholder="Select delivery status"
-            data={DELIVERY_STATUSES.map((status) => ({
+            data={deliveryStatusOptions.map((status) => ({
               value: status,
               label: formatStatus(status),
             }))}
             {...form.getInputProps("status")}
             disabled={isDisabled}
           />
+
+          {currentDelivery.status === "PENDING" && <Text size="sm" c="dimmed">Use Fulfilment to confirm packing and dispatch this delivery.</Text>}
 
           <Divider />
 

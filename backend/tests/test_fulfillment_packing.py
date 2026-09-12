@@ -14,6 +14,8 @@ from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.schemas.order import OrderDispatch
 from app.services.fulfillment_services import get_fulfillment_queue
+from app.services.delivery_services import update_delivery
+from app.services.order_services import update_order
 
 
 async def create_paid_order(session):
@@ -69,3 +71,17 @@ async def test_dispatch_rejects_unpaid_or_orders_without_items(session):
     await session.commit()
     with pytest.raises(HTTPException, match="must contain items"):
         await dispatch_order(order.id, OrderDispatch(packing_confirmed=True), session, owner)
+
+
+@pytest.mark.asyncio
+async def test_only_dispatch_action_can_ship_and_delivery_completion_closes_order(session):
+    owner, _, order = await create_paid_order(session)
+
+    assert (await update_order(session, order.id, status="SHIPPED"))["error"] == "Use the packing and dispatch action to mark an order as shipped."
+    with pytest.raises(ValueError, match="packing and dispatch"):
+        await update_delivery(session, order.id, {"status": "SHIPPED"})
+
+    await dispatch_order(order.id, OrderDispatch(packing_confirmed=True), session, owner)
+    assert (await update_order(session, order.id, status="COMPLETED"))["error"] == "Update the delivery to delivered to complete an order."
+    await update_delivery(session, order.id, {"status": "DELIVERED"})
+    assert order.status == "COMPLETED"

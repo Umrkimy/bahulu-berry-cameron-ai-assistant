@@ -30,11 +30,11 @@ interface Props {
   order: Order | null;
 }
 
-function getStatusOptions(status: OrderStatus, paymentStatus: string): OrderStatus[] {
+function getStatusOptions(status: OrderStatus): OrderStatus[] {
   const nextStatuses: Record<OrderStatus, OrderStatus[]> = {
     PENDING: ["PENDING", "PROCESSING"],
-    PROCESSING: ["PROCESSING", "SHIPPED"],
-    SHIPPED: paymentStatus === "PAID" ? ["SHIPPED", "COMPLETED"] : ["SHIPPED"],
+    PROCESSING: ["PROCESSING"],
+    SHIPPED: ["SHIPPED"],
     COMPLETED: ["COMPLETED"],
     CANCELLED: ["CANCELLED"],
   };
@@ -98,7 +98,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
 
   const isFinalOrder =
     order.status === "COMPLETED" || order.status === "CANCELLED";
-  const statusOptions = getStatusOptions(order.status, order.payment_status);
+  const statusOptions = getStatusOptions(order.status);
 
   const isLoading =
     updateOrderMutation.isPending || cancelOrderMutation.isPending;
@@ -266,6 +266,18 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
               <Text size="sm" c="dimmed">
                 This order is {order.status.toLowerCase()} and can no longer be
                 edited.
+              </Text>
+            )}
+
+            {!isFinalOrder && order.status === "PROCESSING" && (
+              <Text size="sm" c="dimmed">
+                Use Fulfilment to confirm packing and dispatch this order.
+              </Text>
+            )}
+
+            {!isFinalOrder && order.status === "SHIPPED" && (
+              <Text size="sm" c="dimmed">
+                Update the delivery record when the shipment progresses or is delivered.
               </Text>
             )}
 
