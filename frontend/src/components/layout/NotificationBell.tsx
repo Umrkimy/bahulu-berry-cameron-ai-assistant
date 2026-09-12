@@ -25,6 +25,8 @@ export default function NotificationBell() {
   const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: refresh });
   const unreadCount = unread.data?.unread_count ?? 0;
   const attentionCount = alerts.data?.total ?? 0;
+  const alertItems = alerts.data?.items ?? [];
+  const notificationItems = latest.data?.items ?? [];
   const bellLabel = `Open updates${unreadCount ? `: ${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}` : ""}${unreadCount && attentionCount ? " and" : ""}${attentionCount ? ` ${attentionCount} item${attentionCount === 1 ? "" : "s"} needing attention` : ""}`;
 
   const open = (item: AppNotification) => {
@@ -48,13 +50,13 @@ export default function NotificationBell() {
         {alerts.isLoading ? <Text size="xs" c="dimmed">Checking live work…</Text> : null}
         {alerts.isError ? <Text size="xs" c="red">Live attention is unavailable. Open Updates to try again.</Text> : null}
         {!alerts.isLoading && !alerts.isError && !attentionCount ? <Text size="xs" c="dimmed">No live operational issues.</Text> : null}
-        {!alerts.isLoading && !alerts.isError && alerts.data?.items.map((item) => <Menu.Item key={item.id} onClick={() => navigate(item.href)} leftSection={<IconAlertTriangle size={15} color={item.severity === "CRITICAL" ? "var(--mantine-color-red-6)" : "var(--mantine-color-orange-6)"} />} rightSection={<Badge size="xs" color={item.severity === "CRITICAL" ? "red" : "orange"}>{item.severity === "CRITICAL" ? "Critical" : "Warning"}</Badge>}>
+        {!alerts.isLoading && !alerts.isError && alertItems.map((item) => <Menu.Item key={item.id} onClick={() => navigate(item.href)} leftSection={<IconAlertTriangle size={15} color={item.severity === "CRITICAL" ? "var(--mantine-color-red-6)" : "var(--mantine-color-orange-6)"} />} rightSection={<Badge size="xs" color={item.severity === "CRITICAL" ? "red" : "orange"}>{item.severity === "CRITICAL" ? "Critical" : "Warning"}</Badge>}>
           <Text size="sm" fw={650} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={1}>{item.description}</Text>
         </Menu.Item>)}
       </Stack>
       <Divider mb="xs" />
       <Text size="xs" fw={650} c="dimmed" mb={4}>Recent notifications</Text>
-      {latest.isLoading ? <Text size="sm" c="dimmed" py="md">Loading notifications…</Text> : latest.isError ? <Text size="sm" c="red" py="md">{getApiError(latest.error).message}</Text> : !latest.data?.items.length ? <Text size="sm" c="dimmed" py="md">You are all caught up.</Text> : <Stack gap={4}>{latest.data.items.map((item) => <Menu.Item key={item.id} onClick={() => open(item)} leftSection={<IconBell size={15} />} rightSection={!item.read_at ? <Badge size="xs" color="bahulu">New</Badge> : null}>
+      {latest.isLoading ? <Text size="sm" c="dimmed" py="md">Loading notifications…</Text> : latest.isError ? <Text size="sm" c="red" py="md">{getApiError(latest.error).message}</Text> : !notificationItems.length ? <Text size="sm" c="dimmed" py="md">You are all caught up.</Text> : <Stack gap={4}>{notificationItems.map((item) => <Menu.Item key={item.id} onClick={() => open(item)} leftSection={<IconBell size={15} />} rightSection={!item.read_at ? <Badge size="xs" color="bahulu">New</Badge> : null}>
         <Text size="sm" fw={item.read_at ? 500 : 700} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={2}>{item.description}</Text><Text size="xs" c="dimmed">{formatTime(item.created_at)}</Text>
       </Menu.Item>)}</Stack>}
       <Divider my="xs" />
