@@ -18,6 +18,8 @@ for (const width of [360, 768, 1280]) {
         '/payments/orders/7': null,
         '/refund-requests/orders/7': null,
         '/deliveries/orders/7': null,
+        '/notifications/unread-count': { unread_count: 0 },
+        '/operations/alerts': { items: [], total: 0, limit: 3, offset: 0, counts: { total: 0, critical: 0, warning: 0 } },
       };
       await route.fulfill({ json: Object.hasOwn(responses, path) ? responses[path] : [] });
     });

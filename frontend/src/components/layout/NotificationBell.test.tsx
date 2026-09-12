@@ -39,4 +39,19 @@ describe("NotificationBell", () => {
     expect(button).toHaveAttribute("aria-expanded", "true");
     await waitFor(() => expect(historyRequests).toBe(1));
   });
+
+  it("keeps the layout usable when an unexpected empty response reaches the updates endpoints", async () => {
+    server.use(
+      http.get("http://localhost:8000/api/operations/alerts", () => HttpResponse.json([])),
+      http.get("http://localhost:8000/api/notifications/unread-count", () => HttpResponse.json({ unread_count: 0 })),
+      http.get("http://localhost:8000/api/notifications", () => HttpResponse.json([])),
+    );
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderWithProviders(<QueryClientProvider client={queryClient}><NotificationBell /></QueryClientProvider>);
+    const button = await screen.findByRole("button", { name: "Open updates" });
+    await user.click(button);
+    expect(await screen.findByText("No live operational issues.")).toBeInTheDocument();
+    expect(await screen.findByText("You are all caught up.")).toBeInTheDocument();
+  });
 });
