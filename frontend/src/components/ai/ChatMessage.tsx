@@ -42,7 +42,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         >
           {!isUser && message.outcome && message.outcome !== "ANSWER" && (
             <Badge mb="xs" color={message.outcome === "COMPLETED" ? "green" : message.outcome === "FAILED" ? "red" : "orange"} variant="light">
-              {message.outcome === "COMPLETED" ? "Action completed" : message.outcome === "FAILED" ? "Request not completed" : "Awaiting your confirmation"}
+              {message.outcome === "COMPLETED" ? "Action completed" : message.outcome === "CANCELLED" ? "Action cancelled" : message.outcome === "FAILED" ? "Request not completed" : "Awaiting your confirmation"}
             </Badge>
           )}
           {isUser ? (

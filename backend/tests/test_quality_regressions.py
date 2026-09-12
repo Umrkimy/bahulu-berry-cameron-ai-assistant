@@ -152,9 +152,9 @@ async def test_confirmation_executes_once_and_staff_cannot_confirm(session, monk
         return {"success": True, "message": "Updated"}
     monkeypatch.setitem(ai.TOOL_HANDLERS, "adjust_product_stock", handler)
     await ai._store_confirmation(session, owner.id, "conversation", "adjust_product_stock", {"product_name": "Fictional", "quantity_change": 1})
-    assert await ai._execute_pending_confirmation(session, staff.id, "conversation", "confirm") is None
-    assert await ai._execute_pending_confirmation(session, owner.id, "conversation", "confirm") == "Updated"
-    assert await ai._execute_pending_confirmation(session, owner.id, "conversation", "confirm") is None
+    assert (await ai.confirm_pending_confirmation(session, staff.id, "conversation")).outcome == "FAILED"
+    assert (await ai.confirm_pending_confirmation(session, owner.id, "conversation")).response == "Updated"
+    assert (await ai.confirm_pending_confirmation(session, owner.id, "conversation")).outcome == "FAILED"
     assert len(calls) == 1
 
 
@@ -167,8 +167,8 @@ async def test_demoted_owner_cannot_execute_saved_confirmation(session, monkeypa
     async def forbidden(**kwargs):
         raise AssertionError("Demoted owners cannot execute writes")
     monkeypatch.setitem(ai.TOOL_HANDLERS, "adjust_product_stock", forbidden)
-    result = await ai._execute_pending_confirmation(session, owner.id, "demotion", "confirm")
-    assert "Only an active Owner" in result
+    result = await ai.confirm_pending_confirmation(session, owner.id, "demotion")
+    assert "Only an active Owner" in result.response
     assert await session.scalar(select(func.count()).select_from(ActivityLog)) == 0
 
 
@@ -225,6 +225,6 @@ async def test_postgres_dispatch_and_confirmation_are_once_only(session, monkeyp
     await ai._store_confirmation(session, owner_id, "concurrent", "adjust_product_stock", {"product_name": "Fictional", "quantity_change": 1})
     async def confirm():
         async with factory() as db:
-            return await ai._execute_pending_confirmation(db, owner_id, "concurrent", "confirm")
+            return await ai.confirm_pending_confirmation(db, owner_id, "concurrent")
     await asyncio.gather(confirm(), confirm())
     assert len(calls) == 1

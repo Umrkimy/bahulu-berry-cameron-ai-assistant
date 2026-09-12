@@ -37,7 +37,7 @@ export default function CommandPalette() {
           { id: "activity", label: "Activity", onClick: () => navigate("/activity"), leftSection: <IconBox size={18} /> },
           { id: "updates", label: "Updates", onClick: () => navigate("/updates"), leftSection: <IconBell size={18} /> },
           { id: "refund-requests", label: "Refund Requests", onClick: () => navigate("/refund-requests"), leftSection: <IconCash size={18} /> },
-          { id: "assistant", label: "AI Assistant", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
+          { id: "assistant", label: "Operations Copilot", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
           ...(admin?.role === "OWNER" ? [{ id: "ai-usage", label: "AI Usage & Budget", onClick: () => navigate("/ai-usage"), leftSection: <IconChartBar size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [{ id: "reports", label: "Owner Reports", onClick: () => navigate("/reports"), leftSection: <IconChartBar size={18} /> }] : []),
         ] },

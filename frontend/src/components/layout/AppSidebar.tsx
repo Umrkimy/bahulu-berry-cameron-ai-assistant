@@ -69,7 +69,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
           { label: "Tasks", link: "/tasks", icon: <IconChecklist size={18} /> },
           { label: "Updates", link: "/updates", icon: <IconBell size={18} /> },
           {
-            label: "ChatGPT",
+            label: "Operations Copilot",
             link: "/ai-assistant",
             icon: <IconMessageChatbot size={18} />,
           },

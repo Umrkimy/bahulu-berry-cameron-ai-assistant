@@ -26,6 +26,12 @@ def test_gpt_4o_mini_cost_calculation():
     assert calculate_cost_usd("gpt-4o-mini", 1_000_000, 1_000_000) == Decimal("0.750000")
 
 
+def test_operations_copilot_default_budget_and_response_limit():
+    assert settings.OPENAI_MODEL == "gpt-4o-mini"
+    assert settings.AI_MONTHLY_BUDGET_USD == 15.0
+    assert settings.AI_MAX_COMPLETION_TOKENS == 350
+
+
 @pytest.mark.asyncio
 async def test_usage_reservation_settlement_and_monthly_summary(session, monkeypatch):
     monkeypatch.setattr(settings, "AI_MONTHLY_BUDGET_USD", 8.0)
