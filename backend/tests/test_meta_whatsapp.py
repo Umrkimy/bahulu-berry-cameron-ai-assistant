@@ -58,3 +58,12 @@ def test_meta_adapter_normalizes_only_valid_text_messages(meta_settings):
     assert messages[0].provider == "META_WHATSAPP"
     assert messages[0].external_conversation_id == "test-phone-id:60100000001"
     assert messages[0].message == "Hello"
+
+
+def test_meta_adapter_ignores_messages_for_a_different_phone_number(meta_settings):
+    payload = {
+        "entry": [{"changes": [{"value": {"metadata": {"phone_number_id": "other-phone-id"}, "messages": [
+            {"id": "message-1", "from": "60100000001", "type": "text", "text": {"body": "Hello"}},
+        ]}}]}]
+    }
+    assert MetaWhatsAppAdapter().normalize_inbound(payload) == []
