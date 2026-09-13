@@ -96,3 +96,4 @@ backend/scripts/
 AGENTS.md
 md/*
 !md/INFRASTRUCTURE_DEPLOYMENT_BUDGET.md
+!md/CLIENT_DEMO_SCRIPT.md
