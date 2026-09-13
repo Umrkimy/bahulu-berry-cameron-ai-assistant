@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SupportDraftInput(BaseModel):
@@ -12,6 +12,7 @@ class SupportDraftSource(BaseModel):
     type: str
     id: int
     label: str
+    similarity: float | None = None
 
 
 class SupportDraftPublic(BaseModel):
@@ -23,6 +24,7 @@ class SupportDraftPublic(BaseModel):
     prompt_version: str
     model: str
     latency_ms: int
+    retrieval_mode: str = "HANDOFF"
 
 
 class SupportAssigneePublic(BaseModel):
@@ -31,6 +33,12 @@ class SupportAssigneePublic(BaseModel):
     username: str
     role: str
 
+def _bilingual_active(values: dict) -> dict:
+    if values.get("is_active") and (not values.get("question_ms") or not values.get("answer_ms")):
+        raise ValueError("Active customer-support content requires approved English and Bahasa Melayu text.")
+    return values
+
+
 class FAQInput(BaseModel):
     category: str = Field(min_length=2, max_length=80)
     question_en: str = Field(min_length=2, max_length=2000)
@@ -38,6 +46,12 @@ class FAQInput(BaseModel):
     question_ms: str | None = Field(default=None, max_length=2000)
     answer_ms: str | None = Field(default=None, max_length=5000)
     is_active: bool = True
+
+    @model_validator(mode="after")
+    def bilingual_if_active(self):
+        if self.is_active and (not self.question_ms or not self.answer_ms):
+            raise ValueError("Active customer-support content requires approved English and Bahasa Melayu text.")
+        return self
 class FAQPublic(FAQInput):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -48,7 +62,32 @@ class TemplateInput(BaseModel):
     content_en: str = Field(min_length=2, max_length=5000)
     content_ms: str | None = Field(default=None, max_length=5000)
     is_active: bool = True
+
+    @model_validator(mode="after")
+    def bilingual_if_active(self):
+        if self.is_active and not self.content_ms:
+            raise ValueError("Active customer-support content requires approved English and Bahasa Melayu text.")
+        return self
 class TemplatePublic(TemplateInput):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    updated_at: datetime
+
+
+class KnowledgeArticleInput(BaseModel):
+    category: str = Field(min_length=2, max_length=80)
+    title_en: str = Field(min_length=2, max_length=200)
+    content_en: str = Field(min_length=2, max_length=12_000)
+    title_ms: str | None = Field(default=None, max_length=200)
+    content_ms: str | None = Field(default=None, max_length=12_000)
+    is_active: bool = False
+
+    def model_post_init(self, __context) -> None:
+        if self.is_active and (not self.title_ms or not self.content_ms):
+            raise ValueError("Active customer-support content requires approved English and Bahasa Melayu text.")
+
+
+class KnowledgeArticlePublic(KnowledgeArticleInput):
     model_config = ConfigDict(from_attributes=True)
     id: int
     updated_at: datetime

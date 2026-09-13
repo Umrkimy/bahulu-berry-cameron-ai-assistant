@@ -17,7 +17,7 @@ async def _owner(session) -> Admin:
 
 
 @pytest.mark.asyncio
-async def test_simulator_drafts_without_ticket_and_is_idempotent(session):
+async def test_simulator_hands_off_when_rag_is_disabled_and_is_idempotent(session):
     owner = await _owner(session)
     session.add(SupportFAQ(category="greeting", question_en="Hello", answer_en="Hello from approved content.", is_active=True))
     await session.commit()
@@ -26,9 +26,10 @@ async def test_simulator_drafts_without_ticket_and_is_idempotent(session):
     first = await process_inbound_message(session, message=message, actor=owner)
     second = await process_inbound_message(session, message=message, actor=owner)
 
-    assert first.outcome == "DRAFTED"
-    assert first.support_request_id is None
-    assert first.draft and first.draft.reply == "Hello from approved content."
+    assert first.outcome == "HANDOFF"
+    assert first.support_request_id is not None
+    assert first.ticket_created is True
+    assert first.draft and first.draft.handoff_required is True
     assert second.duplicate is True
     assert await session.scalar(select(func.count()).select_from(MessagingEvent).where(MessagingEvent.external_message_id == "message-1")) == 1
 

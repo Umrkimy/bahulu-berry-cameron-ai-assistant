@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { HandoffRule, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+import type { HandoffRule, KnowledgeArticle, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 import type { Activity } from "./activity";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
 export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
@@ -19,6 +19,11 @@ export const deleteFAQ=async(id:number)=>api.delete(`/support/faqs/${id}`);
 export const createTemplate=async(data:Omit<SupportTemplate,"id"|"updated_at">)=>(await api.post<SupportTemplate>("/support/templates",data)).data;
 export const updateTemplate=async(id:number,data:Omit<SupportTemplate,"id"|"updated_at">)=>(await api.patch<SupportTemplate>(`/support/templates/${id}`,data)).data;
 export const deleteTemplate=async(id:number)=>api.delete(`/support/templates/${id}`);
+export const getKnowledgeArticles=async()=> (await api.get<KnowledgeArticle[]>("/support/knowledge-articles")).data;
+export const createKnowledgeArticle=async(data:Omit<KnowledgeArticle,"id"|"updated_at">)=>(await api.post<KnowledgeArticle>("/support/knowledge-articles",data)).data;
+export const updateKnowledgeArticle=async(id:number,data:Omit<KnowledgeArticle,"id"|"updated_at">)=>(await api.patch<KnowledgeArticle>(`/support/knowledge-articles/${id}`,data)).data;
+export const deleteKnowledgeArticle=async(id:number)=>api.delete(`/support/knowledge-articles/${id}`);
+export const reindexKnowledge=async()=> (await api.post<{chunks:number}>("/support/knowledge/reindex")).data;
 export const createRule=async(data:Omit<HandoffRule,"id"|"updated_at">)=>(await api.post<HandoffRule>("/support/rules",data)).data;
 export const updateRule=async(id:number,data:Omit<HandoffRule,"id"|"updated_at">)=>(await api.patch<HandoffRule>(`/support/rules/${id}`,data)).data;
 export const deleteRule=async(id:number)=>api.delete(`/support/rules/${id}`);
