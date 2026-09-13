@@ -1,137 +1,147 @@
 # Infrastructure Deployment and Budget Reference
 
-**Status:** Planning estimate only. Not an approved purchase order, production
-deployment plan, or public business claim.
+**Status:** Planning reference only. It is not approval to buy services,
+publish business details, or enable public checkout, live WhatsApp messaging,
+or customer data collection.
 
-**Last reviewed:** 12 September 2026
+**Last reviewed:** 13 September 2026
 
-This document records the currently recommended hosting approach for Bahulu
-Berry Cameron. Reconfirm prices, taxes, provider availability, account
-ownership, and the product quality gate before provisioning any service.
+Recheck prices, taxes, availability, provider terms, account ownership, and
+`md/PRODUCT_QUALITY_GATE.md` before any purchase or production deployment.
 
-## Recommended deployment shape
+## Agreed first-production shape
 
 ```text
-Customers
-  -> Cloudflare (DNS, TLS, edge protection)
-  -> Vercel (admin and storefront frontends)
-  -> Hetzner Singapore VPS (Coolify-managed FastAPI API and future worker)
-  -> Neon PostgreSQL Singapore
-  -> Cloudflare R2 (approved media and encrypted off-server backups)
+Customers and staff
+  -> Cloudflare (DNS, TLS, CDN, edge protection, Access for dashboard)
+  -> Hetzner Singapore CPX22 VPS (2 vCPU, 4 GB RAM selected starting point)
+       -> Coolify, self-hosted
+            -> storefront frontend
+            -> protected dashboard frontend
+            -> FastAPI API
+            -> PostgreSQL 16 + pgvector
+            -> future Redis and background-worker containers
+  -> external encrypted backup storage
 ```
 
-- **Coolify Cloud** is the deployment control plane. It provides dashboard-based
-  application deployment, secrets, logs, domains, TLS, health checks, and
-  container management; it does not replace the VPS provider or the need for
-  secure server, workload, and backup operations.
-- **Hetzner Singapore** is preferred for Malaysia-friendly latency and value.
-- **Neon Singapore** keeps the production PostgreSQL database separately
-  managed from the API VPS.
-- **Vercel** continues to host the existing frontend applications, as planned
-  in the project architecture. Do not duplicate their hosting on the API VPS.
-- **Cloudflare R2** is for approved uploaded media and off-server recovery
-  copies, not an excuse to skip restore testing.
+- Run the storefront, admin frontend, API, and PostgreSQL/pgvector on the same
+  Coolify-managed Hetzner CPX22 VPS initially. Production Docker images include
+  only runtime needs, not source files, dev dependencies, or build tools.
+- Cloudflare serves static storefront assets quickly at the edge. It protects
+  the dashboard and API; PostgreSQL is never public.
+- Keep persistent database volumes and encrypted daily backups outside the VPS.
+  Verify a restore before production.
+- Split the database or API into managed/separate infrastructure only when
+  measured CPU, memory, connection, latency, or storage metrics justify it.
 
-## Monthly budget after staging is deleted
+## Selected initial monthly budget
 
-The intended workflow is to create a private staging VPS first, perform the
-deployment rehearsal, then delete that VPS after production is stable. A
-powered-off Hetzner server can remain billable, so deletion must be deliberate
-and backups or snapshots must be retained only where intended.
+The selected cost-conscious launch plan is the all-in-one Hetzner option. It
+is intended for the first production release, not a guarantee that it supports
+one million users or a substitute for monitoring.
 
-The figures below use the Bank Negara Malaysia USD/MYR reference of about
-**USD 1 = RM 4.07** on 11 September 2026. They exclude tax and are planning
-figures, not a price guarantee.
+| Item | Planning amount |
+| --- | ---: |
+| Hetzner Singapore CPX22 (2 vCPU, 4 GB RAM) | about RM136/month before tax and IPv4 charges |
+| Malaysian cPanel staff email (20 mailboxes, annual billing) | about RM9/month equivalent; verify checkout and renewal price |
+| Cloudflare Free, self-hosted Coolify, and R2 under its free allowance | RM0 initially |
+| Operations Copilot + WhatsApp RAG hard caps | maximum about RM110/month combined (US$25) |
+| **Planning total with full AI caps used** | **about RM255/month** |
 
-### Cost-conscious launch option
+The AI figure is a maximum safety allowance, not a fixed monthly bill. Domain
+renewal at GoDaddy, taxes, provider IPv4 charges, staging VPS time, payment
+fees, Meta charges, and usage above free backup storage are excluded. If the
+VPS shows database or memory pressure, first upgrade to CPX32; move PostgreSQL
+to a managed provider only when its reliability benefit justifies the cost.
 
-| Item | Assumption | Estimate |
-| --- | --- | ---: |
-| Production VPS | Hetzner Singapore CPX22 | USD 30.99 / about RM 126 |
-| Deployment control plane | Coolify Cloud, up to two server slots | USD 5.00 / about RM 20 |
-| Production database | Neon Launch, conservative early budget | USD 15.00 / about RM 61 |
-| Business frontend hosting | Vercel Pro starting allowance | USD 20.00 / about RM 81 |
-| Early object storage and email | Low R2 and Resend usage | RM 0 to RM 41 |
-| **Estimated platform total** | Before tax and usage overages | **about RM 288 to RM 330 / month** |
+## Domain, DNS, and staff email
 
-Start here for approximately 10,000 monthly visitors. This is not 10,000
-simultaneous customers or 10,000 completed orders. Monitor CPU, memory, API
-latency, error rate, database load, and background-job backlog before scaling.
+- The domain is already registered at GoDaddy. Keep it there initially; do not
+  buy a duplicate domain.
+- Move DNS management to Cloudflare when deploying, while leaving GoDaddy as
+  the registrar.
+- Intended private/production hostnames, subject to client approval before any
+  public use:
 
-### Higher-headroom production option
+```text
+bahuluberry.com        storefront
+www.bahuluberry.com    storefront redirect
+admin.bahuluberry.com  Cloudflare Access-protected dashboard
+api.bahuluberry.com    API and approved future webhooks
+demo.bahuluberry.com   private fictional-data demo
+```
 
-| Item | Assumption | Estimate |
-| --- | --- | ---: |
-| Production VPS | Hetzner Singapore CCX13, 2 dedicated vCPU and 8 GB RAM | USD 63.49 / about RM 258 |
-| Other platform services | Coolify Cloud, Neon, Vercel, low R2/Resend usage | about RM 162 to RM 203 |
-| **Estimated platform total** | Before tax and usage overages | **about RM 420 to RM 460 / month** |
+- Budget staff email option: Malaysian cPanel shared hosting, used for human
+  email only, not application hosting. Select a plan that explicitly supports
+  at least 20 separate mailboxes and suitable mailbox quotas.
+- Individual staff addresses may be `umar@bahuluberry.com`,
+  `admin@bahuluberry.com`, and similar. Give every worker a separate password;
+  do not share a mailbox account.
+- Configure MX, SPF, DKIM, and DMARC records in Cloudflare DNS. Test delivery
+  to Gmail and Outlook before issuing addresses. Automated application mail
+  remains a separate future Resend configuration.
+- cPanel is cheaper but has weaker central user management and deliverability
+  support than Microsoft/Google/Zoho. Revisit a dedicated email provider if
+  volume, compliance, or deliverability needs grow.
 
-Choose this option only if measured production activity requires dedicated CPU
-or more memory. The normal upgrade path is CPX22 first, then CCX13 when
-observed metrics justify it.
+## Redis and performance decision
 
-## Costs not included above
+Redis is useful infrastructure but it does **not** automatically reduce OpenAI
+API charges.
 
-- Domain registration and renewal.
-- Applicable Malaysian taxes, provider IPv4 charges, and optional VPS
-  snapshots or backups.
-- Resend overages, OpenAI API usage, monitoring services, and support plans.
-- Payment processing. This is variable and may become the largest cost once
-  checkout is live. Stripe Malaysia's listed standard domestic card and FPX
-  rate is 3% plus RM 1.00 per successful transaction; recheck provider terms
-  before choosing or launching a payment provider.
-
-Example only: 500 completed RM 30 orders would incur approximately RM 950 in
-Stripe processing fees at that rate. This example is not a forecast of Bahulu
-Berry Cameron order volume, sales, or prices.
+- Do not add Redis merely to cache all AI answers. Operations Copilot answers
+  use live operational data and may become stale. WhatsApp messages can contain
+  personal data and must not be broadly cached.
+- Current RAG embedding cost is already controlled: approved knowledge is
+  embedded on save/edit/reindex, not on every customer message. Each RAG query
+  creates a small query embedding and, where safe, a short draft completion.
+- The existing US$15 Operations Copilot and US$10 WhatsApp RAG monthly caps,
+  short response limits, grounded retrieval, and mandatory handoffs are the
+  main current API-cost protections.
+- Add Redis with the production/staging performance foundation when one of
+  these is true: background reindexing/email/WhatsApp jobs are enabled,
+  multiple API replicas need shared rate limits, measured dashboard reads need
+  a short cache, or real traffic demonstrates a bottleneck.
+- When introduced, use Redis for rate limits, job queues, short-lived safe
+  public-catalogue/dashboard aggregate caches, and cache invalidation after
+  product/inventory/order changes. Do not cache payment state, confirmations,
+  customer records, or complete AI replies by default.
 
 ## Staging and production sequence
 
-1. Create client-owned Hetzner, Coolify, Neon, Cloudflare, Vercel, Resend, and
-   payment-provider accounts. Do not share credentials in chat or source code.
-2. Provision a staging VPS and separate staging database with fictional data
-   and test provider keys only.
-3. Deploy the same container configuration intended for production. Verify
-   migrations, health/readiness endpoints, authentication, password reset,
-   email behaviour, webhook simulations, backup creation, and a restore test.
-4. Provision a fresh production database and production VPS. Apply migrations
-   only after the staging rehearsal passes.
-5. Complete the private production launch checks in `PRODUCT_QUALITY_GATE.md`.
-   Do not enable unapproved public checkout, payment acceptance, WhatsApp
-   intake, customer forms, marketing tracking, or business claims.
-6. After production is stable, export and retain only necessary staging
-   evidence, then delete the staging VPS and staging database according to the
-   agreed retention plan. Remove staging secrets and DNS records.
-7. Continue monitoring production and perform a backup restore rehearsal at
-   least quarterly.
+1. The client owns the production GoDaddy, Cloudflare, Hetzner, Coolify,
+   OpenAI, backup-storage, and eventual payment/Meta accounts. Do not share
+   credentials in chat or source control.
+2. Create a temporary staging VPS in Umar's account with fictional data and
+   test provider keys. Rehearse deployment, migrations, health/readiness,
+   authentication, backups, restore, and webhook simulations.
+3. Configure an isolated Meta test webhook only after Umar regains Meta
+   developer access. Keep intake disabled except for testing and keep all
+   outbound WhatsApp sending disabled.
+4. Provision fresh production infrastructure in the client account. Run the
+   same container configuration and apply migrations only after staging passes.
+5. Complete the private production and client-approval gates before enabling
+   any public claims, contact details, checkout, payment acceptance, live
+   messaging, customer forms, or tracking.
+6. After stable production, remove staging secrets/hostname/data and delete
+   the temporary VPS deliberately. Retain only necessary, approved evidence.
 
-## Meta WhatsApp staging inbound test
+## Cost categories to recheck before purchase
 
-This is a controlled, draft-only rehearsal using a temporary Meta app, test
-phone number, and approved test recipient. It does not authorise live customer
-support, outbound messaging, or use of a production Meta account.
+1. Hetzner VPS, optional snapshots, and IPv4 charges.
+2. GoDaddy domain renewal.
+3. Malaysian cPanel mail hosting for at least 20 mailboxes.
+4. External encrypted backup storage.
+5. OpenAI API usage, retained within the configured US$15 + US$10 caps until
+   the client approves another budget.
+6. Later only: Resend usage, Meta WhatsApp charges, payment processing fees,
+   object storage, Cloudflare paid plan, and managed database hosting.
 
-- Leave `WHATSAPP_META_INBOUND_ENABLED=false` by default. Enable it only for
-  the test window through the ignored staging environment file or host secret
-  manager.
-- Store `WHATSAPP_META_APP_SECRET`, `WHATSAPP_META_VERIFY_TOKEN`, and
-  `WHATSAPP_META_PHONE_NUMBER_ID` only in that staging secret store.
-- Set Meta's callback to
-  `https://wa-staging.<controlled-domain>/webhooks/meta/whatsapp` and subscribe
-  only to `messages`. Route that hostname to the API, include it in
-  `STAGING_TRUSTED_HOSTS`, and protect every non-webhook path at the edge.
-- Verify one signed fictional message creates a grounded draft and an explicit
-  human request creates a handoff ticket. The status must remain `DRAFT_ONLY`
-  with outbound messaging disabled.
-- Disable intake, remove the Meta subscription, rotate staging secrets, and
-  remove the temporary hostname when the staging environment is retired.
+## References to recheck before purchase
 
-## Sources to recheck before purchase
-
-- [Bank Negara Malaysia USD/MYR reference rate](https://www.bnm.gov.my/kuala-lumpur-usd/myr-reference-rate)
-- [Hetzner Singapore price adjustment list](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/)
-- [Coolify Cloud pricing](https://coolify.io/docs/get-started/cloud)
-- [Neon pricing](https://neon.com/pricing)
-- [Vercel pricing](https://vercel.com/pricing)
-- [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/)
-- [Stripe Malaysia pricing](https://stripe.com/en-my/pricing)
+- [Cloudflare Registrar and DNS documentation](https://developers.cloudflare.com/registrar/)
+- [Coolify self-hosting documentation](https://coolify.io/docs/installation)
+- [Hetzner cloud price-adjustment notice](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/)
+- [Zoho Mail pricing](https://www.zoho.com/mail/zohomail-pricing.html)
+- [Microsoft 365 Malaysia pricing](https://www.microsoft.com/en-my/microsoft-365/business/microsoft-365-business-basic)
+- [OpenAI GPT-4o mini pricing](https://developers.openai.com/api/docs/models/gpt-4o-mini)
