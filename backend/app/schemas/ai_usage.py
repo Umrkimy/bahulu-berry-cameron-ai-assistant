@@ -28,6 +28,12 @@ class AIUsageDaily(BaseModel):
     estimated_cost_usd: float
 
 
+class AIUsageBySource(BaseModel):
+    source: str
+    budget_usd: float
+    estimated_cost_usd: float
+
+
 class AIUsageSummary(BaseModel):
     budget_usd: float
     budget_rm_display: float
@@ -40,3 +46,4 @@ class AIUsageSummary(BaseModel):
     month_start: datetime
     by_admin: list[AIUsageByAdmin]
     daily: list[AIUsageDaily]
+    by_source: list[AIUsageBySource]

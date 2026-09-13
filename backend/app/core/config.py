@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     AI_MAX_COMPLETION_TOKENS: int = 350
     AI_MAX_RESERVED_INPUT_TOKENS: int = 32_000
 
+    # Kept independent from the internal Operations Copilot budget.  This is
+    # deliberately off until a private, fictional-content demo enables it.
+    WHATSAPP_RAG_ENABLED: bool = False
+    WHATSAPP_RAG_MODEL: str = "gpt-4o-mini"
+    WHATSAPP_RAG_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    WHATSAPP_RAG_MONTHLY_BUDGET_USD: float = 10.0
+    WHATSAPP_RAG_MAX_COMPLETION_TOKENS: int = 180
+    WHATSAPP_RAG_MAX_CONTEXT_TOKENS: int = 1_200
+    WHATSAPP_RAG_MIN_SIMILARITY: float = 0.72
+
     WHATSAPP_META_INBOUND_ENABLED: bool = False
     WHATSAPP_META_APP_SECRET: SecretStr = SecretStr("")
     WHATSAPP_META_VERIFY_TOKEN: SecretStr = SecretStr("")

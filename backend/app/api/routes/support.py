@@ -10,13 +10,13 @@ from app.models.admin import Admin
 from app.models.activity_log import ActivityLog
 from app.models.customer import Customer
 from app.models.messaging import MessagingConversation, MessagingEvent
-from app.models.support import HandoffRule, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
+from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
 from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.activity import ActivityPublic
-from app.schemas.support import FAQInput, FAQPublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
+from app.schemas.support import FAQInput, FAQPublic, KnowledgeArticleInput, KnowledgeArticlePublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
-from app.services.support_copilot import create_grounded_draft
+from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, sync_knowledge_source
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
 from app.services.notification_services import add_notification, notify_owners
 
@@ -37,6 +37,9 @@ async def owner_save(db: AsyncSession, admin: Admin, model: Type, data, item_id:
     if item_id:
         for key, value in data.model_dump().items(): setattr(item, key, value)
     else: db.add(item); await db.flush()
+    source_type = {SupportFAQ: "FAQ", SupportTemplate: "TEMPLATE", KnowledgeArticle: "ARTICLE"}.get(model)
+    if source_type:
+        await sync_knowledge_source(db, item, source_type)
     await record_activity(db, admin=admin, action="updated" if item_id else "created", entity_type=entity, entity_id=item.id, description=f"{'Updated' if item_id else 'Created'} support {entity.replace('_', ' ')}.")
     await db.commit(); await db.refresh(item); return item
 
@@ -70,6 +73,25 @@ async def delete_template(item_id:int,db:Annotated[AsyncSession,Depends(get_db)]
     item=await db.get(SupportTemplate,item_id)
     if not item: raise HTTPException(404,detail="Support record not found.")
     await record_activity(db,admin=admin,action="deleted",entity_type="support_template",entity_id=item.id,description="Deleted support template.");await db.delete(item);await db.commit()
+
+@router.get("/knowledge-articles", response_model=list[KnowledgeArticlePublic])
+async def knowledge_articles(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, KnowledgeArticle)
+@router.post("/knowledge-articles", response_model=KnowledgeArticlePublic)
+async def create_knowledge_article(data: KnowledgeArticleInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, KnowledgeArticle, data, None, "knowledge_article")
+@router.patch("/knowledge-articles/{item_id}", response_model=KnowledgeArticlePublic)
+async def update_knowledge_article(item_id: int, data: KnowledgeArticleInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, KnowledgeArticle, data, item_id, "knowledge_article")
+@router.delete("/knowledge-articles/{item_id}", status_code=204)
+async def delete_knowledge_article(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+    item = await db.get(KnowledgeArticle, item_id)
+    if not item: raise HTTPException(404, detail="Support record not found.")
+    await record_activity(db, admin=admin, action="deleted", entity_type="knowledge_article", entity_id=item.id, description="Deleted knowledge article."); await db.delete(item); await db.commit()
+
+@router.post("/knowledge/reindex")
+async def reindex_knowledge(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+    count = await rebuild_knowledge_index(db)
+    await record_activity(db, admin=admin, action="reindexed", entity_type="support_knowledge", entity_id=None, description="Rebuilt semantic support knowledge embeddings.", metadata={"chunks": count})
+    await db.commit()
+    return {"chunks": count}
 
 @router.get("/rules",response_model=list[RulePublic])
 async def rules(db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, HandoffRule)

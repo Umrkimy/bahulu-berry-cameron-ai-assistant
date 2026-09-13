@@ -4,7 +4,31 @@ from pathlib import Path
 import pytest
 
 from app.models.support import HandoffRule, SupportFAQ, SupportTemplate
-from app.services.support_copilot import MODEL_NAME, PROMPT_VERSION, create_grounded_draft
+from app.services import support_copilot
+from app.services.support_copilot import MODEL_NAME, PROMPT_VERSION, RetrievedChunk, create_grounded_draft
+from app.schemas.support import SupportDraftSource
+
+
+@pytest.fixture
+def semantic_rag(monkeypatch):
+    monkeypatch.setattr(support_copilot.settings, "WHATSAPP_RAG_ENABLED", True)
+
+    async def fake_embed(_, value):
+        return [1.0] if "pickup" in value.lower() or "ambil" in value.lower() else [0.0]
+
+    async def fake_retrieve(_, embedding, language):
+        if embedding == [0.0]:
+            return []
+        label = "Boleh ambil di kedai?" if language == "MS" else "What are your pickup options?"
+        content = "Maklumat ambil sendiri akan disahkan oleh pasukan sokongan kami." if language == "MS" else "Pickup details are confirmed by our support team."
+        return [RetrievedChunk(SupportDraftSource(type="FAQ", id=1, label=label, similarity=.93), content, .93)]
+
+    async def fake_draft(_, __, ___, chunks):
+        return chunks[0].content
+
+    monkeypatch.setattr(support_copilot, "_embed", fake_embed)
+    monkeypatch.setattr(support_copilot, "_retrieve", fake_retrieve)
+    monkeypatch.setattr(support_copilot, "_draft", fake_draft)
 
 
 async def _approved_content(session):
@@ -36,7 +60,7 @@ async def _approved_content(session):
 
 
 @pytest.mark.asyncio
-async def test_grounded_draft_uses_active_approved_faq_and_bahasa_answer(session):
+async def test_grounded_draft_uses_active_approved_faq_and_bahasa_answer(session, semantic_rag):
     await _approved_content(session)
 
     draft = await create_grounded_draft(
@@ -54,7 +78,7 @@ async def test_grounded_draft_uses_active_approved_faq_and_bahasa_answer(session
 
 
 @pytest.mark.asyncio
-async def test_copilot_hands_off_sensitive_unknown_and_unapproved_questions(session):
+async def test_copilot_hands_off_sensitive_unknown_and_unapproved_questions(session, semantic_rag):
     await _approved_content(session)
 
     for message in (
@@ -71,7 +95,7 @@ async def test_copilot_hands_off_sensitive_unknown_and_unapproved_questions(sess
 
 
 @pytest.mark.asyncio
-async def test_versioned_eval_dataset_matches_grounding_and_handoff_contract(session):
+async def test_versioned_eval_dataset_matches_grounding_and_handoff_contract(session, semantic_rag):
     await _approved_content(session)
     scenarios = json.loads((Path(__file__).parent / "fixtures" / "support_copilot_eval.json").read_text(encoding="utf-8"))
 

@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.admin import Admin
 from app.models.ai_usage import AIUsage
-from app.schemas.ai_usage import AIUsageByAdmin, AIUsageDaily, AIUsageSummary
+from app.schemas.ai_usage import AIUsageByAdmin, AIUsageBySource, AIUsageDaily, AIUsageSummary
 from app.services.transaction_lock import acquire_transaction_lock
 
 
 MODEL_PRICING_USD_PER_MILLION = {
     "gpt-4o-mini": {"input": Decimal("0.15"), "output": Decimal("0.60")},
+    "text-embedding-3-small": {"input": Decimal("0.02"), "output": Decimal("0")},
 }
 COUNTED_OUTCOMES = {"RESERVED", "COMPLETED", "UNCERTAIN"}
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
@@ -36,26 +37,27 @@ def calculate_cost_usd(model: str, input_tokens: int, output_tokens: int) -> Dec
     ).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
 
 
-async def _month_spend(db: AsyncSession) -> Decimal:
+async def _month_spend(db: AsyncSession, *, source: str | None = None) -> Decimal:
+    clauses = [AIUsage.created_at >= month_start_utc(), AIUsage.outcome.in_(COUNTED_OUTCOMES)]
+    if source:
+        clauses.append(AIUsage.source == source)
     result = await db.scalar(
-        select(func.coalesce(func.sum(AIUsage.estimated_cost_usd), 0)).where(
-            AIUsage.created_at >= month_start_utc(),
-            AIUsage.outcome.in_(COUNTED_OUTCOMES),
-        )
+        select(func.coalesce(func.sum(AIUsage.estimated_cost_usd), 0)).where(*clauses)
     )
     return Decimal(str(result or 0))
 
 
-async def reserve_ai_usage(db: AsyncSession, *, admin_id: int, model: str) -> AIUsage:
-    await acquire_transaction_lock(db, "ai-monthly-budget")
+async def reserve_ai_usage(db: AsyncSession, *, admin_id: int | None, model: str, source: str = "DASHBOARD_ASSISTANT", monthly_budget_usd: float | None = None, max_completion_tokens: int | None = None, max_input_tokens: int | None = None) -> AIUsage:
+    await acquire_transaction_lock(db, f"ai-monthly-budget:{source}")
     if model not in MODEL_PRICING_USD_PER_MILLION:
         raise AIBudgetExceeded
     reserved_cost = calculate_cost_usd(
         model,
-        settings.AI_MAX_RESERVED_INPUT_TOKENS,
-        settings.AI_MAX_COMPLETION_TOKENS,
+        max_input_tokens if max_input_tokens is not None else settings.AI_MAX_RESERVED_INPUT_TOKENS,
+        max_completion_tokens if max_completion_tokens is not None else settings.AI_MAX_COMPLETION_TOKENS,
     )
-    if await _month_spend(db) + reserved_cost > Decimal(str(settings.AI_MONTHLY_BUDGET_USD)):
+    budget = monthly_budget_usd if monthly_budget_usd is not None else settings.AI_MONTHLY_BUDGET_USD
+    if await _month_spend(db, source=source) + reserved_cost > Decimal(str(budget)):
         raise AIBudgetExceeded
     usage = AIUsage(
         admin_id=admin_id,
@@ -64,6 +66,7 @@ async def reserve_ai_usage(db: AsyncSession, *, admin_id: int, model: str) -> AI
         output_tokens=0,
         estimated_cost_usd=reserved_cost,
         outcome="RESERVED",
+        source=source,
     )
     db.add(usage)
     await db.commit()
@@ -91,19 +94,19 @@ async def settle_ai_usage(
 
 async def get_usage_summary(db: AsyncSession) -> AIUsageSummary:
     start = month_start_utc()
-    spent = await _month_spend(db)
+    spent = await _month_spend(db, source="DASHBOARD_ASSISTANT")
     budget = Decimal(str(settings.AI_MONTHLY_BUDGET_USD))
     exchange_rate = Decimal(str(settings.AI_DISPLAY_EXCHANGE_RATE))
     admin_rows = (await db.execute(
         select(AIUsage.admin_id, Admin.username, func.coalesce(func.sum(AIUsage.estimated_cost_usd), 0))
         .outerjoin(Admin, Admin.id == AIUsage.admin_id)
-        .where(AIUsage.created_at >= start, AIUsage.outcome == "COMPLETED")
+        .where(AIUsage.created_at >= start, AIUsage.outcome == "COMPLETED", AIUsage.source == "DASHBOARD_ASSISTANT")
         .group_by(AIUsage.admin_id, Admin.username)
         .order_by(func.sum(AIUsage.estimated_cost_usd).desc())
     )).all()
     daily_rows = (await db.execute(
         select(func.date(AIUsage.created_at), func.coalesce(func.sum(AIUsage.estimated_cost_usd), 0))
-        .where(AIUsage.created_at >= start, AIUsage.outcome == "COMPLETED")
+        .where(AIUsage.created_at >= start, AIUsage.outcome == "COMPLETED", AIUsage.source == "DASHBOARD_ASSISTANT")
         .group_by(func.date(AIUsage.created_at))
         .order_by(func.date(AIUsage.created_at))
     )).all()
@@ -120,4 +123,8 @@ async def get_usage_summary(db: AsyncSession) -> AIUsageSummary:
         month_start=start,
         by_admin=[AIUsageByAdmin(admin_id=row[0], username=row[1] or "Deleted account", estimated_cost_usd=float(row[2])) for row in admin_rows],
         daily=[AIUsageDaily(date=str(row[0]), estimated_cost_usd=float(row[1])) for row in daily_rows],
+        by_source=[
+            AIUsageBySource(source="DASHBOARD_ASSISTANT", budget_usd=float(budget), estimated_cost_usd=float(spent)),
+            AIUsageBySource(source="WHATSAPP_RAG", budget_usd=float(settings.WHATSAPP_RAG_MONTHLY_BUDGET_USD), estimated_cost_usd=float(await _month_spend(db, source="WHATSAPP_RAG"))),
+        ],
     )

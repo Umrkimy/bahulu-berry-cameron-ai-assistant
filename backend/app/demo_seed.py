@@ -22,6 +22,7 @@ from app.models import (
     Discount,
     HandoffRule,
     Inventory,
+    KnowledgeArticle,
     MessagingConversation,
     MessagingEvent,
     Order,
@@ -214,6 +215,18 @@ async def seed_demo() -> None:
                 "is_active": True,
             },
             name="Fictional human handoff",
+        )
+        await first_or_create(
+            session,
+            KnowledgeArticle,
+            {
+                "category": "Local demo",
+                "content_en": "This fictional article demonstrates that a semantic draft must rely only on approved demo content. It does not describe real products, prices, delivery, or business policy.",
+                "title_ms": "Artikel pengetahuan demo fiksyen",
+                "content_ms": "Artikel fiksyen ini menunjukkan bahawa draf semantik hanya boleh menggunakan kandungan demo yang diluluskan. Ia tidak menerangkan produk, harga, penghantaran atau polisi perniagaan sebenar.",
+                "is_active": True,
+            },
+            title_en="Fictional semantic RAG demonstration",
         )
         await first_or_create(
             session,

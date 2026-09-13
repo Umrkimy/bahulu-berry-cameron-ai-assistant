@@ -24,6 +24,7 @@ export interface AIUsageSummary {
   month_start: string;
   by_admin: Array<{ admin_id: number | null; username: string; estimated_cost_usd: number }>;
   daily: Array<{ date: string; estimated_cost_usd: number }>;
+  by_source: Array<{ source: "DASHBOARD_ASSISTANT" | "WHATSAPP_RAG"; budget_usd: number; estimated_cost_usd: number }>;
 }
 
 export async function getAIUsageSummary() {
