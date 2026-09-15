@@ -68,8 +68,12 @@ bahuluberry.com        storefront
 www.bahuluberry.com    storefront redirect
 admin.bahuluberry.com  Cloudflare Access-protected dashboard
 api.bahuluberry.com    API and approved future webhooks
-demo.bahuluberry.com   private fictional-data demo
 ```
+
+The existing private demo currently uses
+`demo.bahuluberrycameron.com`; it is separate from the intended future
+production hostnames above. Do not repoint or publish either domain without
+client approval.
 
 - Budget staff email option: Malaysian cPanel shared hosting, used for human
   email only, not application hosting. Select a plan that explicitly supports

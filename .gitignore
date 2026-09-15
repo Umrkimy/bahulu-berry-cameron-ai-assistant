@@ -22,12 +22,31 @@ frontend/blob-report/
 .playwright-cli/
 /security-reports/
 
-# Frontend env
-frontend/.env
-/.env
-/.env.*
-!/.env.example
-!/.env.staging.example
+# Local environment files and secrets
+# Keep only the reviewed templates in Git. This covers Docker, Vite, Next.js,
+# and backend environment files at any depth.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!.env.staging.example
+!.env.demo.example
+!**/.env.example
+!**/.env.staging.example
+.envrc
+
+# Private keys, certificates, credential exports, and local database dumps.
+# Never place real values in an example/template file.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.dump
+*.sqlite3
+secrets/
+credentials/
 
 
 # =====================
@@ -41,9 +60,6 @@ backend/build/
 backend/dist/
 backend/wheels/
 backend/*.egg-info/
-
-# Backend env
-backend/.env
 
 # Python virtual environments
 backend/.venv/

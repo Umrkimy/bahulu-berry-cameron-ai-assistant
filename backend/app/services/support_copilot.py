@@ -68,13 +68,13 @@ async def create_grounded_draft(db: AsyncSession, *, message: str, requested_lan
         return _handoff(language=language, reason="An approved answer could not be prepared; a human will assist.", started=started)
     return SupportDraftPublic(reply=reply, language=language, handoff_required=False, handoff_reason=None, sources=[chunk.source for chunk in chunks], prompt_version=PROMPT_VERSION, model=settings.WHATSAPP_RAG_MODEL, latency_ms=round((time.perf_counter()-started)*1000), retrieval_mode="SEMANTIC_RAG")
 
-async def _embed(db: AsyncSession, value: str) -> list[float]:
-    usage = await reserve_ai_usage(db, admin_id=None, model=settings.WHATSAPP_RAG_EMBEDDING_MODEL, source="WHATSAPP_RAG", monthly_budget_usd=settings.WHATSAPP_RAG_MONTHLY_BUDGET_USD, max_input_tokens=min(1200, max(1, len(value)//3)), max_completion_tokens=0)
+async def _embed(db: AsyncSession, value: str, *, commit_usage: bool = True) -> list[float]:
+    usage = await reserve_ai_usage(db, admin_id=None, model=settings.WHATSAPP_RAG_EMBEDDING_MODEL, source="WHATSAPP_RAG", monthly_budget_usd=settings.WHATSAPP_RAG_MONTHLY_BUDGET_USD, max_input_tokens=min(1200, max(1, len(value)//3)), max_completion_tokens=0, commit=commit_usage)
     try: response = await client.embeddings.create(model=settings.WHATSAPP_RAG_EMBEDDING_MODEL, input=value)
     except (APIConnectionError, APITimeoutError, APIStatusError, OpenAIError):
-        await settle_ai_usage(db, usage, outcome="UNCERTAIN"); raise
+        await settle_ai_usage(db, usage, outcome="UNCERTAIN", commit=commit_usage); raise
     tokens = response.usage.total_tokens if response.usage else 0
-    await settle_ai_usage(db, usage, input_tokens=tokens, output_tokens=0, outcome="COMPLETED")
+    await settle_ai_usage(db, usage, input_tokens=tokens, output_tokens=0, outcome="COMPLETED", commit=commit_usage)
     return response.data[0].embedding
 
 async def _retrieve(db: AsyncSession, embedding: list[float], language: str) -> list[RetrievedChunk]:
@@ -122,10 +122,13 @@ def _source_languages(item: object, source_type: str) -> list[tuple[str, str]]:
     return [] if not item.title_ms or not item.content_ms else [("EN", f"{item.category}\n{item.title_en}\n{item.content_en}"), ("MS", f"{item.category}\n{item.title_ms}\n{item.content_ms}")]
 
 async def sync_knowledge_source(db: AsyncSession, item: object, source_type: str) -> int:
+    # Content and its embeddings must succeed or fail together. Usage records
+    # join this transaction so an embedding failure cannot leave a half-built
+    # knowledge index visible to staff.
     await db.execute(delete(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_type == source_type, SupportKnowledgeChunk.source_id == item.id)); count = 0
     for language, content in _source_languages(item, source_type):
         for index, chunk in enumerate(_split(content)):
-            embedding = await _embed(db, chunk)
+            embedding = await _embed(db, chunk, commit_usage=False)
             db.add(SupportKnowledgeChunk(source_type=source_type, source_id=item.id, language=language, chunk_index=index, content=chunk, content_hash=hashlib.sha256(chunk.encode()).hexdigest(), embedding=embedding)); count += 1
     await db.flush(); return count
 
