@@ -1,19 +1,37 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ActionIcon, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { IconEdit } from "@tabler/icons-react";
+import { IconArchive, IconEdit, IconRestore } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "../common/DataTable";
 
-import { useCustomers } from "../../hooks/useCustomers";
-import type { Customer } from "../../api/customers";
+import { useArchiveCustomer, useCustomers, useRestoreCustomer } from "../../hooks/useCustomers";
+import type { Customer, CustomerStatus } from "../../api/customers";
+import useAuth from "../../auth/useAuth";
+import { notifications } from "@mantine/notifications";
 
 interface Props {
   onEdit: (customer: Customer) => void;
+  customerStatus: CustomerStatus;
 }
 
-export default function CustomerTable({ onEdit }: Props) {
-  const { data: customers, isLoading } = useCustomers();
+export default function CustomerTable({ onEdit, customerStatus }: Props) {
+  const { data: customers, isLoading } = useCustomers(customerStatus);
+  const { admin } = useAuth();
+  const archiveCustomer = useArchiveCustomer();
+  const restoreCustomer = useRestoreCustomer();
+  const isOwner = admin?.role === "OWNER";
+  const archived = customerStatus === "archived";
+
+  const changeArchiveState = useCallback(async (customer: Customer) => {
+    try {
+      if (archived) await restoreCustomer.mutateAsync(customer.id);
+      else await archiveCustomer.mutateAsync(customer.id);
+      notifications.show({ title: archived ? "Customer Restored" : "Customer Archived", message: archived ? "The customer is active again." : "The customer and their history have been retained.", color: "green" });
+    } catch {
+      notifications.show({ title: "Customer Update Failed", message: "The archive status could not be changed.", color: "red" });
+    }
+  }, [archiveCustomer, archived, restoreCustomer]);
 
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(
     () => [
@@ -71,7 +89,7 @@ export default function CustomerTable({ onEdit }: Props) {
         enableSorting: false,
         cell: ({ row }) => (
           <Group gap="xs">
-            <Tooltip label="Edit customer">
+            {!archived && <Tooltip label="Edit customer">
               <ActionIcon
               aria-label="Edit customer"
               variant="light"
@@ -79,12 +97,17 @@ export default function CustomerTable({ onEdit }: Props) {
               >
                 <IconEdit size={18} />
               </ActionIcon>
-            </Tooltip>
+            </Tooltip>}
+            {isOwner && <Tooltip label={archived ? "Restore customer" : "Archive customer"}>
+              <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="light" color={archived ? "green" : "orange"} loading={archiveCustomer.isPending || restoreCustomer.isPending} onClick={() => void changeArchiveState(row.original)}>
+                {archived ? <IconRestore size={18} /> : <IconArchive size={18} />}
+              </ActionIcon>
+            </Tooltip>}
           </Group>
         ),
       },
     ],
-    [onEdit],
+    [onEdit, isOwner, archived, archiveCustomer.isPending, restoreCustomer.isPending, changeArchiveState],
   );
 
   return (
@@ -93,12 +116,12 @@ export default function CustomerTable({ onEdit }: Props) {
       columns={columns}
       loading={isLoading}
       searchPlaceholder="Search customers..."
-      emptyMessage="No customers found."
+      emptyMessage={archived ? "No archived customers found." : "No active customers found."}
       renderMobileCard={(customer) => (
         <Card withBorder radius="md" p="sm">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <Stack gap={2}><Text fw={700}>{customer.full_name}</Text><Text size="sm">{customer.phone_number}</Text><Text size="xs" c="dimmed">{customer.email ?? "No email"}{customer.city || customer.state ? ` · ${[customer.city, customer.state].filter(Boolean).join(", ")}` : ""}</Text></Stack>
-            <ActionIcon aria-label="Edit customer" variant="light" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>
+            <Group gap="xs">{!archived && <ActionIcon aria-label="Edit customer" variant="light" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>}{isOwner && <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="light" color={archived ? "green" : "orange"} onClick={() => void changeArchiveState(customer)}>{archived ? <IconRestore size={18} /> : <IconArchive size={18} />}</ActionIcon>}</Group>
           </Group>
         </Card>
       )}

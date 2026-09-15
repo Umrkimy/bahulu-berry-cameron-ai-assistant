@@ -110,7 +110,7 @@ export default function CreateCustomerModal({ opened, onClose }: Props) {
           </Text>
 
           <Text size="xs" c="dimmed">
-            Enter the customer's basic contact details.
+            Malaysian numbers are stored as +60. International numbers must begin with +.
           </Text>
         </div>
 

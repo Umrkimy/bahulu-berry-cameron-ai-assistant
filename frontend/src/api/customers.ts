@@ -13,6 +13,8 @@ export interface Customer {
   tags: string | null;
   internal_note: string | null;
   follow_up_at: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
   created_at: string;
 }
 
@@ -40,9 +42,25 @@ export interface UpdateCustomerData {
   follow_up_at?: string | null;
 }
 
-export async function getCustomers() {
-  const response = await api.get<Customer[]>("/customers/");
+export type CustomerStatus = "active" | "archived";
 
+export async function getCustomersByStatus(customerStatus: CustomerStatus) {
+  const response = await api.get<Customer[]>("/customers/", { params: { status: customerStatus } });
+
+  return response.data;
+}
+
+export async function getCustomers() {
+  return getCustomersByStatus("active");
+}
+
+export async function archiveCustomer(customerId: number) {
+  const response = await api.post<Customer>(`/customers/${customerId}/archive`);
+  return response.data;
+}
+
+export async function restoreCustomer(customerId: number) {
+  const response = await api.post<Customer>(`/customers/${customerId}/restore`);
   return response.data;
 }
 

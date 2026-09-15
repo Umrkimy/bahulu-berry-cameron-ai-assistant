@@ -147,7 +147,7 @@ export default function EditCustomerModal({
           </Text>
 
           <Text size="xs" c="dimmed">
-            Update the customer's basic contact details.
+            Malaysian numbers are stored as +60. International numbers must begin with +.
           </Text>
         </div>
 

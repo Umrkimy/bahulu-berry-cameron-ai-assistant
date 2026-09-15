@@ -231,7 +231,9 @@ async def requests(
 @router.post("/requests",response_model=SupportRequestPublic)
 async def create_request(data:SupportRequestInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]):
     if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
-    if data.customer_id is not None and await db.get(Customer, data.customer_id) is None: raise HTTPException(404,detail="Customer not found.")
+    if data.customer_id is not None:
+        customer = await db.get(Customer, data.customer_id)
+        if customer is None or customer.is_archived: raise HTTPException(404,detail="Active customer not found.")
     if data.assigned_admin_id is not None:
         assignee = await db.get(Admin, data.assigned_admin_id)
         if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")
@@ -244,7 +246,9 @@ async def create_request(data:SupportRequestInput,db:Annotated[AsyncSession,Depe
 @router.patch("/requests/{item_id}",response_model=SupportRequestPublic)
 async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]):
     if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
-    if data.customer_id is not None and await db.get(Customer, data.customer_id) is None: raise HTTPException(404,detail="Customer not found.")
+    if data.customer_id is not None:
+        customer = await db.get(Customer, data.customer_id)
+        if customer is None or customer.is_archived: raise HTTPException(404,detail="Active customer not found.")
     if data.assigned_admin_id is not None:
         assignee = await db.get(Admin, data.assigned_admin_id)
         if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")

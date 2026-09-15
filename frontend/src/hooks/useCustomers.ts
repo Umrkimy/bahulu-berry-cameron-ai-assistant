@@ -1,13 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createCustomer, getCustomers, updateCustomer } from "../api/customers";
-import type { UpdateCustomerData } from "../api/customers";
+import { archiveCustomer, createCustomer, getCustomersByStatus, restoreCustomer, updateCustomer } from "../api/customers";
+import type { CustomerStatus, UpdateCustomerData } from "../api/customers";
 
-export function useCustomers() {
+export function useCustomers(customerStatus: CustomerStatus = "active") {
   return useQuery({
-    queryKey: ["customers"],
-    queryFn: getCustomers,
+    queryKey: ["customers", customerStatus],
+    queryFn: () => getCustomersByStatus(customerStatus),
   });
+}
+
+function useCustomerArchiveMutation(action: "archive" | "restore") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: action === "archive" ? archiveCustomer : restoreCustomer,
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+}
+
+export function useArchiveCustomer() {
+  return useCustomerArchiveMutation("archive");
+}
+
+export function useRestoreCustomer() {
+  return useCustomerArchiveMutation("restore");
 }
 
 export function useCreateCustomer() {

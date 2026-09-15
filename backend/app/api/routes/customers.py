@@ -1,7 +1,8 @@
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -10,6 +11,7 @@ from app.models.admin import Admin
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerPrivate, CustomerUpdate
 from app.services.activity_services import record_activity
+from app.services.contact_normalization import ContactNormalizationError, normalize_email, normalize_phone_number
 
 router = APIRouter()
 
@@ -21,8 +23,13 @@ async def get_customers(
         Admin,
         Depends(get_current_admin),
     ],
+    customer_status: Literal["active", "archived"] = Query(default="active", alias="status"),
 ):
-    result = await db.execute(select(Customer))
+    result = await db.execute(
+        select(Customer)
+        .where(Customer.is_archived.is_(customer_status == "archived"))
+        .order_by(Customer.full_name)
+    )
     customers = result.scalars().all()
 
     return customers
@@ -59,7 +66,25 @@ async def create_customer(
         Depends(get_current_admin),
     ],
 ):
-    customer = Customer(**customer_data.model_dump())
+    try:
+        canonical_phone = normalize_phone_number(customer_data.phone_number)
+    except ContactNormalizationError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"field": error.field, "message": error.message}) from error
+    canonical_email = normalize_email(customer_data.email)
+
+    existing_phone = await db.scalar(select(Customer).where(Customer.canonical_phone_number == canonical_phone))
+    if existing_phone is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"field": "phone_number", "message": "A customer with this phone number already exists, including archived customers."})
+
+    if canonical_email is not None:
+        existing_email = await db.scalar(select(Customer).where(Customer.canonical_email == canonical_email))
+        if existing_email is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"field": "email", "message": "A customer with this email already exists, including archived customers."})
+
+    customer_values = customer_data.model_dump()
+    customer_values.update(phone_number=canonical_phone, email=canonical_email,
+                           canonical_phone_number=canonical_phone, canonical_email=canonical_email)
+    customer = Customer(**customer_values)
 
     db.add(customer)
     await db.flush()
@@ -91,34 +116,32 @@ async def update_customer(
             detail="Customer not found",
         )
 
-    # Check email uniqueness
-    if (
-        customer_data.email is not None
-        and customer_data.email.lower() != customer.email.lower()
-    ):
-        result = await db.execute(
-            select(Customer).where(
-                func.lower(Customer.email) == customer_data.email.lower()
-            )
-        )
+    if customer.is_archived:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Restore this customer before editing their current details.")
 
-        existing_customer = result.scalar_one_or_none()
-
-        if existing_customer:
-            raise HTTPException(
-                status_code=400,
-                detail="Email already registered",
-            )
-
-    # Update only fields provided
     update_data = customer_data.model_dump(exclude_unset=True)
+    if "phone_number" in update_data:
+        try:
+            canonical_phone = normalize_phone_number(update_data["phone_number"])
+        except ContactNormalizationError as error:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"field": error.field, "message": error.message}) from error
+        if canonical_phone != customer.canonical_phone_number:
+            existing_customer = await db.scalar(select(Customer).where(Customer.canonical_phone_number == canonical_phone, Customer.id != customer.id))
+            if existing_customer is not None:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"field": "phone_number", "message": "A customer with this phone number already exists, including archived customers."})
+        update_data["phone_number"] = canonical_phone
+        update_data["canonical_phone_number"] = canonical_phone
+
+    if "email" in update_data:
+        canonical_email = normalize_email(update_data["email"])
+        if canonical_email != customer.canonical_email and canonical_email is not None:
+            existing_customer = await db.scalar(select(Customer).where(Customer.canonical_email == canonical_email, Customer.id != customer.id))
+            if existing_customer is not None:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"field": "email", "message": "A customer with this email already exists, including archived customers."})
+        update_data["email"] = canonical_email
+        update_data["canonical_email"] = canonical_email
 
     for field, value in update_data.items():
-
-        # normalize email
-        if field == "email" and value:
-            value = value.lower()
-
         setattr(customer, field, value)
 
     await record_activity(db, admin=current_admin, action="updated", entity_type="customer", entity_id=customer.id, description=f"Updated customer {customer.full_name}.", metadata={"fields": sorted(update_data.keys())})
@@ -128,8 +151,8 @@ async def update_customer(
     return customer
 
 
-@router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_customer(
+@router.post("/{customer_id}/archive", response_model=CustomerPrivate)
+async def archive_customer(
     customer_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
@@ -147,6 +170,32 @@ async def delete_customer(
             detail="Customer not found",
         )
 
-    await record_activity(db, admin=current_admin, action="deleted", entity_type="customer", entity_id=customer.id, description=f"Deleted customer {customer.full_name}.")
-    await db.delete(customer)
+    if customer.is_archived:
+        return customer
+
+    customer.is_archived = True
+    customer.archived_at = datetime.now(UTC)
+    await record_activity(db, admin=current_admin, action="archived", entity_type="customer", entity_id=customer.id, description=f"Archived customer {customer.full_name}.")
     await db.commit()
+    await db.refresh(customer)
+    return customer
+
+
+@router.post("/{customer_id}/restore", response_model=CustomerPrivate)
+async def restore_customer(
+    customer_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_superuser)],
+):
+    customer = await db.scalar(select(Customer).where(Customer.id == customer_id))
+    if customer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+    if not customer.is_archived:
+        return customer
+
+    customer.is_archived = False
+    customer.archived_at = None
+    await record_activity(db, admin=current_admin, action="restored", entity_type="customer", entity_id=customer.id, description=f"Restored customer {customer.full_name}.")
+    await db.commit()
+    await db.refresh(customer)
+    return customer
