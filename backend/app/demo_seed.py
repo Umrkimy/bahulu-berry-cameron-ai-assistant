@@ -102,6 +102,8 @@ async def seed_demo() -> None:
                 "state": "Demo State",
                 "postal_code": "00000",
                 "country": "Malaysia",
+                "canonical_phone_number": "+60100000001",
+                "canonical_email": "amina@example.com",
             },
             phone_number="0100000001",
         )
