@@ -39,7 +39,9 @@ from app.models import (
 
 async def first_or_create(session, model, defaults: dict, **filters):
     result = await session.execute(select(model).filter_by(**filters))
-    record = result.scalar_one_or_none()
+    # Older fictional demo runs may contain more than one matching sample
+    # record. Reuse the first instead of failing an otherwise safe seed run.
+    record = result.scalars().first()
     if record is None:
         record = model(**filters, **defaults)
         session.add(record)
