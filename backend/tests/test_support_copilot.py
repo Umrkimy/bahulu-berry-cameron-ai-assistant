@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 
 import pytest
+from sqlalchemy import select
 
-from app.models.support import HandoffRule, SupportFAQ, SupportTemplate
+from app.models.support import HandoffRule, SupportFAQ, SupportKnowledgeChunk, SupportTemplate
 from app.services import support_copilot
-from app.services.support_copilot import MODEL_NAME, PROMPT_VERSION, RetrievedChunk, create_grounded_draft
+from app.services.support_copilot import MODEL_NAME, PROMPT_VERSION, RetrievedChunk, create_grounded_draft, sync_knowledge_source
 from app.schemas.support import SupportDraftSource
 
 
@@ -104,3 +105,43 @@ async def test_versioned_eval_dataset_matches_grounding_and_handoff_contract(ses
         assert draft.language == scenario["language"], scenario["name"]
         assert draft.handoff_required is scenario["expects_handoff"], scenario["name"]
         assert bool(draft.sources) is scenario["expects_source"], scenario["name"]
+
+
+@pytest.mark.asyncio
+async def test_failed_knowledge_sync_rolls_back_existing_chunks(session, monkeypatch):
+    faq = SupportFAQ(
+        category="demo",
+        question_en="Is this a demo answer?",
+        answer_en="This is the previous approved answer.",
+        question_ms="Adakah ini jawapan demo?",
+        answer_ms="Ini jawapan yang diluluskan sebelum ini.",
+        is_active=True,
+    )
+    session.add(faq)
+    await session.flush()
+    session.add(
+        SupportKnowledgeChunk(
+            source_type="FAQ",
+            source_id=faq.id,
+            language="EN",
+            chunk_index=0,
+            content="Previous approved knowledge.",
+            content_hash="a" * 64,
+            embedding=[0.0] * 1536,
+        )
+    )
+    await session.commit()
+    faq_id = faq.id
+
+    async def embedding_failure(*_args, **_kwargs):
+        raise support_copilot.OpenAIError("embedding provider unavailable")
+
+    monkeypatch.setattr(support_copilot, "_embed", embedding_failure)
+    with pytest.raises(support_copilot.OpenAIError):
+        await sync_knowledge_source(session, faq, "FAQ")
+    await session.rollback()
+
+    chunks = (await session.execute(
+        select(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_id == faq_id)
+    )).scalars().all()
+    assert [chunk.content for chunk in chunks] == ["Previous approved knowledge."]

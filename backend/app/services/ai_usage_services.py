@@ -47,7 +47,17 @@ async def _month_spend(db: AsyncSession, *, source: str | None = None) -> Decima
     return Decimal(str(result or 0))
 
 
-async def reserve_ai_usage(db: AsyncSession, *, admin_id: int | None, model: str, source: str = "DASHBOARD_ASSISTANT", monthly_budget_usd: float | None = None, max_completion_tokens: int | None = None, max_input_tokens: int | None = None) -> AIUsage:
+async def reserve_ai_usage(
+    db: AsyncSession,
+    *,
+    admin_id: int | None,
+    model: str,
+    source: str = "DASHBOARD_ASSISTANT",
+    monthly_budget_usd: float | None = None,
+    max_completion_tokens: int | None = None,
+    max_input_tokens: int | None = None,
+    commit: bool = True,
+) -> AIUsage:
     await acquire_transaction_lock(db, f"ai-monthly-budget:{source}")
     if model not in MODEL_PRICING_USD_PER_MILLION:
         raise AIBudgetExceeded
@@ -69,7 +79,10 @@ async def reserve_ai_usage(db: AsyncSession, *, admin_id: int | None, model: str
         source=source,
     )
     db.add(usage)
-    await db.commit()
+    if commit:
+        await db.commit()
+    else:
+        await db.flush()
     await db.refresh(usage)
     return usage
 
@@ -81,6 +94,7 @@ async def settle_ai_usage(
     input_tokens: int = 0,
     output_tokens: int = 0,
     outcome: str,
+    commit: bool = True,
 ) -> None:
     usage.input_tokens = input_tokens
     usage.output_tokens = output_tokens
@@ -89,7 +103,10 @@ async def settle_ai_usage(
     elif outcome != "UNCERTAIN":
         usage.estimated_cost_usd = Decimal("0")
     usage.outcome = outcome
-    await db.commit()
+    if commit:
+        await db.commit()
+    else:
+        await db.flush()
 
 
 async def get_usage_summary(db: AsyncSession) -> AIUsageSummary:
