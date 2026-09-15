@@ -105,7 +105,7 @@ async def seed_demo() -> None:
                 "canonical_phone_number": "+60100000001",
                 "canonical_email": "amina@example.com",
             },
-            phone_number="0100000001",
+            phone_number="+60100000001",
         )
         product = await first_or_create(
             session,
