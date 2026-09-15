@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -52,6 +52,16 @@ class Customer(Base):
         String(100),
         default="Malaysia",
     )
+    canonical_phone_number: Mapped[str | None] = mapped_column(
+        String(20), unique=True, nullable=True, index=True
+    )
+    canonical_email: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+    is_archived: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, index=True
+    )
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     tags: Mapped[str | None] = mapped_column(String(500), nullable=True)
     internal_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     follow_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)

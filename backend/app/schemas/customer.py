@@ -37,6 +37,8 @@ class CustomerPrivate(CustomerPublic):
     tags: str | None
     internal_note: str | None
     follow_up_at: datetime | None
+    is_archived: bool
+    archived_at: datetime | None
 
 
 class CustomerUpdate(BaseModel):

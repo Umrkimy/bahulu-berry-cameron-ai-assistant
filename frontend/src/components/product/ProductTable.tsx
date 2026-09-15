@@ -37,7 +37,8 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
       children: (
         <Text size="sm">
           Are you sure you want to delete <strong>{product.name}</strong>? This
-          will also remove its inventory record. This action cannot be undone.
+          will also remove its inventory record. Products with order or stock
+          history are retained; mark those inactive instead.
         </Text>
       ),
 

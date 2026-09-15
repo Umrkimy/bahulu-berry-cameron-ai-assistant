@@ -1,4 +1,4 @@
-import { Button, Card } from "@mantine/core";
+import { Button, Card, Group, SegmentedControl } from "@mantine/core";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -13,6 +13,7 @@ export default function Customers() {
   const [createOpened, setCreateOpened] = useState(false);
   const [selectedCustomer, setSelectedCustomer] =
     useState<Customer | null>(null);
+  const [customerStatus, setCustomerStatus] = useState<"active" | "archived">("active");
   const location = useLocation();
   const navigate = useNavigate();
   const routeAction = (location.state as DashboardRouteState | null)?.dashboardAction;
@@ -32,11 +33,11 @@ export default function Customers() {
       <PageHeader
         title="Customers"
         description="Manage customer details and contact information."
-        action={<Button onClick={() => setCreateOpened(true)}>Add Customer</Button>}
+        action={<Group gap="sm"><SegmentedControl value={customerStatus} onChange={(value) => setCustomerStatus(value as "active" | "archived")} data={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }]} /><Button onClick={() => setCreateOpened(true)}>Add Customer</Button></Group>}
       />
 
       <Card withBorder p={0} style={{ overflow: "hidden" }}>
-        <CustomerTable onEdit={openEdit} />
+        <CustomerTable customerStatus={customerStatus} onEdit={openEdit} />
       </Card>
 
       <CreateCustomerModal

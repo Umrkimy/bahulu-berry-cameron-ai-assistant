@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from app.api.routes.products import import_products, preview_product_import
 from app.auth.dependencies import get_current_superuser
 from app.models import ActivityLog, Admin, Inventory, Product
+from app.models.stock_movement import StockMovement
 
 
 def upload_csv(text: str, filename: str = "products.csv") -> UploadFile:
@@ -70,10 +71,15 @@ async def test_confirmed_import_creates_products_inventory_and_one_audit_entry(s
     products = (await session.scalars(select(Product).order_by(Product.name))).all()
     inventories = (await session.scalars(select(Inventory).order_by(Inventory.product_id))).all()
     activities = (await session.scalars(select(ActivityLog).where(ActivityLog.action == "imported"))).all()
+    movements = (await session.scalars(select(StockMovement).order_by(StockMovement.product_id))).all()
     assert result.imported_count == 2
     assert [product.storefront_published for product in products] == [False, False]
     assert [inventory.quantity for inventory in inventories] == [24, 12]
     assert [inventory.low_stock_threshold for inventory in inventories] == [5, 10]
+    assert [(movement.movement_type, movement.quantity_before, movement.quantity_change, movement.quantity_after) for movement in movements] == [
+        ("OPENING_BALANCE", 0, 24, 24),
+        ("OPENING_BALANCE", 0, 12, 12),
+    ]
     assert len(activities) == 1
     assert activities[0].description == "Imported 2 products from CSV."
 

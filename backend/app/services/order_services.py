@@ -19,6 +19,7 @@ from app.models.product import Product
 from app.models.refund_request import RefundRequest
 from app.services.inventory_services import adjust_inventory
 from app.services.pricing_services import calculate_order_pricing
+from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
 
 
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
@@ -115,11 +116,17 @@ async def find_orders(
                 "error": "Customer identifier cannot be empty.",
             }
 
+        try:
+            normalized_phone = normalize_phone_number(identifier)
+        except ContactNormalizationError:
+            normalized_phone = None
         customer_result = await db.execute(
             select(Customer).where(
-                (Customer.phone_number == identifier)
+                Customer.is_archived.is_(False),
+                ((Customer.canonical_phone_number == normalized_phone)
+                | (Customer.phone_number == identifier)
                 | (Customer.full_name.ilike(identifier))
-                | (Customer.email.ilike(identifier))
+                | (Customer.email.ilike(identifier)))
             )
         )
 
@@ -128,6 +135,7 @@ async def find_orders(
         if customer is None:
             customer_result = await db.execute(
                 select(Customer).where(
+                    Customer.is_archived.is_(False),
                     Customer.full_name.ilike(
                         f"%{identifier}%"
                     )
@@ -263,7 +271,8 @@ async def create_order(
 ) -> dict:
     customer_result = await db.execute(
         select(Customer).where(
-            Customer.id == customer_id
+            Customer.id == customer_id,
+            Customer.is_archived.is_(False),
         )
     )
 

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate
+from app.services.contact_normalization import ContactNormalizationError, normalize_email, normalize_phone_number
 
 
 async def find_customer(
@@ -24,19 +25,26 @@ async def find_customer(
         return None
 
 
+    normalized_phone = None
+    try:
+        normalized_phone = normalize_phone_number(identifier)
+    except ContactNormalizationError:
+        pass
+    normalized_email = normalize_email(identifier) if "@" in identifier else None
+
     result = await db.execute(
         select(Customer).where(
+            Customer.is_archived.is_(False),
             or_(
                 func.lower(
                     Customer.full_name
                 ) == identifier.lower(),
 
-                Customer.phone_number
-                == identifier,
+                Customer.canonical_phone_number == normalized_phone,
+                Customer.phone_number == identifier,
 
-                func.lower(
-                    Customer.email
-                ) == identifier.lower(),
+                Customer.canonical_email == normalized_email,
+                func.lower(Customer.email) == (normalized_email or identifier.lower()),
             )
         )
     )
@@ -66,6 +74,7 @@ async def find_customer(
 
     result = await db.execute(
         select(Customer).where(
+            Customer.is_archived.is_(False),
             func.lower(
                 Customer.full_name
             ).contains(
@@ -132,10 +141,15 @@ async def create_customer(
     Create a new customer.
     """
 
+    try:
+        phone_number = normalize_phone_number(customer_data.phone_number)
+    except ContactNormalizationError as error:
+        return {"success": False, "error": error.message, "field": error.field}
+    email = normalize_email(customer_data.email)
+
     result = await db.execute(
         select(Customer).where(
-            Customer.phone_number
-            == customer_data.phone_number
+            Customer.canonical_phone_number == phone_number
         )
     )
 
@@ -153,14 +167,11 @@ async def create_customer(
             ),
         }
 
-    if customer_data.email:
+    if email:
 
         result = await db.execute(
             select(Customer).where(
-                func.lower(
-                    Customer.email
-                )
-                == customer_data.email.lower()
+                Customer.canonical_email == email
             )
         )
 
@@ -179,9 +190,10 @@ async def create_customer(
             }
 
 
-    customer = Customer(
-        **customer_data.model_dump()
-    )
+    customer_values = customer_data.model_dump()
+    customer_values.update(phone_number=phone_number, email=email,
+                           canonical_phone_number=phone_number, canonical_email=email)
+    customer = Customer(**customer_values)
 
     db.add(customer)
 

@@ -12,6 +12,8 @@ from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.models.admin import Admin
 from app.models.product import Product
 from app.models.inventory import Inventory
+from app.models.order_item import OrderItem
+from app.models.stock_movement import StockMovement
 from app.services.activity_services import record_activity
 from app.schemas.product import (
     ProductCreate,
@@ -68,11 +70,25 @@ async def import_products(
         )
         db.add(product)
         await db.flush()
-        db.add(Inventory(
+        inventory = Inventory(
             product_id=product.id,
             quantity=row.opening_stock,
             low_stock_threshold=row.low_stock_threshold,
-        ))
+        )
+        db.add(inventory)
+        await db.flush()
+        if row.opening_stock > 0:
+            db.add(StockMovement(
+                inventory_id=inventory.id,
+                product_id=product.id,
+                movement_type="OPENING_BALANCE",
+                quantity_change=row.opening_stock,
+                quantity_before=0,
+                quantity_after=row.opening_stock,
+                reason="Opening balance recorded when product was imported.",
+                source_type="PRODUCT",
+                source_id=product.id,
+            ))
     await record_activity(
         db,
         admin=current_admin,
@@ -411,6 +427,19 @@ async def create_product(
     )
 
     db.add(inventory)
+    await db.flush()
+    if product_data.initial_quantity > 0:
+        db.add(StockMovement(
+            inventory_id=inventory.id,
+            product_id=product.id,
+            movement_type="OPENING_BALANCE",
+            quantity_change=product_data.initial_quantity,
+            quantity_before=0,
+            quantity_after=product_data.initial_quantity,
+            reason="Opening balance recorded when product was created.",
+            source_type="PRODUCT",
+            source_id=product.id,
+        ))
     await record_activity(db, admin=current_admin, action="created", entity_type="product", entity_id=product.id, description=f"Created product {product.name}.")
     await db.commit()
     await db.refresh(product, ["inventory", "discounts"])
@@ -499,6 +528,18 @@ async def delete_product(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found",
+        )
+
+    has_order_history = await db.scalar(
+        select(OrderItem.id).where(OrderItem.product_id == product.id).limit(1)
+    )
+    has_stock_history = await db.scalar(
+        select(StockMovement.id).where(StockMovement.product_id == product.id).limit(1)
+    )
+    if has_order_history is not None or has_stock_history is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Products with order or stock-movement history are retained. Mark the product inactive instead.",
         )
 
     inventory = await db.get(Inventory, product.id)
