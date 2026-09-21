@@ -1,6 +1,7 @@
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from ipaddress import ip_address
+from math import ceil
 from time import monotonic
 
 from fastapi import HTTPException, Request, status
@@ -26,7 +27,7 @@ class InMemoryRateLimiter:
         while timestamps and timestamps[0] <= now - limit.window_seconds:
             timestamps.popleft()
         if len(timestamps) >= limit.maximum:
-            retry_after = max(1, int(limit.window_seconds - (now - timestamps[0])))
+            retry_after = max(1, ceil(limit.window_seconds - (now - timestamps[0])))
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail={

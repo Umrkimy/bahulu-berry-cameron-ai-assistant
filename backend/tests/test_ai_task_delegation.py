@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -66,7 +66,7 @@ async def test_owner_confirmation_creates_one_task_and_one_activity(session):
     assert await session.scalar(select(func.count()).select_from(ActivityLog).where(ActivityLog.entity_type == "task")) == 1
     task = await session.scalar(select(Task))
     assert task.assigned_admin_id == assignee.id
-    assert task.due_at.replace(tzinfo=None) == datetime.fromisoformat("2026-09-07T14:00:00+08:00").replace(tzinfo=None)
+    assert task.due_at.replace(tzinfo=UTC) == datetime.fromisoformat("2026-09-07T14:00:00+08:00").astimezone(UTC)
     assert (await ai.confirm_pending_confirmation(session, owner.id, conversation_id)).outcome == "FAILED"
 
 
