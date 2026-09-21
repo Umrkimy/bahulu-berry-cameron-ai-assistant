@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -547,6 +547,9 @@ async def create_task_tool(
             return {"success": False, "error": "Use a valid Malaysia date and time for the task deadline."}
         if parsed_due_at.tzinfo is None or parsed_due_at.utcoffset() != timedelta(hours=8):
             return {"success": False, "error": "Use Malaysia time (+08:00) when setting a task deadline."}
+        # PostgreSQL normalises timezone-aware values to UTC. Do that before
+        # persistence so SQLite and PostgreSQL represent the same instant.
+        parsed_due_at = parsed_due_at.astimezone(UTC)
 
     try:
         resolved_context_type, resolved_context_id, context_label = await resolve_task_context(
