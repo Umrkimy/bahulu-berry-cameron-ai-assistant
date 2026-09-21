@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import json
 import logging
+from pathlib import Path
 import time
 from uuid import uuid4
 
@@ -27,6 +28,11 @@ from app.services.email_services import purge_expired_email_security_records
 
 
 logger = logging.getLogger("bahulu.api")
+STATIC_DIRECTORY = Path(__file__).resolve().parent / "static"
+# Uploads are intentionally local-only at this stage. Create the directory at
+# startup so a clean CI checkout and a fresh container can serve the static
+# route without requiring an ignored empty directory in Git.
+STATIC_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 @asynccontextmanager
@@ -89,7 +95,7 @@ async def handle_integrity_error(_, __):
 
 app.mount(
     "/static",
-    StaticFiles(directory="static"),
+    StaticFiles(directory=STATIC_DIRECTORY),
     name="static",
 )
 
