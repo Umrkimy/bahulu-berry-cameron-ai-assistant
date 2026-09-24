@@ -9,6 +9,7 @@ from app.api.routes.storefront import get_storefront_product, list_storefront_pr
 from app.models.discount import Discount
 from app.models.inventory import Inventory
 from app.models.product import Product
+from app.services.pricing_services import calculate_order_pricing
 
 
 def request() -> Request:
@@ -76,3 +77,35 @@ async def test_storefront_hides_out_of_stock_quantity_and_unavailable_products(s
 
     assert item.is_available is False
     assert "quantity" not in item.model_dump()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "price,discounts,expected",
+    [
+        ("10.00", [("FIXED_AMOUNT", "2.00"), ("PERCENTAGE", "10.00")], "7.00"),
+        ("0.05", [("PERCENTAGE", "10.00")], "0.04"),
+    ],
+)
+async def test_storefront_sale_price_matches_single_unit_order(session, price, discounts, expected):
+    product = Product(
+        name="Fictional pricing fixture", price=Decimal(price), is_active=True,
+        storefront_published=True, storefront_name_en="Fictional product",
+        storefront_name_ms="Produk fiksyen",
+    )
+    session.add(product)
+    await session.flush()
+    session.add(Inventory(product_id=product.id, quantity=10, low_stock_threshold=1))
+    for discount_type, value in discounts:
+        session.add(Discount(
+            product_id=product.id, name="Fictional discount", discount_type=discount_type,
+            discount_value=Decimal(value), start_at=datetime.now(UTC) - timedelta(hours=1),
+            end_at=datetime.now(UTC) + timedelta(hours=1), is_active=True,
+        ))
+    await session.commit()
+
+    item = await get_storefront_product(product.id, request(), session, Response())
+    quote = await calculate_order_pricing(session, [{"product_id": product.id, "quantity": 1}])
+
+    assert quote["total_amount"] == Decimal(expected)
+    assert item.sale_price == quote["total_amount"]
