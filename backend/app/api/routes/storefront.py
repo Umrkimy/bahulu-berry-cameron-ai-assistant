@@ -41,10 +41,16 @@ def _serialize_product(product: Product) -> StorefrontProduct:
     unit_price = _money(Decimal(str(product.price)))
     sale_price = unit_price
     has_unit_discount = False
-    for discount in product.active_discounts:
+    # Match the order quote: percentage discounts precede fixed reductions,
+    # and rounding applies to the discount amount, not the remaining price.
+    promotion_order = {"PERCENTAGE": 1, "FIXED_AMOUNT": 2}
+    for discount in sorted(
+        product.active_discounts,
+        key=lambda item: (promotion_order.get(item.discount_type, 99), item.id),
+    ):
         value = Decimal(str(discount.discount_value))
         if discount.discount_type == "PERCENTAGE":
-            sale_price = _money(sale_price * (Decimal("100") - value) / Decimal("100"))
+            sale_price = _money(sale_price - _money(sale_price * value / Decimal("100")))
             has_unit_discount = True
         elif discount.discount_type == "FIXED_AMOUNT":
             sale_price = _money(max(Decimal("0.00"), sale_price - value))
@@ -100,7 +106,7 @@ async def list_storefront_products(
         select(Product)
         .options(selectinload(Product.inventory), selectinload(Product.discounts))
         .where(*filters)
-        .order_by(Product.storefront_name_en.asc())
+        .order_by(Product.storefront_name_en.asc(), Product.id.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )

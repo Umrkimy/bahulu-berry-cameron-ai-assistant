@@ -72,6 +72,8 @@ jobs:
         working-directory: storefront
       - run: npm audit --omit=dev --audit-level=high
         working-directory: storefront
+      - run: npm test
+        working-directory: storefront
       - run: npm run lint -- --max-warnings=0
         working-directory: storefront
       - run: npm run build
