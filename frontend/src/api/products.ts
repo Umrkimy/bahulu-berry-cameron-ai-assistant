@@ -30,9 +30,12 @@ export interface ProductImportPreview {
 }
 
 export async function getProducts() {
-  const response = await api.get<PaginatedProducts>("/products/admin");
-
-  return response.data;
+  const first = (await api.get<PaginatedProducts>("/products/admin", { params: { page: 1, page_size: 100 } })).data;
+  const items = [...first.items];
+  for (let page = 2; page <= first.pages; page += 1) {
+    items.push(...(await api.get<PaginatedProducts>("/products/admin", { params: { page, page_size: 100 } })).data.items);
+  }
+  return { ...first, items: [...new Map(items.map(product => [product.id, product])).values()] };
 }
 
 export async function createProduct(data: CreateProductData) {

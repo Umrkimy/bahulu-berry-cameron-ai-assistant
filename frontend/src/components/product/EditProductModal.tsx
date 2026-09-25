@@ -1,8 +1,7 @@
 import { Anchor, Divider, NumberInput, Stack, Switch, Text, TextInput, Textarea } from "@mantine/core";
+import ProductGallery from "./ProductGallery";
 
 import { notifications } from "@mantine/notifications";
-
-import { useEffect } from "react";
 
 import { useForm } from "@mantine/form";
 
@@ -19,7 +18,13 @@ interface EditProductModalProps {
   product: Product | null;
 }
 
-export default function EditProductModal({
+export default function EditProductModal(props: EditProductModalProps) {
+  // A new editing session gets saved values once; background query updates must
+  // not overwrite typing or continuously reset the publish switch.
+  return <ProductEditor key={`${props.product?.id ?? "none"}-${props.opened}`} {...props} />;
+}
+
+function ProductEditor({
   opened,
   onClose,
   product,
@@ -28,16 +33,16 @@ export default function EditProductModal({
 
   const form = useForm({
     initialValues: {
-      name: "",
-      description: "",
-      price: 0,
-      category: "",
-      is_active: true,
-      storefront_published: false,
-      storefront_name_en: "",
-      storefront_name_ms: "",
-      storefront_description_en: "",
-      storefront_description_ms: "",
+      name: product?.name ?? "",
+      description: product?.description ?? "",
+      price: Number(product?.price ?? 0),
+      category: product?.category ?? "",
+      is_active: product?.is_active ?? true,
+      storefront_published: product?.storefront_published ?? false,
+      storefront_name_en: product?.storefront_name_en ?? "",
+      storefront_name_ms: product?.storefront_name_ms ?? "",
+      storefront_description_en: product?.storefront_description_en ?? "",
+      storefront_description_ms: product?.storefront_description_ms ?? "",
     },
 
     validate: {
@@ -47,25 +52,6 @@ export default function EditProductModal({
       price: (value) => (value <= 0 ? "Price must be greater than 0" : null),
     },
   });
-
-  useEffect(() => {
-    if (!product) {
-      return;
-    }
-
-    form.setValues({
-      name: product.name,
-      description: product.description ?? "",
-      price: Number(product.price),
-      category: product.category ?? "",
-      is_active: product.is_active,
-      storefront_published: product.storefront_published,
-      storefront_name_en: product.storefront_name_en ?? "",
-      storefront_name_ms: product.storefront_name_ms ?? "",
-      storefront_description_en: product.storefront_description_en ?? "",
-      storefront_description_ms: product.storefront_description_ms ?? "",
-    });
-  }, [form, product]);
 
   function handleSubmit(values: typeof form.values) {
     if (!product) {
@@ -162,7 +148,7 @@ export default function EditProductModal({
     >
       <Stack gap="md">
         <TextInput
-          label="Product Name"
+          label="Internal product name"
           placeholder="Enter product name"
           withAsterisk
           disabled={updateMutation.isPending}
@@ -170,7 +156,7 @@ export default function EditProductModal({
         />
 
         <Textarea
-          label="Description"
+          label="Internal description"
           placeholder="Enter product description"
           autosize
           minRows={3}
@@ -201,8 +187,8 @@ export default function EditProductModal({
           label="Active Product"
           description={
             form.values.is_active
-              ? "Product is available to customers"
-              : "Product is hidden from customers"
+              ? "Enabled for operations. Storefront publishing and stock are separate."
+              : "Disabled and hidden from the storefront."
           }
           checked={form.values.is_active}
           disabled={updateMutation.isPending}
@@ -212,6 +198,7 @@ export default function EditProductModal({
         />
 
         <Divider label="Customer storefront" labelPosition="center" />
+        {product ? <ProductGallery key={product.id} productId={product.id} /> : null}
         <Text size="sm" c="dimmed">
           Publish only content that the business has approved in both languages.
         </Text>

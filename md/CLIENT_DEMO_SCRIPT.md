@@ -6,6 +6,12 @@ price, delivery, payment, policy, or WhatsApp commitments.
 
 ## Before the call
 
+For the connected product/gallery walkthrough, follow
+[Dashboard to storefront workflow](../storefront/PRODUCT_WORKFLOW.md).
+Demonstrate a saved dashboard edit appearing after storefront reload using
+fictional records and photos in the real backend. Do not use the historical
+mock catalogue server for this walkthrough.
+
 - Open `https://demo.bahuluberrycameron.com` and sign in as the demo Owner.
 - Confirm the demo data is fictional and that no live WhatsApp sending is
   enabled.

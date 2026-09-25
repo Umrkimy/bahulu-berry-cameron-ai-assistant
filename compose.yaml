@@ -26,6 +26,8 @@ services:
 
   api:
     build: ./backend
+    volumes:
+      - product_media:/app/media/products
     environment:
       ENVIRONMENT: ${APP_ENVIRONMENT:-development}
       DEBUG: "false"
@@ -111,5 +113,6 @@ services:
     command: sh -c "npm ci && npm run test:e2e"
 
 volumes:
+  product_media:
   postgres_data:
   e2e_node_modules:

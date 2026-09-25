@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import json
 import logging
+import re
 from pathlib import Path
 import time
 from uuid import uuid4
@@ -10,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
+from app.core.static_assets import PublicStaticFiles
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 
@@ -29,9 +30,8 @@ from app.services.email_services import purge_expired_email_security_records
 
 logger = logging.getLogger("bahulu.api")
 STATIC_DIRECTORY = Path(__file__).resolve().parent / "static"
-# Uploads are intentionally local-only at this stage. Create the directory at
-# startup so a clean CI checkout and a fresh container can serve the static
-# route without requiring an ignored empty directory in Git.
+# Bundled assets are separate from persistent product uploads. Create this
+# directory so clean checkouts can serve static assets without an empty Git folder.
 STATIC_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
@@ -95,7 +95,7 @@ async def handle_integrity_error(_, __):
 
 app.mount(
     "/static",
-    StaticFiles(directory=STATIC_DIRECTORY),
+    PublicStaticFiles(directory=STATIC_DIRECTORY),
     name="static",
 )
 
@@ -118,9 +118,14 @@ async def apply_security_controls(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid4())
     started = time.perf_counter()
     content_length = request.headers.get("content-length")
+    image_upload = request.method in {"POST", "PUT"} and re.fullmatch(rf"{re.escape(settings.API_PREFIX)}/products/\d+/images(?:/\d+)?", request.url.path) and request.headers.get("content-type", "").startswith("multipart/form-data")
+    if image_upload and not content_length:
+        return JSONResponse(status_code=411, content={"detail": "Image uploads require Content-Length."})
     if content_length:
         try:
-            is_too_large = int(content_length) > settings.MAX_REQUEST_BODY_BYTES
+            # Image multipart requests include a small envelope above the 5 MB file limit.
+            limit = 6 * 1024 * 1024 if image_upload else settings.MAX_REQUEST_BODY_BYTES
+            is_too_large = int(content_length) > limit
         except ValueError:
             return JSONResponse(status_code=400, content={"detail": "Invalid request size."})
         if is_too_large:

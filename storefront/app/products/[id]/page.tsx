@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProduct((await params).id);
-  if (!product) return { title: "Product unavailable" };
-  return { title: product.name_en, description: product.description_en ?? `Learn more about ${product.name_en}.` };
+  if (!product) return { title: "Product unavailable", robots: { index: false, follow: false } };
+  return { title: product.name_en, description: product.description_en ?? `Learn more about ${product.name_en}.`, robots: { index: false, follow: false } };
 }
 
 export default async function ProductPage({ params }: Props) {

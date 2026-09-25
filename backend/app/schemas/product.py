@@ -4,19 +4,35 @@ from decimal import Decimal
 from app.schemas.inventory import InventoryNested
 from app.schemas.discount import DiscountSummary
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class ProductImagePublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    image_path: str
+    position: int
 
 
 class ProductBase(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=100)
     description: str | None = None
     price: Decimal = Field(
+        gt=0,
         max_digits=10,
         decimal_places=2,
     )
     image_file: str | None = None
     category: str | None = Field(default=None, max_length=50)
     is_active: bool = True
+
+    @field_validator("image_file")
+    @classmethod
+    def image_upload_only(cls, value):
+        if value is not None:
+            raise ValueError("Upload product images using the gallery.")
+        return value
 
 
 class ProductCreate(ProductBase):
@@ -34,6 +50,8 @@ class ProductPublic(BaseModel):
         decimal_places=2,
     )
     image_path: str
+    images: list[ProductImagePublic] = []
+    sale_price: Decimal | None = None
     category: str | None
     inventory: InventoryNested | None
     active_discount: DiscountSummary | None = None
@@ -52,9 +70,10 @@ class ProductPrivate(ProductPublic):
 
 
 class ProductUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = None
-    price: Decimal | None = Field(default=None, decimal_places=2, gt=0)
+    price: Decimal | None = Field(default=None, max_digits=10, decimal_places=2, gt=0)
     image_file: str | None = None
     category: str | None = Field(default=None, max_length=50)
     is_active: bool | None = None
@@ -63,6 +82,20 @@ class ProductUpdate(BaseModel):
     storefront_name_ms: str | None = Field(default=None, max_length=100)
     storefront_description_en: str | None = None
     storefront_description_ms: str | None = None
+
+    @field_validator("image_file")
+    @classmethod
+    def image_upload_only(cls, value):
+        if value is not None:
+            raise ValueError("Upload product images using the gallery.")
+        return value
+
+    @field_validator("name", "price", "is_active", "storefront_published", mode="before")
+    @classmethod
+    def reject_explicit_null(cls, value):
+        if value is None:
+            raise ValueError("This field cannot be null")
+        return value
 
 
 class StorefrontPromotion(BaseModel):
@@ -84,5 +117,6 @@ class StorefrontProduct(BaseModel):
     price: Decimal
     sale_price: Decimal | None
     image_path: str | None
+    images: list[ProductImagePublic] = []
     is_available: bool
     promotions: list[StorefrontPromotion]

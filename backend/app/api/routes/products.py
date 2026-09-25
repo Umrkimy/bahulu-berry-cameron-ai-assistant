@@ -184,7 +184,7 @@ async def get_products(
             detail="Invalid sort option",
         )
 
-    query = query.offset((page - 1) * page_size).limit(page_size)
+    query = query.order_by(Product.id.asc()).offset((page - 1) * page_size).limit(page_size)
 
     result = await db.execute(query)
 
@@ -336,6 +336,7 @@ async def get_admin_products(
     # PAGINATION
     query = (
         query
+        .order_by(Product.id.asc())
         .offset(
             (page - 1) * page_size
         )
@@ -442,7 +443,7 @@ async def create_product(
         ))
     await record_activity(db, admin=current_admin, action="created", entity_type="product", entity_id=product.id, description=f"Created product {product.name}.")
     await db.commit()
-    await db.refresh(product, ["inventory", "discounts"])
+    await db.refresh(product, ["inventory", "discounts", "images"])
     return product
 
 
@@ -504,7 +505,7 @@ async def update_product(
 
     await record_activity(db, admin=current_admin, action="updated", entity_type="product", entity_id=product.id, description=f"Updated product {product.name}.")
     await db.commit()
-    await db.refresh(product, ["inventory", "discounts"])
+    await db.refresh(product, ["inventory", "discounts", "images"])
 
     return product
 
@@ -542,7 +543,7 @@ async def delete_product(
             detail="Products with order or stock-movement history are retained. Mark the product inactive instead.",
         )
 
-    inventory = await db.get(Inventory, product.id)
+    inventory = await db.scalar(select(Inventory).where(Inventory.product_id == product.id))
 
     if inventory:
         await db.delete(inventory)

@@ -20,6 +20,7 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 .playwright-cli/
+/output/playwright/
 /security-reports/
 
 # Local environment files and secrets
@@ -95,6 +96,7 @@ backend/static/
 # =====================
 
 .DS_Store
+/backend/media/
 __pycache__/
 *.py[cod]
 

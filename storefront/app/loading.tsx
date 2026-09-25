@@ -1,1 +1,3 @@
-export default function Loading() { return <div className="shell loading-state" aria-live="polite">Loading the catalogue…</div>; }
+import { StorefrontState } from "./_components/storefront-state";
+
+export default function Loading() { return <StorefrontState kind="loading" />; }

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = ""
     TRUSTED_HOSTS: str = ""
     MAX_REQUEST_BODY_BYTES: int = 1_048_576
+    PRODUCT_MEDIA_DIRECTORY: str = "media/products"
     SESSION_COOKIE_NAME: str = "bbc_admin_session"
     CSRF_COOKIE_NAME: str = "bbc_csrf_token"
     TRUST_CLOUDFLARE_CLIENT_IP: bool = False
