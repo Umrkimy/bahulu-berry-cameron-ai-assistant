@@ -105,7 +105,7 @@ export default function CreateProductModal({
     >
       <Stack gap="md">
         <TextInput
-          label="Product Name"
+          label="Internal product name"
           placeholder="Bahulu Berry"
           withAsterisk
           disabled={createMutation.isPending}
@@ -113,7 +113,7 @@ export default function CreateProductModal({
         />
 
         <Textarea
-          label="Description"
+          label="Internal description"
           placeholder="Enter product description"
           autosize
           minRows={3}
@@ -152,8 +152,8 @@ export default function CreateProductModal({
           label="Active Product"
           description={
             form.values.is_active
-              ? "Product is available to customers"
-              : "Product is hidden from customers"
+              ? "Enabled for operations. Publish bilingual storefront content after creating the product."
+              : "Disabled and hidden from the storefront."
           }
           checked={form.values.is_active}
           disabled={createMutation.isPending}

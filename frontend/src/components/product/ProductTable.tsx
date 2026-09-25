@@ -242,28 +242,11 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
 }
 
 function getSalePrice(product: Product) {
-  const discount = getPriceDiscount(product);
-  const price = Number(product.price);
-
-  if (!discount) {
-    return price;
-  }
-
-  if (discount.discount_type === "PERCENTAGE") {
-    return price * (1 - Number(discount.discount_value) / 100);
-  }
-
-  if (discount.discount_type === "FIXED_AMOUNT") {
-    return Math.max(0, price - Number(discount.discount_value));
-  }
-
-  return price;
+  return Number(product.sale_price ?? product.price);
 }
 
 function getPriceDiscount(product: Product) {
-  return product.active_discounts?.find(
-    (discount) => discount.discount_type === "PERCENTAGE" || discount.discount_type === "FIXED_AMOUNT",
-  ) ?? null;
+  return product.sale_price != null;
 }
 
 function getPromotionLabel(discount: NonNullable<Product["active_discount"]>) {

@@ -12,3 +12,28 @@ export const copy = {
 export function money(value: string): string {
   return new Intl.NumberFormat("en-MY", { style: "currency", currency: "MYR" }).format(Number(value));
 }
+
+export const homeCopy = {
+  en: {
+    preview: "Private design preview", previewShort: "A LITTLE PREVIEW", eyebrow: "HELLO FROM BAHULU BERRY CAMERON",
+    intro: "Meet Bahulu Berry Cameron. Take a closer look at our collection.", browse: "Browse products", explore: "A little more to discover",
+    imageAlt: "Concept illustration of golden bahulu in a clear bag with a strawberry mascot label", mockupLabel: "Product mockup · for design review", imageUnavailable: "Product preview unavailable",
+    collectionEyebrow: "TAKE A CLOSER LOOK", collectionTitle: "Meet the collection", viewAll: "View all products", viewProduct: "Explore product", photoPending: "Product photo coming later",
+    loading: "Opening the collection…", loadingBody: "The product details are on their way.", errorTitle: "The collection is taking a little break.", errorBody: "We couldn’t load the products. Please try again.", retry: "Try again",
+    emptyTitle: "A little space for what’s next.", emptyBody: "Our product collection will appear here once it’s ready to share.",
+    storyEyebrow: "A FACE TO REMEMBER", storyTitle: "Say hello to Bahulu Berry Cameron.", storyBody: "Bahulu, a berry-inspired identity, and a character of our own. Get to know the name behind the collection.", about: "Meet Bahulu Berry Cameron",
+    conceptNote: "Private preview · Brand treatment awaits approval. Products and photos are managed by the Owner.",
+    skip: "Skip to content", navigation: "Main navigation", switchLanguage: "Switch language to Bahasa Melayu",
+  },
+  ms: {
+    preview: "Pratonton reka bentuk peribadi", previewShort: "SEBUAH PRATONTON", eyebrow: "SALAM DARI BAHULU BERRY CAMERON",
+    intro: "Kenali Bahulu Berry Cameron dan terokai koleksi kami.", browse: "Lihat produk", explore: "Terokai dengan lebih dekat",
+    imageAlt: "Ilustrasi konsep bahulu keemasan dalam beg lutsinar dengan label maskot strawberi", mockupLabel: "Mockup produk · untuk semakan reka bentuk", imageUnavailable: "Pratonton produk tidak tersedia",
+    collectionEyebrow: "LIHAT DENGAN LEBIH DEKAT", collectionTitle: "Kenali koleksi kami", viewAll: "Lihat semua produk", viewProduct: "Terokai produk", photoPending: "Foto produk akan ditambah nanti",
+    loading: "Memuatkan koleksi…", loadingBody: "Maklumat produk sedang dimuatkan.", errorTitle: "Koleksi belum dapat dipaparkan.", errorBody: "Kami tidak dapat memuatkan produk. Sila cuba lagi.", retry: "Cuba lagi",
+    emptyTitle: "Ruang untuk sesuatu yang bakal tiba.", emptyBody: "Koleksi produk kami akan dipaparkan di sini apabila sedia untuk dikongsi.",
+    storyEyebrow: "WAJAH UNTUK DIKENALI", storyTitle: "Salam daripada Bahulu Berry Cameron.", storyBody: "Bahulu, identiti berinspirasikan beri, dan karakter tersendiri. Kenali nama di sebalik koleksi kami.", about: "Kenali Bahulu Berry Cameron",
+    conceptNote: "Pratonton peribadi · Olahan jenama menunggu kelulusan. Produk dan foto diurus oleh Pemilik.",
+    skip: "Langkau ke kandungan", navigation: "Navigasi utama", switchLanguage: "Switch language to English",
+  },
+} as const;

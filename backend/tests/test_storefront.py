@@ -55,7 +55,7 @@ async def test_storefront_only_returns_published_safe_product_fields(session):
     assert "inventory" not in item
     assert "id" not in item["promotions"][0]
     assert item["promotions"][0]["label"] == "10.00% off"
-    assert response.headers["cache-control"] == "public, max-age=60, stale-while-revalidate=300"
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.asyncio

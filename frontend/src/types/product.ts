@@ -6,6 +6,8 @@ export interface Inventory {
 }
 
 export interface Product {
+  images?: ProductImage[];
+  sale_price?: string | null;
   id: number;
   name: string;
   description: string | null;
@@ -33,6 +35,12 @@ export interface ActiveDiscount {
   bundle_quantity: number | null;
   start_at: string;
   end_at: string;
+}
+
+export interface ProductImage {
+  id: number;
+  image_path: string;
+  position: number;
 }
 
 export interface PaginatedProducts {

@@ -11,6 +11,7 @@ WORKDIR /app
 COPY --from=uv /uv /uvx /bin/
 
 RUN useradd --create-home --uid 10001 appuser
+RUN mkdir -p /app/media/products && chown -R appuser:appuser /app/media
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 

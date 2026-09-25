@@ -56,6 +56,13 @@ jobs:
         working-directory: frontend
       - run: npm run test:e2e
         working-directory: frontend
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - run: uv sync --locked --group dev
+        working-directory: backend
+      - run: npm ci
+        working-directory: storefront
+      - run: npx playwright test --config playwright.integration.config.ts --reporter=line
+        working-directory: frontend
       - run: npm run build
         working-directory: frontend
 

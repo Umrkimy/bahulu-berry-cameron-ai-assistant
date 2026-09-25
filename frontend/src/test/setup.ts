@@ -3,6 +3,9 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from './server';
 
+// jsdom lacks the Font Loading API used by Mantine's autosizing textareas.
+Object.defineProperty(document, 'fonts', { configurable: true, value: new EventTarget() });
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
