@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, mock, test } from "node:test";
 
-import { getCatalogueProducts, getProduct } from "../app/_lib/api.ts";
+import { getCatalogueProducts, getProduct, getProducts } from "../app/_lib/api.ts";
 
 afterEach(() => mock.restoreAll());
 
@@ -44,4 +44,25 @@ test("missing products return null but an API outage remains an error", async ()
   mock.restoreAll();
   mock.method(globalThis, "fetch", async () => new Response(null, { status: 503 }));
   await assert.rejects(() => getProduct("1"), /Unable to load this product/);
+});
+
+test("catalogue requests abort on timeout instead of waiting indefinitely", async () => {
+  const timeout = mock.method(AbortSignal, "timeout", (milliseconds) => {
+    assert.equal(milliseconds, 8000);
+    return AbortSignal.abort(new DOMException("Timed out", "TimeoutError"));
+  });
+  mock.method(globalThis, "fetch", async (_url, options) => {
+    options.signal.throwIfAborted();
+  });
+  await assert.rejects(getProducts, { name: "TimeoutError" });
+  assert.equal(timeout.mock.callCount(), 1);
+});
+
+test("homepage fetch bypasses persistent cache so retry can recover", async () => {
+  mock.method(globalThis, "fetch", async (_url, options) => {
+    assert.equal(options.cache, "no-store");
+    assert.equal(options.next, undefined);
+    return Response.json({ items: [], pages: 0 });
+  });
+  assert.deepEqual((await getProducts()).items, []);
 });

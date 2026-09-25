@@ -2,12 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  images: {
-    remotePatterns: [
-      { protocol: "http", hostname: "localhost", port: "8000", pathname: "/static/**" },
-      { protocol: "http", hostname: "api", port: "8000", pathname: "/static/**" },
-    ],
-  },
+  // Keep local preview runs from writing generated agent instruction files.
+  agentRules: false,
+  // Dashboard edits must also appear during local design/development sessions.
+  experimental: { serverComponentsHmrCache: false },
 };
 
 export default nextConfig;

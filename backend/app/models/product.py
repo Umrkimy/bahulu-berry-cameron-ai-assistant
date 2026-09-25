@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.discount import Discount
     from app.models.order_item import OrderItem
     from app.models.inventory import Inventory
+    from app.models.product_image import ProductImage
 
 
 class Product(Base):
@@ -48,12 +49,20 @@ class Product(Base):
 
     @property
     def image_path(self) -> str:
+        if self.images:
+            return self.images[0].image_path
         if self.image_file:
             return f"/static/product_images/{self.image_file}"
 
         return "/static/product_images/default.jpg"
 
     order_items: Mapped[list["OrderItem"]] = relationship(back_populates="product")
+    images: Mapped[list["ProductImage"]] = relationship(cascade="all, delete-orphan", lazy="selectin", order_by="ProductImage.position, ProductImage.id")
+
+    @property
+    def sale_price(self) -> Decimal | None:
+        from app.services.product_services import product_sale_price
+        return product_sale_price(self)
     inventory: Mapped["Inventory"] = relationship(
         back_populates="product", uselist=False, lazy="selectin"
     )

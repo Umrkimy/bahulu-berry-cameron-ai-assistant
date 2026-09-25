@@ -8,6 +8,7 @@ export interface Promotion {
 }
 
 export interface StorefrontProduct {
+  images?: { id: number; image_path: string; position: number }[];
   id: number;
   name_en: string;
   name_ms: string;

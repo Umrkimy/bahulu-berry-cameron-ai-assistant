@@ -13,6 +13,8 @@ services:
       TRUST_CLOUDFLARE_CLIENT_IP: ${TRUST_CLOUDFLARE_CLIENT_IP:-false}
 
   api:
+    volumes:
+      - product_staging_media:/app/media/products
     environment:
       ENVIRONMENT: ${APP_ENVIRONMENT:-staging}
       DEBUG: "false"
@@ -47,4 +49,5 @@ services:
       frontend:
         condition: service_started
 volumes:
+  product_staging_media:
   postgres_staging_data:

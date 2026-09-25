@@ -1,3 +1,3 @@
-import Link from "next/link";
+import { StorefrontState } from "./_components/storefront-state";
 
-export default function NotFound() { return <div className="shell error-state"><h1>This product is not currently available.</h1><Link href="/products" className="button button-primary">Browse products</Link></div>; }
+export default function NotFound() { return <StorefrontState kind="missing" />; }
