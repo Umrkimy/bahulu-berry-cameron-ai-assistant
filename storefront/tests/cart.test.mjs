@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { addCartItem, cartCount, MAX_CART_QUANTITY, parseStoredCart, sanitizeCart, updateCartItem } from "../app/_lib/cart.ts";
 import { cartCopy } from "../app/_lib/cart-copy.ts";
 import { quoteCart } from "../app/_lib/cart-api.ts";
+import { copy, homeCopy } from "../app/_lib/content.ts";
 import { afterEach, mock } from "node:test";
 
 afterEach(() => mock.restoreAll());
@@ -34,6 +35,13 @@ test("cart and checkout controls have English and Bahasa Melayu copy", () => {
   assert.equal(cartCopy.ms.add, "Tambah ke troli");
   assert.match(cartCopy.en.paymentBody, /unavailable/i);
   assert.match(cartCopy.ms.paymentBody, /tidak tersedia/i);
+});
+
+test("language selector identifies the active language in each language", () => {
+  assert.equal(copy.en.language, "English");
+  assert.equal(copy.ms.language, "Bahasa Melayu");
+  assert.equal(homeCopy.en.chooseLanguage, "Choose language");
+  assert.equal(homeCopy.ms.chooseLanguage, "Pilih bahasa");
 });
 
 test("cart quotes through the storefront same-origin boundary", async () => {
