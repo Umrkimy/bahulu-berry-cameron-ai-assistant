@@ -7,6 +7,6 @@ export default defineConfig({
   webServer: [
     { command: "uv run python tests/serve_storefront_e2e.py", cwd: "../backend", url: "http://127.0.0.1:8100/health", timeout: 120_000 },
     { command: "npm run dev -- --host 127.0.0.1 --port 4174", url: "http://127.0.0.1:4174", env: { VITE_API_BASE_URL: "http://127.0.0.1:8100/api", VITE_STOREFRONT_BASE_URL: "http://127.0.0.1:3100" }, timeout: 120_000 },
-    { command: "npm run dev -- --hostname 127.0.0.1 --port 3100", cwd: "../storefront", url: "http://127.0.0.1:3100", env: { STOREFRONT_SERVER_API_BASE_URL: "http://127.0.0.1:8100/api", NEXT_PUBLIC_WHATSAPP_NUMBER: "" }, timeout: 120_000 },
+    { command: "npm run dev -- --hostname 127.0.0.1 --port 3100", cwd: "../storefront", url: "http://127.0.0.1:3100", env: { STOREFRONT_SERVER_API_BASE_URL: "http://127.0.0.1:8100/api", STOREFRONT_CHECKOUT_PREVIEW_ENABLED: "true", NEXT_PUBLIC_WHATSAPP_NUMBER: "" }, timeout: 120_000 },
   ],
 });

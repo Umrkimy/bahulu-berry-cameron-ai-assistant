@@ -15,6 +15,12 @@ from app.services.product_services import product_sale_price
 from app.schemas.product import ProductImagePublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.product import StorefrontProduct, StorefrontPromotion
+from app.schemas.storefront import (
+    StorefrontQuoteLine,
+    StorefrontQuoteRequest,
+    StorefrontQuoteResponse,
+)
+from app.services.pricing_services import calculate_order_pricing
 
 router = APIRouter()
 MONEY = Decimal("0.01")
@@ -136,6 +142,87 @@ async def featured_product(db: Annotated[AsyncSession, Depends(get_db)], respons
     response.headers["Cache-Control"] = "no-store"
     product = await db.scalar(select(Product).join(StorefrontFeature, StorefrontFeature.product_id == Product.id).where(StorefrontFeature.id == 1, *_published_filters()))
     return _serialize_product(product) if product and product.images else None
+
+
+@router.post("/quote", response_model=StorefrontQuoteResponse)
+async def quote_storefront_cart(
+    quote_data: StorefrontQuoteRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+):
+    """Return current public pricing without creating or reserving anything."""
+    await rate_limiter.check(request, "storefront-quote", STOREFRONT_READ_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+
+    requested = {item.product_id: item.quantity for item in quote_data.items}
+    result = await db.execute(
+        select(Product)
+        .options(
+            selectinload(Product.inventory),
+            selectinload(Product.discounts),
+            selectinload(Product.images),
+        )
+        .where(Product.id.in_(requested), *_published_filters())
+    )
+    products = {product.id: product for product in result.scalars().all()}
+    valid_items: list[dict[str, int]] = []
+    statuses: dict[int, str] = {}
+
+    for product_id, quantity in requested.items():
+        product = products.get(product_id)
+        if product is None:
+            statuses[product_id] = "NOT_AVAILABLE"
+        elif product.inventory is None or product.inventory.quantity < quantity:
+            statuses[product_id] = "QUANTITY_UNAVAILABLE"
+        else:
+            statuses[product_id] = "READY"
+            valid_items.append({"product_id": product_id, "quantity": quantity})
+
+    try:
+        pricing = await calculate_order_pricing(db, valid_items) if valid_items else {
+            "items": [], "subtotal": Decimal("0.00"),
+            "discount_amount": Decimal("0.00"), "total_amount": Decimal("0.00"),
+        }
+    except ValueError:
+        # Availability may change between the visibility read and pricing read.
+        # Fail closed without exposing internal inventory or product details.
+        for item in valid_items:
+            statuses[item["product_id"]] = "QUANTITY_UNAVAILABLE"
+        pricing = {
+            "items": [], "subtotal": Decimal("0.00"),
+            "discount_amount": Decimal("0.00"), "total_amount": Decimal("0.00"),
+        }
+    priced = {item["product_id"]: item for item in pricing["items"]}
+    lines: list[StorefrontQuoteLine] = []
+
+    for item in quote_data.items:
+        product = products.get(item.product_id)
+        public_product = _serialize_product(product) if product is not None else None
+        price = priced.get(item.product_id)
+        lines.append(StorefrontQuoteLine(
+            product_id=item.product_id,
+            quantity=item.quantity,
+            status=statuses[item.product_id],
+            name_en=public_product.name_en if public_product else None,
+            name_ms=public_product.name_ms if public_product else None,
+            image_path=public_product.image_path if public_product else None,
+            unit_price=price["unit_price"] if price else None,
+            display_price=(public_product.sale_price if public_product.sale_price is not None else public_product.price) if public_product else None,
+            subtotal=price["subtotal"] if price else None,
+            discount_amount=price["discount_amount"] if price else None,
+            total_amount=price["total_amount"] if price else None,
+            promotions=public_product.promotions if public_product else [],
+        ))
+
+    ready = all(line.status == "READY" for line in lines)
+    return StorefrontQuoteResponse(
+        ready=ready,
+        items=lines,
+        subtotal=pricing["subtotal"] if ready else None,
+        discount_amount=pricing["discount_amount"] if ready else None,
+        total_amount=pricing["total_amount"] if ready else None,
+    )
 
 
 @router.get("/products/{product_id}/images/{image_id}/content")
