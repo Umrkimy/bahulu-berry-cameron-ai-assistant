@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { copy, homeCopy } from "../_lib/content";
 import { cartCopy } from "../_lib/cart-copy";
 import { useCart } from "./cart-provider";
+import { LanguageMenu } from "./language-menu";
 import { useLocale } from "./locale-provider";
 
 export function SiteHeader() {
@@ -25,7 +26,7 @@ export function SiteHeader() {
       <nav aria-label={home.navigation}>
         {[{ href: "/", label: text.home }, { href: "/products", label: text.navProducts }, { href: "/about", label: text.navAbout }].map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href || (item.href === "/products" && pathname.startsWith("/products/")) ? "page" : undefined}>{item.label}</Link>)}
       </nav>
-      <button type="button" className="language-button" onClick={() => setLocale(locale === "en" ? "ms" : "en")} aria-label={home.switchLanguage}><span aria-hidden="true">◎</span> {text.language}</button>
+      <LanguageMenu locale={locale} label={home.chooseLanguage} onChange={setLocale} />
       <Link className="header-cart" href="/cart" aria-current={pathname === "/cart" ? "page" : undefined} aria-label={`${cart.cart}: ${hydrated ? count : 0}`}><span>{cart.cart}</span><strong aria-hidden="true">{hydrated ? count : 0}</strong></Link>
     </div>
   </header>;
