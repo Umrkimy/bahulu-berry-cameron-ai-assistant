@@ -63,7 +63,8 @@ test("Owner product workspace reaches the real storefront", async ({ page, conte
   await page.getByRole("button", { name: "Save details" }).click();
   await shop.reload();
   await expect(shop.locator(".shop-detail-price strong").first()).toContainText("18.00");
-  await shop.getByRole("button", { name: "Switch language to Bahasa Melayu" }).click();
+  await shop.getByRole("button", { name: "Choose language: English" }).click();
+  await shop.getByRole("menuitemradio", { name: "Bahasa Melayu" }).click();
   await expect(shop.getByRole("heading", { name: "Demo pelanggan fiksyen", exact: true })).toBeVisible();
   for (const width of [320, 390, 768, 1440]) {
     await shop.setViewportSize({ width, height: 900 });
