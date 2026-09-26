@@ -65,10 +65,16 @@ and human-takeover coordination.
 ## Local run and validation
 
 1. Copy `.env.example` to `.env` and use local test values only.
-2. Run `docker compose up --build`.
+2. Run `docker compose up -d --build`.
 3. Open `http://localhost:5173`. API checks are at
    `http://localhost:8000/health` and `http://localhost:8000/ready`. The
-   storefront is at `http://localhost:3000` after it is configured and built.
+   storefront is at `http://localhost:3000`.
+4. Run `docker compose ps`. Database, API, dashboard, and storefront should be
+   healthy; the one-shot `migrate` service should show `Exited (0)`.
+
+Checkout returns `404` by default. Set
+`STOREFRONT_CHECKOUT_PREVIEW_ENABLED=true` only in a private local review and
+recreate the storefront container; this does not enable ordering or payments.
 
 Useful checks:
 

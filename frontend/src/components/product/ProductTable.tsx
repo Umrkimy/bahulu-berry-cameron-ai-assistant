@@ -58,6 +58,11 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         deleteMutation.mutate(product.id, {
           onSuccess: () => {
             modals.closeAll();
+            notifications.show({
+              title: "Product deleted",
+              message: `${product.name} was removed.`,
+              color: "green",
+            });
           },
           onError: (error) => {
             notifications.show({

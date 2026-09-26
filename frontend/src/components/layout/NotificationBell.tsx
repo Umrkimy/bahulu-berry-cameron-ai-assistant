@@ -1,5 +1,6 @@
 import { ActionIcon, Badge, Button, Divider, Group, Menu, Stack, Text, ThemeIcon } from "@mantine/core";
 import { IconAlertTriangle, IconBell, IconCheck, IconExternalLink } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -21,8 +22,8 @@ export default function NotificationBell() {
   const unread = useQuery({ queryKey: ["notifications", "unread-count"], queryFn: getUnreadNotificationCount, refetchInterval: 60_000, refetchOnWindowFocus: true });
   const alerts = useOperationAlerts({ limit: 3 });
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["notifications"] }), queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })]);
-  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: refresh });
-  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: refresh });
+  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: refresh, onError: (error) => notifications.show({ title: "Unable to mark update as read", message: getApiError(error).message, color: "red" }) });
+  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: async () => { await refresh(); notifications.show({ title: "Updates marked as read", message: "Your unread count is now current.", color: "green" }); }, onError: (error) => notifications.show({ title: "Unable to mark updates as read", message: getApiError(error).message, color: "red" }) });
   const unreadCount = unread.data?.unread_count ?? 0;
   const attentionCount = alerts.data?.total ?? 0;
   const alertItems = alerts.data?.items ?? [];
