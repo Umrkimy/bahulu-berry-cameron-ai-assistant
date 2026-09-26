@@ -108,10 +108,8 @@ __pycache__/
 backend/scripts/
 
 # =====================
-# Codex Agents
+# Local AI-tool state
 # =====================
 
-AGENTS.md
-md/*
-!md/INFRASTRUCTURE_DEPLOYMENT_BUDGET.md
-!md/CLIENT_DEMO_SCRIPT.md
+.agents/
+.claude/settings.local.json

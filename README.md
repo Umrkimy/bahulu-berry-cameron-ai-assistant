@@ -5,8 +5,8 @@ records, payment details, contacts, and unconfirmed business details are kept
 out of source control.
 
 Before changing customer-facing content, integrations, demo access, or release
-configuration, review [the product quality and launch gate](md/PRODUCT_QUALITY_GATE.md).
-Owners should also use the [local operations runbook](md/OWNER_OPERATIONS_RUNBOOK.md)
+configuration, review [the product quality and launch gate](docs/quality-gate.md).
+Owners should also use the [local operations runbook](docs/operations.md)
 for normal startup, the private demo, and recovery rehearsals.
 
 ## Core capabilities
@@ -24,8 +24,9 @@ for normal startup, the private demo, and recovery rehearsals.
   limits, warning threshold, and a backend-enforced monthly budget cap.
 - Owner-only reports and responsive operational views for desktop, tablet, and
   phone, including Apache ECharts sales and fulfilment visualisations.
-- A separate Next.js bilingual storefront with Owner-controlled catalogue
-  publishing and WhatsApp enquiries; checkout remains intentionally deferred.
+- A separate Next.js bilingual storefront with Owner-controlled catalogue,
+  a backend-quoted cart, and a disabled-by-default checkout review. Public
+  checkout and live payments remain intentionally deferred.
 - Calm, reduced-motion-aware UI feedback, safe dashboard crash recovery, and
   automated frontend/browser regression checks.
 - Secure account setup and password-reset links, safe local email preview, and
@@ -74,6 +75,7 @@ Useful checks:
 ```powershell
 cd backend; uv run pytest
 cd ../frontend; npm run test; npm run test:e2e; npm run build; npm audit --omit=dev --audit-level=high
+cd ../storefront; npm test; npm run lint -- --max-warnings=0; npm run build
 ```
 
 The dashboard uses `react-error-boundary` to show a safe recovery screen if a
@@ -96,3 +98,6 @@ delivery ledger.
 
 Do not commit `.env` files, API keys, webhook secrets, real addresses, phone
 numbers, payment identifiers, or approved business content.
+
+Project references are consolidated under [`docs/`](docs/). `AGENTS.md` is the
+shared engineering instruction source; `CLAUDE.md` imports it for Claude Code.
