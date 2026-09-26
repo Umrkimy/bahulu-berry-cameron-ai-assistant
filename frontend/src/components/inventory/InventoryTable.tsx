@@ -16,7 +16,7 @@ import type { Inventory } from "../../types/inventory";
 
 import StockAdjustmentModal from "./StockAdjustmentModal";
 
-export default function InventoryTable() {
+export default function InventoryTable({ productId = null }: { productId?: number | null }) {
   const { admin } = useAuth();
   const { data, isLoading, isError, refetch } = useInventories();
 
@@ -24,7 +24,7 @@ export default function InventoryTable() {
     null,
   );
 
-  const inventories = data ?? [];
+  const inventories = productId ? (data ?? []).filter((item) => item.product_id === productId) : (data ?? []);
   const location = useLocation();
   const navigate = useNavigate();
 

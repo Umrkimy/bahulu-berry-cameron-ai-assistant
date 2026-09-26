@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createProduct,
   deleteProduct,
+  getProduct,
   getProducts,
   updateProduct,
 } from "../api/products";
@@ -16,16 +17,23 @@ export function useProducts() {
   });
 }
 
+export function useProduct(productId: number | null) {
+  return useQuery({
+    queryKey: ["products", productId],
+    queryFn: () => getProduct(productId!),
+    enabled: productId !== null,
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createProduct,
 
-    onSuccess() {
-      queryClient.invalidateQueries({
-        queryKey: ["products"],
-      });
+    onSuccess(product) {
+      queryClient.setQueryData(["products", product.id], product);
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 }
@@ -42,10 +50,12 @@ export function useUpdateProduct() {
       data: Partial<UpdateProductData>;
     }) => updateProduct(productId, data),
 
-    onSuccess() {
-      queryClient.invalidateQueries({
-        queryKey: ["products"],
-      });
+    onSuccess(product) {
+      queryClient.setQueryData(["products", product.id], product);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["storefront-featured-selection"] }),
+      ]);
     },
   });
 }
