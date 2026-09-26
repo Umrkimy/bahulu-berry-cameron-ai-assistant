@@ -46,8 +46,22 @@ resolve the Docker hostname. Do not point development at the old mock port 3101.
    details and media disappear. If it was featured, the hero shows the neutral
    brand fallback. No other product or generated bag is silently substituted.
 
-No polling, checkout, automated replies or outbound messaging was added.
+No public checkout, live payment, polling, automated replies or outbound messaging was added.
 The generated logo remains a private design reference pending approval.
+
+## Cart and checkout preview
+
+- The cart stores only product IDs and quantities in browser local storage. It
+  rechecks published products, availability, promotions and totals through the
+  read-only backend storefront quote endpoint; browser totals are never used as
+  an order or payment authority.
+- Checkout is a non-submitting private preview. It does not collect customer
+  details or create customers, orders, deliveries, payments or stock movements.
+- `/checkout` returns not found unless the server-only
+  `STOREFRONT_CHECKOUT_PREVIEW_ENABLED=true` setting is present. The default in
+  every checked-in environment example is `false`.
+- The existing Stripe routes remain authenticated admin operations. Selecting
+  and integrating a customer sandbox provider is separate client-approved work.
 
 ## Media storage and recovery
 

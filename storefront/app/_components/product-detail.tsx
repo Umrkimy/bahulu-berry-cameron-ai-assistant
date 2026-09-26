@@ -7,6 +7,7 @@ import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 import { ProductGallery } from "./product-gallery";
 import { WhatsAppLink } from "./whatsapp-link";
+import { AddToCartButton } from "./add-to-cart-button";
 
 export function ProductDetail({ product }: { product: StorefrontProduct }) {
   const { locale } = useLocale();
@@ -28,6 +29,7 @@ export function ProductDetail({ product }: { product: StorefrontProduct }) {
         <div className="shop-detail-price"><span className="sr-only">{text.price}</span><strong>{money(product.sale_price ?? product.price)}</strong>{discounted ? <span><span className="sr-only">{text.regular} </span><s>{money(product.price)}</s></span> : null}</div>
         {product.promotions.length ? <div className="shop-detail-offers"><h2>{text.offers}</h2><ul className="catalogue-promotions">{product.promotions.map((promotion, i) => <li key={i}>{promotionText(promotion, locale)}</li>)}</ul></div> : null}
         <div className="shop-detail-description"><h2>{text.details}</h2><p>{description || text.detailsEmpty}</p></div>
+        <AddToCartButton product={product} className="home-button detail-add-cart" />
         {hasEnquiryContact ? <WhatsAppLink productName={name} className="home-button" /> : <p className="detail-enquiry-note">{text.enquiryPending}</p>}
       </div>
     </section>

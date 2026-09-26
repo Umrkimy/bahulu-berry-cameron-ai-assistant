@@ -29,3 +29,28 @@ export interface ProductPage {
   total: number;
   pages: number;
 }
+
+export type StorefrontQuoteStatus = "READY" | "NOT_AVAILABLE" | "QUANTITY_UNAVAILABLE";
+
+export interface StorefrontQuoteLine {
+  product_id: number;
+  quantity: number;
+  status: StorefrontQuoteStatus;
+  name_en: string | null;
+  name_ms: string | null;
+  image_path: string | null;
+  unit_price: string | null;
+  display_price: string | null;
+  subtotal: string | null;
+  discount_amount: string | null;
+  total_amount: string | null;
+  promotions: Promotion[];
+}
+
+export interface StorefrontQuote {
+  ready: boolean;
+  items: StorefrontQuoteLine[];
+  subtotal: string | null;
+  discount_amount: string | null;
+  total_amount: string | null;
+}

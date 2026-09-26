@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-import { homeCopy } from "../_lib/content";
+import { homeCopy, money } from "../_lib/content";
 import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 
 import { ProductArtwork } from "./product-artwork";
+import { AddToCartButton } from "./add-to-cart-button";
 
 export function HomeCollection({ products, state }: { products: StorefrontProduct[]; state: "ready" | "loading" | "error" }) {
   const { locale } = useLocale();
@@ -34,7 +35,7 @@ export function HomeCollection({ products, state }: { products: StorefrontProduc
         <span className="product-arrow" aria-hidden="true">↗</span>
       </Link>
       <h3><Link href={`/products/${product.id}`}>{name}</Link></h3>
-      <p>{text.viewProduct}</p>
+      <div className="home-card-action"><p>{money(product.sale_price ?? product.price)}</p><AddToCartButton product={product} /></div>
     </article>;
   })}</div>;
 }
