@@ -89,6 +89,11 @@ services:
         condition: service_healthy
     ports:
       - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   storefront:
     build:
@@ -98,11 +103,19 @@ services:
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${STOREFRONT_WHATSAPP_NUMBER:-}
         STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
         STOREFRONT_CHECKOUT_PREVIEW_ENABLED: ${STOREFRONT_CHECKOUT_PREVIEW_ENABLED:-false}
+    environment:
+      STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
+      STOREFRONT_CHECKOUT_PREVIEW_ENABLED: ${STOREFRONT_CHECKOUT_PREVIEW_ENABLED:-false}
     depends_on:
       api:
         condition: service_healthy
     ports:
       - "${STOREFRONT_BIND_ADDRESS:-127.0.0.1}:${STOREFRONT_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.63.0-noble
