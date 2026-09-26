@@ -97,6 +97,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${STOREFRONT_API_BASE_URL:-http://localhost:8000/api}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${STOREFRONT_WHATSAPP_NUMBER:-}
         STOREFRONT_SERVER_API_BASE_URL: ${STOREFRONT_SERVER_API_BASE_URL:-http://api:8000/api}
+        STOREFRONT_CHECKOUT_PREVIEW_ENABLED: ${STOREFRONT_CHECKOUT_PREVIEW_ENABLED:-false}
     depends_on:
       api:
         condition: service_healthy

@@ -6,6 +6,7 @@ import { productCopy, promotionText } from "../_lib/product-view";
 import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 import { ProductArtwork } from "./product-artwork";
+import { AddToCartButton } from "./add-to-cart-button";
 
 export function ProductCard({ product, index = 0 }: { product: StorefrontProduct; index?: number }) {
   const { locale } = useLocale();
@@ -24,5 +25,6 @@ export function ProductCard({ product, index = 0 }: { product: StorefrontProduct
     {description ? <p className="catalogue-card-description">{description}</p> : null}
     {product.promotions.length > 0 ? <ul className="catalogue-promotions" aria-label={text.offers}>{product.promotions.map((promotion, i) => <li key={i}>{promotionText(promotion, locale)}</li>)}</ul> : null}
     <div className="catalogue-card-bottom"><div><strong>{money(product.sale_price ?? product.price)}</strong>{discounted ? <s aria-label={`${text.regular}: ${money(product.price)}`}>{money(product.price)}</s> : null}</div><Link href={`/products/${product.id}`} aria-label={`${text.view}: ${name}`}>{text.view}<span aria-hidden="true">↗</span></Link></div>
+    <AddToCartButton product={product} />
   </article>;
 }
