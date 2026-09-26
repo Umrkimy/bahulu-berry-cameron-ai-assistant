@@ -5,11 +5,20 @@ and use fictional content until the quality gate is approved.
 
 ## Product workflow
 
-Owners create one product record, upload up to six validated JPEG/PNG/WebP
-photos, manage approved bilingual content, publish it, and optionally feature
-it on the homepage. The first ordered image is the cover. Storefront names,
-descriptions, galleries, availability, prices, and promotions remain
-backend-authoritative and update after reload.
+Owners manage one product record in the full-page workspace at `/products/new`
+and `/products/:id`. The Details tab is the single source for the operational
+and English storefront name and description. The Storefront tab holds only the
+approved Bahasa Melayu translation, publication readiness, and homepage feature
+selection. The Photos tab uploads up to six validated JPEG/PNG/WebP photos; the
+first ordered image is the explicitly visible cover. Staff can inspect all tabs
+but cannot mutate them. Inventory and Promotions remain specialist pages with
+direct links from each product.
+
+`Active for operations` and `Published online` are separate states. Publishing
+requires an active product, an approved Bahasa Melayu name, and a working photo.
+Deactivation unpublishes and clears the homepage feature. A published product
+cannot lose its final photo. Storefront content, galleries, availability,
+prices, and promotions remain backend-authoritative and update after reload.
 
 Product images are served through restricted API and same-origin proxy routes.
 Metadata lives in PostgreSQL and new files in `/app/media/products` on the

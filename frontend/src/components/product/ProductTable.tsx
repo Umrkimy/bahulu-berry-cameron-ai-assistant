@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Anchor, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
 
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -8,6 +8,7 @@ import { notifications } from "@mantine/notifications";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { Link } from "react-router-dom";
 
 import { DataTable } from "../common/DataTable";
 
@@ -77,7 +78,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         accessorKey: "name",
         header: "Product",
 
-        cell: ({ row }) => <Text fw={600}>{row.original.name}</Text>,
+        cell: ({ row }) => <Anchor component={Link} to={`/products/${row.original.id}`} fw={600}>{row.original.name}</Anchor>,
       },
 
       {
@@ -178,13 +179,13 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         cell: ({ row }) => isOwner ? (
           <Group gap="xs">
             {/* EDIT */}
-            <Tooltip label="Edit product" withArrow>
+            <Tooltip label="Open product workspace" withArrow>
               <ActionIcon
                 size="lg"
                 variant="light"
                 color="orange"
                 onClick={() => onEdit(row.original)}
-                aria-label="Edit product"
+                aria-label="Open product workspace"
               >
                 <IconEdit size={20} />
               </ActionIcon>
@@ -234,7 +235,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         searchPlaceholder="Search products..."
         emptyMessage="No products found."
         renderMobileCard={(product) => (
-          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{product.name}</Text><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "ACTIVE" : "INACTIVE"}</Badge><Badge color={product.storefront_published ? "bahulu" : "gray"} variant="light">{product.storefront_published ? "PUBLISHED" : "DRAFT"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={700} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="light" color="orange" onClick={() => onEdit(product)} aria-label="Edit product"><IconEdit size={18} /></ActionIcon><ActionIcon variant="light" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
+          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={700}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "ACTIVE" : "INACTIVE"}</Badge><Badge color={product.storefront_published ? "bahulu" : "gray"} variant="light">{product.storefront_published ? "PUBLISHED" : "DRAFT"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={700} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="light" color="orange" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon><ActionIcon variant="light" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
         )}
       />
     </Card>

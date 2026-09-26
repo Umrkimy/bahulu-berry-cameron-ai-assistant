@@ -51,7 +51,7 @@ async def create(client, name="Fictional gallery product"):
 
 
 async def publish(client, product_id):
-    response = await client.patch(f"/api/products/{product_id}", json={"storefront_name_en": "Fictional gallery", "storefront_name_ms": "Galeri fiksyen", "storefront_published": True})
+    response = await client.patch(f"/api/products/{product_id}", json={"name_ms": "Galeri fiksyen", "storefront_published": True})
     assert response.status_code == 200, response.text
 
 
@@ -81,7 +81,7 @@ async def test_full_gallery_publish_feature_and_reload_workflow(client, session)
     assert (await client.get(f"/api/storefront/products/{pid}")).json()["images"][0]["id"] == second["id"]
     assert (await client.put(f"/api/products/{pid}/images/{first['id']}", files={"file": ("replacement.jpg", photo("green", "JPEG"))})).status_code == 200
     assert (await client.get(public_first)).content != original
-    assert (await client.patch(f"/api/products/{pid}", json={"price": "18.00", "storefront_description_en": "Fictional updated description"})).status_code == 200
+    assert (await client.patch(f"/api/products/{pid}", json={"price": "18.00", "description": "Fictional updated description"})).status_code == 200
     inventory = await session.scalar(select(Inventory).where(Inventory.product_id == pid))
     inventory.quantity = 0
     await session.commit()
@@ -98,6 +98,58 @@ async def test_full_gallery_publish_feature_and_reload_workflow(client, session)
     for image in [first, second]:
         assert (await client.delete(f"/api/products/{pid}/images/{image['id']}")).status_code == 204
     assert (await client.get("/api/storefront/featured")).json() is None
+
+
+async def test_publication_lifecycle_enforces_readiness_and_protects_final_photo(client):
+    pid = await create(client, "Fictional lifecycle product")
+
+    missing_translation = await client.patch(
+        f"/api/products/{pid}", json={"storefront_published": True}
+    )
+    assert missing_translation.status_code == 422
+    assert "Bahasa Melayu" in missing_translation.text
+
+    missing_photo = await client.patch(
+        f"/api/products/{pid}",
+        json={"name_ms": "Produk kitar hayat fiksyen", "storefront_published": True},
+    )
+    assert missing_photo.status_code == 422
+    assert "photo" in missing_photo.text
+
+    image = await upload(client, pid)
+    published = await client.patch(
+        f"/api/products/{pid}",
+        json={"name_ms": "Produk kitar hayat fiksyen", "storefront_published": True},
+    )
+    assert published.status_code == 200
+    assert published.json()["storefront_published"] is True
+    assert (await client.put(f"/api/products/{pid}/feature")).status_code == 200
+
+    final_photo = await client.delete(f"/api/products/{pid}/images/{image['id']}")
+    assert final_photo.status_code == 409
+    assert "Unpublish" in final_photo.text
+
+    deactivated = await client.patch(f"/api/products/{pid}", json={"is_active": False})
+    assert deactivated.status_code == 200
+    assert deactivated.json()["is_active"] is False
+    assert deactivated.json()["storefront_published"] is False
+    assert (await client.get("/api/storefront/featured")).json() is None
+    assert (await client.delete(f"/api/products/{pid}/images/{image['id']}")).status_code == 204
+
+
+async def test_inactive_product_cannot_be_published(client):
+    pid = await create(client, "Fictional inactive product")
+    await upload(client, pid)
+    response = await client.patch(
+        f"/api/products/{pid}",
+        json={
+            "is_active": False,
+            "name_ms": "Produk tidak aktif fiksyen",
+            "storefront_published": True,
+        },
+    )
+    assert response.status_code == 422
+    assert "Activate" in response.text
 
 
 async def test_gallery_limits_invalid_order_and_owner_permissions(client):
@@ -139,7 +191,7 @@ def test_create_and_update_validation_agree(values):
 
 
 async def test_all_product_pages_and_no_stale_price(client, session):
-    session.add_all([Product(name=f"Fictional {i:03}", price=12, is_active=True, storefront_published=True, storefront_name_en=f"Fictional {i:03}", storefront_name_ms=f"Fiksyen {i:03}") for i in range(55)])
+    session.add_all([Product(name=f"Fictional {i:03}", price=12, is_active=True, storefront_published=True, name_ms=f"Fiksyen {i:03}") for i in range(55)])
     await session.commit()
     admin = (await client.get("/api/products/admin?page=2&page_size=20")).json()
     assert len(admin["items"]) == 20 and admin["total"] == 55

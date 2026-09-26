@@ -45,7 +45,7 @@ export default function CommandPalette() {
           { id: "new-order", label: "Create Order", onClick: () => navigate("/orders", { state: { dashboardAction: "CREATE_ORDER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           { id: "new-customer", label: "Add Customer", onClick: () => navigate("/customers", { state: { dashboardAction: "CREATE_CUSTOMER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           ...(admin?.role === "OWNER" ? [
-            { id: "new-product", label: "Add Product", onClick: () => navigate("/products", { state: { dashboardAction: "CREATE_PRODUCT" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
+            { id: "new-product", label: "Add Product", onClick: () => navigate("/products/new"), leftSection: <IconPlus size={18} /> },
             { id: "new-discount", label: "Create Discount", onClick: () => navigate("/discounts", { state: { dashboardAction: "CREATE_DISCOUNT" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           ] : []),
         ] },

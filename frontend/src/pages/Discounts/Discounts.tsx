@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
-import { ActionIcon, Badge, Button, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Badge, Button, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
 import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { DataTable } from "../../components/common/DataTable";
 import PageHeader from "../../components/common/PageHeader";
@@ -73,7 +73,14 @@ export default function Discounts() {
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedProductId = Number(searchParams.get("product_id"));
+  const filteredProductId = Number.isSafeInteger(requestedProductId) && requestedProductId > 0 ? requestedProductId : null;
   const productNames = useMemo(() => new Map(productsData?.items.map((product) => [product.id, product.name]) ?? []), [productsData]);
+  const visibleDiscounts = useMemo(
+    () => filteredProductId ? (discounts ?? []).filter((discount) => discount.product_id === filteredProductId) : (discounts ?? []),
+    [discounts, filteredProductId],
+  );
 
   const form = useForm<DiscountFormValues>({
     initialValues,
@@ -89,8 +96,9 @@ export default function Discounts() {
 
   function openCreate() {
     setEditingDiscount(null);
-    form.setValues(initialValues);
-    form.resetDirty(initialValues);
+    const values = { ...initialValues, product_id: filteredProductId ? String(filteredProductId) : "" };
+    form.setValues(values);
+    form.resetDirty(values);
     setOpened(true);
   }
 
@@ -168,7 +176,10 @@ export default function Discounts() {
         description="Schedule product promotions and sale prices."
         action={isOwner ? <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Create Discount</Button> : undefined}
       />
-      <DataTable data={discounts ?? []} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage="No promotions created yet." />
+      {filteredProductId ? <Alert mb="md" color="blue" title={`Promotions for ${productNames.get(filteredProductId) ?? `product #${filteredProductId}`}`}>
+        <Button variant="subtle" size="compact-sm" onClick={() => setSearchParams({})}>Show all promotions</Button>
+      </Alert> : null}
+      <DataTable data={visibleDiscounts} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage={filteredProductId ? "No promotions exist for this product yet." : "No promotions created yet."} />
       <Modal opened={isOwner && (opened || isCreateRequested)} onClose={closeModal} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
         <form onSubmit={form.onSubmit(submit)}><Stack>
           <Select label="Product" searchable data={productsData?.items.map((product) => ({ value: String(product.id), label: product.name })) ?? []} {...form.getInputProps("product_id")} />

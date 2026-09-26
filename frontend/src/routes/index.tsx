@@ -7,6 +7,7 @@ const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const Home = lazy(() => import("../pages/Dashboard/Home"));
 const Products = lazy(() => import("../pages/Products/Products"));
+const ProductWorkspace = lazy(() => import("../pages/Products/ProductWorkspace"));
 const Orders = lazy(() => import("../pages/Orders/Orders"));
 const Customers = lazy(() => import("../pages/Customers/Customers"));
 const WhatsApp = lazy(() => import("../pages/WhatsApp/Whatsapp"));
@@ -51,6 +52,8 @@ export default function AppRoutes() {
         <Route path="/dashboard" element={<Home />} />
 
         <Route path="/products" element={<Products />} />
+        <Route path="/products/new" element={<OwnerRoute><ProductWorkspace /></OwnerRoute>} />
+        <Route path="/products/:productId/*" element={<ProductWorkspace />} />
 
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/tasks" element={<Tasks />} />

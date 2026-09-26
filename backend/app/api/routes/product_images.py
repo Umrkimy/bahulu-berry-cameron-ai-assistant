@@ -120,6 +120,8 @@ async def remove_image(product_id: int, image_id: int, db: DB, owner: Owner):
     image = next((item for item in product.images if item.id == image_id), None)
     if image is None:
         raise HTTPException(404, "Product image not found.")
+    if product.storefront_published and len(product.images) == 1:
+        raise HTTPException(409, "Unpublish this product before removing its final photo.")
     await db.delete(image)
     product.image_file = None
     for index, item in enumerate(i for i in product.images if i.id != image_id):
@@ -135,7 +137,7 @@ async def feature_product(product_id: int, db: DB, owner: Owner):
     if feature is None:
         raise HTTPException(503, "Apply the product gallery migration first.")
     product = await locked_product(db, product_id)
-    if not (product.is_active and product.storefront_published and product.storefront_name_en and product.storefront_name_ms and product.images):
+    if not (product.is_active and product.storefront_published and product.name and product.name_ms and product.images):
         raise HTTPException(422, "Publish an active product with bilingual names and a cover photo first.")
     if not media_path(product.images[0].filename, product.images[0].legacy).is_file():
         raise HTTPException(422, "Upload a working cover photo first.")
