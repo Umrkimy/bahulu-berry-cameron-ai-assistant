@@ -54,10 +54,10 @@ def _serialize_product(product: Product) -> StorefrontProduct:
 
     return StorefrontProduct(
         id=product.id,
-        name_en=product.storefront_name_en or product.name,
-        name_ms=product.storefront_name_ms or product.name,
-        description_en=product.storefront_description_en,
-        description_ms=product.storefront_description_ms,
+        name_en=product.name,
+        name_ms=product.name_ms or product.name,
+        description_en=product.description,
+        description_ms=product.description_ms,
         category=product.category,
         price=unit_price,
         sale_price=product_sale_price(product),
@@ -72,10 +72,8 @@ def _published_filters():
     return (
         Product.is_active.is_(True),
         Product.storefront_published.is_(True),
-        Product.storefront_name_en.is_not(None),
-        Product.storefront_name_ms.is_not(None),
-        func.trim(Product.storefront_name_en) != "",
-        func.trim(Product.storefront_name_ms) != "",
+        Product.name_ms.is_not(None),
+        func.trim(Product.name_ms) != "",
     )
 
 
@@ -94,8 +92,8 @@ async def list_storefront_products(
     filters = list(_published_filters())
     if search:
         filters.append(
-            func.lower(Product.storefront_name_en).contains(search.lower())
-            | func.lower(Product.storefront_name_ms).contains(search.lower())
+            func.lower(Product.name).contains(search.lower())
+            | func.lower(Product.name_ms).contains(search.lower())
         )
     if category:
         filters.append(Product.category == category)
@@ -105,7 +103,7 @@ async def list_storefront_products(
         select(Product)
         .options(selectinload(Product.inventory), selectinload(Product.discounts))
         .where(*filters)
-        .order_by(Product.storefront_name_en.asc(), Product.id.asc())
+        .order_by(Product.name.asc(), Product.id.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )

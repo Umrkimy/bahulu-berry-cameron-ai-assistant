@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-test("Owner product edits and gallery reach the real storefront", async ({ page, context }) => {
+test("Owner product workspace reaches the real storefront", async ({ page, context }) => {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Email" }).fill("owner@example.com");
   await page.getByRole("textbox", { name: "Password" }).fill("Fictional-E2E-Only-123!");
@@ -9,32 +9,36 @@ test("Owner product edits and gallery reach the real storefront", async ({ page,
   await page.waitForURL(url => !url.pathname.includes("login"));
   await page.goto("/products");
   await page.getByRole("button", { name: "Add Product", exact: true }).click();
-  const create = page.getByRole("dialog", { name: "Add Product" });
-  await create.getByLabel("Internal product name").fill("Fictional integration product");
-  await create.getByLabel(/^Price/).fill("12.00");
-  await create.getByLabel("Initial Stock").fill("3");
-  await create.getByRole("button", { name: "Create Product" }).click();
-  await expect(create).not.toBeVisible();
-  await page.getByRole("button", { name: "Edit product", exact: true }).first().click();
-  const edit = page.getByRole("dialog", { name: "Edit Product" });
+  await expect(page).toHaveURL(/\/products\/new$/);
+  await page.getByLabel("Product name — English").fill("Fictional client walkthrough");
+  await page.getByLabel("Description — English").fill("Fictional test product. Not approved business content.");
+  await page.getByLabel("Base price").fill("12.00");
+  await page.getByLabel("Opening stock").fill("3");
+  await page.getByRole("button", { name: "Create product" }).click();
+  await expect(page).toHaveURL(/\/products\/\d+\/photos$/);
+
   const choose = page.waitForEvent("filechooser");
-  await edit.getByRole("button", { name: "Upload photo" }).click();
-  await (await choose).setFiles(path.resolve("../storefront/public/concept/bahulu-bag.webp"));
-  await expect(edit.getByAltText("Product photo 1")).toBeVisible();
-  const chooseSecond = page.waitForEvent("filechooser");
-  await edit.getByRole("button", { name: "Upload photo" }).click();
-  await (await chooseSecond).setFiles(path.resolve("../storefront/public/concept/brand-preview.webp"));
-  await expect(edit.getByAltText("Product photo 2")).toBeVisible();
-  await edit.getByLabel("Storefront name — English").fill("Fictional client walkthrough");
-  await edit.getByLabel("Storefront name — Bahasa Melayu").fill("Demo pelanggan fiksyen");
-  await edit.getByLabel("Storefront description — English").fill("Fictional test product. Not approved business content.");
-  await edit.getByLabel("Publish on storefront").check();
-  await edit.getByRole("button", { name: "Save Changes" }).click();
-  await expect(edit).not.toBeVisible();
-  await page.getByRole("button", { name: "Edit product", exact: true }).first().click();
+  await page.getByRole("button", { name: "Upload photos" }).click();
+  await (await choose).setFiles([
+    path.resolve("../storefront/public/concept/bahulu-bag.webp"),
+    path.resolve("../storefront/public/concept/brand-preview.webp"),
+  ]);
+  await expect(page.getByAltText("Cover photo for this product")).toBeVisible();
+  await expect(page.getByAltText("Gallery 2 photo for this product")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Storefront" }).click();
+  await page.getByLabel("Product name — Bahasa Melayu").fill("Demo pelanggan fiksyen");
+  await page.getByLabel("Description — Bahasa Melayu").fill("Penerangan demo fiksyen.");
+  await page.getByRole("switch", { name: /Published online/ }).check();
+  await page.getByRole("button", { name: "Save storefront" }).click();
   const featured = page.waitForResponse(response => response.url().endsWith("/feature") && response.request().method() === "PUT");
-  await edit.getByRole("button", { name: "Feature on homepage" }).click();
+  await page.getByRole("button", { name: "Feature on homepage" }).click();
   expect((await featured).status()).toBe(200);
+  await page.screenshot({ path: "../output/playwright/product-workspace-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "../output/playwright/product-workspace-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
   const published = await (await page.request.get("http://127.0.0.1:8100/api/storefront/featured")).json();
   expect(published.name_en).toBe("Fictional client walkthrough");
   expect((await page.request.get(`http://127.0.0.1:8100${published.image_path}`)).status()).toBe(200);
@@ -42,7 +46,8 @@ test("Owner product edits and gallery reach the real storefront", async ({ page,
   const shop = await context.newPage();
   await shop.goto("http://127.0.0.1:3100/");
   const publicImage = published.image_path.match(/products\/(\d+)\/images\/(\d+)/);
-  expect((await shop.request.get(`http://127.0.0.1:3100/product-media/${publicImage[1]}/${publicImage[2]}`)).status()).toBe(200);
+  expect(publicImage).not.toBeNull();
+  expect((await shop.request.get(`http://127.0.0.1:3100/product-media/${publicImage![1]}/${publicImage![2]}`)).status()).toBe(200);
   const hero = shop.locator(".hero-product-image");
   await expect(hero).toHaveAttribute("alt", "Fictional client walkthrough");
   await expect.poll(() => hero.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
@@ -52,9 +57,10 @@ test("Owner product edits and gallery reach the real storefront", async ({ page,
   await shop.getByRole("button", { name: "View photo 2" }).focus();
   await shop.keyboard.press("Enter");
   await expect(shop.getByRole("button", { name: "View photo 2" })).toHaveAttribute("aria-pressed", "true");
-  await edit.getByLabel(/^Price/).fill("18.00");
-  await edit.getByRole("button", { name: "Save Changes" }).click();
-  await expect(edit).not.toBeVisible();
+
+  await page.getByRole("tab", { name: "Details" }).click();
+  await page.getByLabel("Base price").fill("18.00");
+  await page.getByRole("button", { name: "Save details" }).click();
   await shop.reload();
   await expect(shop.locator(".shop-detail-price strong").first()).toContainText("18.00");
   await shop.getByRole("button", { name: "Switch language to Bahasa Melayu" }).click();
@@ -67,9 +73,11 @@ test("Owner product edits and gallery reach the real storefront", async ({ page,
   await shop.screenshot({ path: "../output/playwright/backend-detail-desktop.png", fullPage: true });
   await shop.setViewportSize({ width: 390, height: 844 });
   await shop.screenshot({ path: "../output/playwright/backend-detail-mobile.png", fullPage: true });
-  await page.getByRole("button", { name: "Edit product", exact: true }).first().click();
+
+  await page.getByRole("tab", { name: "Photos" }).click();
   const reordered = page.waitForResponse(response => response.url().endsWith("/images") && response.request().method() === "PUT");
-  await edit.getByRole("button", { name: "Move photo 2 earlier" }).click();
+  await page.getByRole("button", { name: "Move photo 2 earlier" }).focus();
+  await page.keyboard.press("Enter");
   expect((await reordered).status()).toBe(200);
   await shop.reload();
   await expect(shop.locator(".shop-detail-image img:visible")).toHaveCount(1);
@@ -92,9 +100,10 @@ test("Owner product edits and gallery reach the real storefront", async ({ page,
   await expect(shop.getByText("No sandbox provider has been selected. Payment is unavailable and test-only.")).toBeVisible();
   await expect(shop.locator("input")).toHaveCount(0);
   await expect(shop.getByRole("button", { name: /ordering and payment are disabled/ })).toBeDisabled();
-  await edit.getByLabel("Publish on storefront").uncheck();
-  await edit.getByRole("button", { name: "Save Changes" }).click();
-  await expect(edit).not.toBeVisible();
+
+  await page.getByRole("tab", { name: "Storefront" }).click();
+  await page.getByRole("switch", { name: /Published online/ }).uncheck();
+  await page.getByRole("button", { name: "Save storefront" }).click();
   await shop.goto("http://127.0.0.1:3100/cart");
   await expect(shop.getByText("This product is no longer available.")).toBeVisible();
   await expect(shop.getByRole("link", { name: "Private checkout preview" })).toHaveCount(0);

@@ -38,6 +38,10 @@ export async function getProducts() {
   return { ...first, items: [...new Map(items.map(product => [product.id, product])).values()] };
 }
 
+export async function getProduct(productId: number) {
+  return (await api.get<Product>(`/products/${productId}`)).data;
+}
+
 export async function createProduct(data: CreateProductData) {
   const response = await api.post<Product>("/products/", data);
 

@@ -11,6 +11,7 @@ from app.schemas.pagination import PaginatedResponse
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.models.admin import Admin
 from app.models.product import Product
+from app.models.product_image import StorefrontFeature
 from app.models.inventory import Inventory
 from app.models.order_item import OrderItem
 from app.models.stock_movement import StockMovement
@@ -23,6 +24,7 @@ from app.schemas.product import (
 )
 from app.schemas.product_import import ProductImportPreview, ProductImportResult
 from app.services.product_import_services import CSV_HEADERS, read_product_import
+from app.services.product_media import media_path
 
 router = APIRouter()
 
@@ -358,13 +360,14 @@ async def get_admin_products(
 
 
 # GET SINGLE PRODUCT
-@router.get("/{product_id}", response_model=ProductPublic)
+@router.get("/{product_id}", response_model=ProductPrivate)
 async def get_product(product_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
     result = await db.execute(
         select(Product)
         .options(
             selectinload(Product.inventory),
             selectinload(Product.discounts),
+            selectinload(Product.images),
         )
         .where(Product.id == product_id)
     )
@@ -415,6 +418,8 @@ async def create_product(
         image_file=product_data.image_file,
         category=product_data.category,
         is_active=product_data.is_active,
+        name_ms=product_data.name_ms,
+        description_ms=product_data.description_ms,
     )
     db.add(product)
 
@@ -458,8 +463,18 @@ async def update_product(
         Depends(get_current_superuser),
     ],
 ):
+    feature = None
+    if product_data.is_active is False or product_data.storefront_published is False:
+        # Keep the same lock order as homepage feature selection to avoid a
+        # product/feature deadlock during concurrent unpublish operations.
+        feature = await db.scalar(
+            select(StorefrontFeature).where(StorefrontFeature.id == 1).with_for_update()
+        )
     result = await db.execute(
-        select(Product).where(Product.id == product_id)
+        select(Product)
+        .options(selectinload(Product.images))
+        .where(Product.id == product_id)
+        .with_for_update()
     )
 
     product = result.scalar_one_or_none()
@@ -491,17 +506,39 @@ async def update_product(
 
     update_data = product_data.model_dump(exclude_unset=True)
 
-    publishing = update_data.get("storefront_published", product.storefront_published)
-    name_en = update_data.get("storefront_name_en", product.storefront_name_en)
-    name_ms = update_data.get("storefront_name_ms", product.storefront_name_ms)
-    if publishing and (not name_en or not name_en.strip() or not name_ms or not name_ms.strip()):
+    active = update_data.get("is_active", product.is_active)
+    if update_data.get("storefront_published") is True and not active:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Add approved English and Bahasa Melayu storefront names before publishing this product.",
+            detail="Activate this product for operations before publishing it online.",
+        )
+    if not active:
+        update_data["storefront_published"] = False
+
+    publishing = update_data.get("storefront_published", product.storefront_published)
+    name_ms = update_data.get("name_ms", product.name_ms)
+    if publishing and (not name_ms or not name_ms.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Add the approved Bahasa Melayu product name before publishing.",
+        )
+    if publishing and not product.images:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Upload at least one approved product photo before publishing.",
+        )
+    if publishing and not media_path(product.images[0].filename, product.images[0].legacy).is_file():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Upload a working cover photo before publishing.",
         )
 
     for field, value in update_data.items():
         setattr(product, field, value)
+
+    if not product.storefront_published:
+        if feature is not None and feature.product_id == product.id:
+            feature.product_id = None
 
     await record_activity(db, admin=current_admin, action="updated", entity_type="product", entity_id=product.id, description=f"Updated product {product.name}.")
     await db.commit()

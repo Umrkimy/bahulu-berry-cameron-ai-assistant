@@ -20,14 +20,13 @@ def request() -> Request:
 @pytest.mark.asyncio
 async def test_storefront_only_returns_published_safe_product_fields(session):
     product = Product(
-        name="Internal product name",
+        name="Approved English name",
+        description="Approved English description",
         price=Decimal("12.00"),
         is_active=True,
         storefront_published=True,
-        storefront_name_en="Approved English name",
-        storefront_name_ms="Nama Bahasa Melayu diluluskan",
-        storefront_description_en="Approved English description",
-        storefront_description_ms="Penerangan Bahasa Melayu diluluskan",
+        name_ms="Nama Bahasa Melayu diluluskan",
+        description_ms="Penerangan Bahasa Melayu diluluskan",
     )
     hidden = Product(name="Hidden", price=Decimal("8.00"), is_active=True, storefront_published=False)
     session.add_all([product, hidden])
@@ -66,8 +65,7 @@ async def test_storefront_hides_out_of_stock_quantity_and_unavailable_products(s
         price=Decimal("9.00"),
         is_active=True,
         storefront_published=True,
-        storefront_name_en="Unavailable English",
-        storefront_name_ms="Tidak tersedia",
+        name_ms="Tidak tersedia",
     )
     session.add(product)
     await session.flush()
@@ -91,8 +89,7 @@ async def test_storefront_hides_out_of_stock_quantity_and_unavailable_products(s
 async def test_storefront_sale_price_matches_single_unit_order(session, price, discounts, expected):
     product = Product(
         name="Fictional pricing fixture", price=Decimal(price), is_active=True,
-        storefront_published=True, storefront_name_en="Fictional product",
-        storefront_name_ms="Produk fiksyen",
+        storefront_published=True, name_ms="Produk fiksyen",
     )
     session.add(product)
     await session.flush()
@@ -115,9 +112,8 @@ async def test_storefront_sale_price_matches_single_unit_order(session, price, d
 @pytest.mark.asyncio
 async def test_storefront_quote_is_authoritative_public_and_read_only(session):
     product = Product(
-        name="Internal-only product name", price=Decimal("20.00"), is_active=True,
-        storefront_published=True, storefront_name_en="Approved quote product",
-        storefront_name_ms="Produk sebut harga diluluskan",
+        name="Approved quote product", price=Decimal("20.00"), is_active=True,
+        storefront_published=True, name_ms="Produk sebut harga diluluskan",
     )
     session.add(product)
     await session.flush()
@@ -140,7 +136,7 @@ async def test_storefront_quote_is_authoritative_public_and_read_only(session):
     assert quote.total_amount == Decimal("36.00")
     assert quote.items[0].name_en == "Approved quote product"
     assert quote.items[0].discount_amount == Decimal("4.00")
-    assert "Internal" not in str(quote.model_dump())
+    assert "Internal promotion" not in str(quote.model_dump())
     assert response.headers["cache-control"] == "no-store"
     await session.refresh(inventory)
     assert inventory.quantity == 5
@@ -149,8 +145,8 @@ async def test_storefront_quote_is_authoritative_public_and_read_only(session):
 @pytest.mark.asyncio
 async def test_storefront_quote_returns_safe_stale_and_quantity_states(session):
     visible = Product(
-        name="Private inventory name", price=Decimal("9.00"), is_active=True,
-        storefront_published=True, storefront_name_en="Visible product", storefront_name_ms="Produk kelihatan",
+        name="Visible product", price=Decimal("9.00"), is_active=True,
+        storefront_published=True, name_ms="Produk kelihatan",
     )
     hidden = Product(name="Hidden internal name", price=Decimal("8.00"), is_active=True, storefront_published=False)
     session.add_all([visible, hidden])
