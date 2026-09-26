@@ -211,5 +211,5 @@ test("Owner product workspace reaches the real storefront", async ({
   await shop.goto(`http://127.0.0.1:3100/products/${published.id}`);
   await expect(shop.locator(".shop-state")).toBeVisible();
   await shop.goto("http://127.0.0.1:3100/");
-  await expect(shop.locator(".hero-image-fallback:visible")).toHaveCount(1);
+  await expect(shop.locator(".hero-concept-image:visible")).toHaveCount(1);
 });
