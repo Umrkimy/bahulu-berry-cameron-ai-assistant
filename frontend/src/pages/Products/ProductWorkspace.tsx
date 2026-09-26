@@ -141,7 +141,7 @@ function ProductDetailsForm({ product, canEdit, onDirtyChange }: { product: Prod
         } });
         form.resetDirty();
         onDirtyChange(false);
-        notifications.show({ color: "green", title: "Product details saved", message: values.is_active ? "Operational details are current." : "The product is inactive and has been unpublished." });
+        notifications.show({ color: "green", title: "Product details saved", message: values.is_active ? `Changes are live for operations. Base price: RM ${values.price.toFixed(2)}.` : "The product is inactive and has been unpublished." });
       }
     } catch (error) {
       notifications.show({ color: "red", title: "Product could not be saved", message: getApiError(error).message });

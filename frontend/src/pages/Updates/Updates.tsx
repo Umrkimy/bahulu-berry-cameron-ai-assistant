@@ -1,5 +1,6 @@
 import { Badge, Button, Card, Divider, Group, Select, Stack, Switch, Text, TextInput, ThemeIcon } from "@mantine/core";
 import { IconAlertTriangle, IconArrowUpRight, IconBell, IconCheck, IconExternalLink } from "@tabler/icons-react";
+import { notifications as actionNotifications } from "@mantine/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useMemo, useState } from "react";
@@ -48,10 +49,16 @@ export default function Updates() {
   const filters = { notification_type: type, unread_only: unreadOnly || undefined, start_at: startDate ? `${startDate}T00:00:00+08:00` : undefined, end_at: endDate ? `${endDate}T23:59:59.999+08:00` : undefined, page, page_size: pageSize };
   const notifications = useQuery({ queryKey: ["notifications", filters], queryFn: () => getNotifications(filters) });
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["notifications"] }), queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })]);
-  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: refresh });
-  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: refresh });
+  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: refresh, onError: (error) => actionNotifications.show({ title: "Unable to mark update as read", message: getApiError(error).message, color: "red" }) });
+  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: async () => { await refresh(); actionNotifications.show({ title: "Updates marked as read", message: "Your unread count is now current.", color: "green" }); }, onError: (error) => actionNotifications.show({ title: "Unable to mark updates as read", message: getApiError(error).message, color: "red" }) });
   const openItem = useCallback((item: AppNotification) => { if (!item.read_at) markOne.mutate(item.id); navigate(item.route); }, [markOne, navigate]);
   const reset = () => { setType(null); setUnreadOnly(false); setStartDate(""); setEndDate(""); setPage(1); };
+  const refreshPage = async () => {
+    const results = await Promise.all([alerts.refetch(), notifications.refetch()]);
+    const failure = results.find((result) => result.isError);
+    if (failure) actionNotifications.show({ title: "Unable to refresh updates", message: getApiError(failure.error).message, color: "red" });
+    else actionNotifications.show({ title: "Updates refreshed", message: "The latest operational state is displayed.", color: "green" });
+  };
   const columns = useMemo<ColumnDef<AppNotification, unknown>[]>(() => [
     { accessorKey: "title", header: "Notification", cell: ({ row }) => <Stack gap={2}><Text fw={row.original.read_at ? 500 : 700}>{row.original.title}</Text><Text size="xs" c="dimmed">{row.original.description}</Text></Stack> },
     { accessorKey: "notification_type", header: "Type", cell: ({ row }) => <Badge color={typeColors[row.original.notification_type]} variant="light">{typeLabels[row.original.notification_type]}</Badge> },
@@ -63,7 +70,7 @@ export default function Updates() {
   const counts = alerts.data?.counts ?? { critical: 0, warning: 0, total: 0 };
 
   return <Stack gap="xl">
-    <PageHeader title="Updates" description="Live work that needs attention, followed by your saved operational updates." action={<Group gap="xs"><Button variant="default" onClick={() => { void alerts.refetch(); void notifications.refetch(); }}>Refresh</Button><Button variant="default" leftSection={<IconCheck size={16} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button></Group>} />
+    <PageHeader title="Updates" description="Live work that needs attention, followed by your saved operational updates." action={<Group gap="xs"><Button variant="default" loading={alerts.isFetching || notifications.isFetching} onClick={() => void refreshPage()}>Refresh</Button><Button variant="default" leftSection={<IconCheck size={16} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button></Group>} />
     <Card withBorder p="lg">
       <Group justify="space-between" align="flex-start" mb="md" wrap="wrap">
         <Group gap="sm"><ThemeIcon color="bahulu" variant="light" radius="xl" size="lg"><IconAlertTriangle size={20} /></ThemeIcon><div><Text fw={700}>Needs attention</Text><Text size="sm" c="dimmed">Live issues clear automatically when the underlying work is resolved.</Text></div></Group>

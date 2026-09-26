@@ -10,6 +10,7 @@ import "@mantine/core/styles.css";
 import "@mantine/spotlight/styles.css";
 import "@mantine/nprogress/styles.css";
 import "@mantine/dates/styles.css";
+import "@mantine/notifications/styles.css";
 import { ModalsProvider } from "@mantine/modals";
 
 import App from "./App";
@@ -18,6 +19,7 @@ import "./styles.css";
 
 import { AuthProvider } from "./auth/AuthProvider";
 import { routineQueryDefaults } from "./queryPolicy";
+import ActionNotifications from "./components/common/ActionNotifications";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: routineQueryDefaults } });
 
@@ -28,6 +30,7 @@ createRoot(document.getElementById("root")!).render(
         <LazyMotion features={domAnimation} strict>
           <MotionConfig reducedMotion="user">
             <MantineProvider theme={theme} defaultColorScheme="light">
+              <ActionNotifications />
               <ModalsProvider>
                 <AuthProvider>
                   <App />

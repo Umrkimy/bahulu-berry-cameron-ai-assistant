@@ -42,7 +42,7 @@ export default function Tasks() {
   });
   const change = useMutation({
     mutationFn: ({ id, status, completion_note }: { id: number; status: Task["status"]; completion_note?: string }) => updateTask(id, { status, completion_note }),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); setCompletionTask(null); completionForm.reset(); },
+    onSuccess: (task) => { void queryClient.invalidateQueries({ queryKey: ["tasks"] }); void queryClient.invalidateQueries({ queryKey: ["notifications"] }); setCompletionTask(null); completionForm.reset(); notifications.show({ title: "Task updated", message: `Status changed to ${task.status.replaceAll("_", " ").toLowerCase()}.`, color: "green" }); },
     onError: (error) => notifications.show({ title: "Could not update task", message: getApiError(error).message, color: "red" }),
   });
   const contextOptions = form.values.context_type === "ORDER" ? (orders.data ?? []).map((order) => ({ value: String(order.id), label: `Order #${order.id} · ${order.status}` })) : form.values.context_type === "DELIVERY" ? (deliveries.data ?? []).map((delivery) => ({ value: String(delivery.id), label: `Delivery for Order #${delivery.order_id} · ${delivery.status}` })) : (inventory.data ?? []).map((item) => ({ value: String(item.id), label: `${item.product_name} · ${item.quantity} in stock` }));
