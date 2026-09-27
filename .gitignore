@@ -6,6 +6,7 @@ frontend/node_modules/
 storefront/node_modules/
 storefront/.next/
 storefront/out/
+*.tsbuildinfo
 storefront/.env
 frontend/dist/
 frontend/dist-ssr/

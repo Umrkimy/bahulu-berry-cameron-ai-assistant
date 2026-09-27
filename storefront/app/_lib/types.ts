@@ -1,5 +1,17 @@
 export type Locale = "en" | "ms";
 
+export interface BilingualText { en: string; ms: string }
+export interface HomepageContent {
+  hero: { eyebrow: BilingualText; title_primary: BilingualText; title_accent: BilingualText; title_suffix: BilingualText; body: BilingualText; cta_label: BilingualText };
+  benefits: { enabled: boolean; eyebrow: BilingualText; title: BilingualText; items: { title: BilingualText; body: BilingualText }[] };
+  collection: { eyebrow: BilingualText; title: BilingualText; view_all_label: BilingualText };
+  story: { eyebrow: BilingualText; title: BilingualText; body: BilingualText; cta_label: BilingualText };
+  reviews: { enabled: boolean; eyebrow: BilingualText; title: BilingualText };
+  location: { enabled: boolean; eyebrow: BilingualText; title: BilingualText; load_map_label: BilingualText; directions_label: BilingualText };
+  closing: { eyebrow: BilingualText; title: BilingualText; body: BilingualText; cta_label: BilingualText };
+  google_place_id: string | null;
+}
+
 export interface Promotion {
   label: string;
   discount_type: "PERCENTAGE" | "FIXED_AMOUNT" | "BUNDLE_PRICE";
