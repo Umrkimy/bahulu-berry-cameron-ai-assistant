@@ -1,6 +1,30 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
+async function expectNoHorizontalOverflow(page: import("@playwright/test").Page) {
+  await expect.poll(
+    () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    { message: "The responsive layout should settle without horizontal overflow", timeout: 3_000 },
+  ).toBe(true);
+  const result = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+    offenders: Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${Array.from(element.classList).slice(0, 2).map((name) => `.${name}`).join("")}`,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        };
+      })
+      .filter(({ left, right }) => left < -1 || right > window.innerWidth + 1)
+      .slice(0, 12),
+  }));
+  expect(result.documentWidth, JSON.stringify(result, null, 2)).toBeLessThanOrEqual(result.viewportWidth);
+}
+
 test("Owner product workspace reaches the real storefront", async ({
   page,
   context,
@@ -15,6 +39,9 @@ test("Owner product workspace reaches the real storefront", async ({
 
   await page.goto("/storefront/homepage");
   await expect(page.getByRole("heading", { name: "Storefront homepage" })).toBeVisible();
+  const staleEditor = await context.newPage();
+  await staleEditor.goto("/storefront/homepage");
+  await expect(staleEditor.getByRole("heading", { name: "Storefront homepage" })).toBeVisible();
   const publishedBeforeDraft = await (
     await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
   ).json();
@@ -22,6 +49,11 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByLabel("Introduction — English").fill(fictionalHomepageCopy);
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Homepage draft saved")).toBeVisible();
+  await staleEditor.getByRole("textbox", { name: /Introduction/ }).fill("This edit intentionally uses a stale draft version.");
+  await staleEditor.getByRole("button", { name: "Save draft" }).click();
+  await expect(staleEditor.getByText("Draft could not be saved")).toBeVisible();
+  await expect(staleEditor.getByText("This homepage draft changed in another session. Reload it before saving again.")).toBeVisible();
+  await staleEditor.close();
   const stillPublished = await (
     await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
   ).json();
@@ -32,6 +64,7 @@ test("Owner product workspace reaches the real storefront", async ({
     await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
   ).json();
   expect(publishedHomepage.hero.body.en).toBe(fictionalHomepageCopy);
+  expect(publishedHomepage.hero.body.ms.trim()).not.toBe("");
   await expect(page.getByRole("switch", { name: "Not ready" })).toHaveCount(2);
 
   await page.goto("/products");
@@ -47,6 +80,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByLabel("Opening stock").fill("3");
   await page.getByRole("button", { name: "Create product" }).click();
   await expect(page).toHaveURL(/\/products\/\d+\/photos$/);
+  await expect(page.getByText("Product created")).toBeVisible();
 
   const choose = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Upload photos" }).click();
@@ -60,6 +94,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(
     page.getByAltText("Gallery 2 photo for this product"),
   ).toBeVisible();
+  await expect(page.getByText("Photos updated")).toBeVisible();
 
   await page.getByRole("tab", { name: "Storefront" }).click();
   await page
@@ -70,6 +105,7 @@ test("Owner product workspace reaches the real storefront", async ({
     .fill("Penerangan demo fiksyen.");
   await page.getByRole("switch", { name: /Published online/ }).check();
   await page.getByRole("button", { name: "Save storefront" }).click();
+  await expect(page.getByText("Storefront settings saved")).toBeVisible();
   const featured = page.waitForResponse(
     (response) =>
       response.url().endsWith("/feature") &&
@@ -77,16 +113,13 @@ test("Owner product workspace reaches the real storefront", async ({
   );
   await page.getByRole("button", { name: "Feature on homepage" }).click();
   expect((await featured).status()).toBe(200);
+  await expect(page.getByText("Homepage updated")).toBeVisible();
   await page.screenshot({
     path: "../output/playwright/product-workspace-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
+  await expectNoHorizontalOverflow(page);
   await page.screenshot({
     path: "../output/playwright/product-workspace-mobile.png",
     fullPage: true,
@@ -125,6 +158,9 @@ test("Owner product workspace reaches the real storefront", async ({
       ),
     )
     .toBe(true);
+  await shop.emulateMedia({ reducedMotion: "reduce" });
+  await expect(shop.locator(".product-settle")).toHaveCSS("animation-name", "none");
+  await shop.emulateMedia({ reducedMotion: "no-preference" });
   await hero.click();
   await expect(
     shop.getByRole("heading", {
@@ -144,6 +180,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByRole("tab", { name: "Details" }).click();
   await page.getByLabel("Base price").fill("18.00");
   await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Product details saved")).toBeVisible();
   await shop.reload();
   await expect(shop.locator(".shop-detail-price strong").first()).toContainText(
     "18.00",
@@ -155,11 +192,7 @@ test("Owner product workspace reaches the real storefront", async ({
   ).toBeVisible();
   for (const width of [320, 390, 768, 1440]) {
     await shop.setViewportSize({ width, height: 900 });
-    expect(
-      await shop.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
+    await expectNoHorizontalOverflow(shop);
   }
   await shop.addStyleTag({
     content: "nextjs-portal { display: none !important; }",
@@ -183,6 +216,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByRole("button", { name: "Move photo 2 earlier" }).focus();
   await page.keyboard.press("Enter");
   expect((await reordered).status()).toBe(200);
+  await expect(page.getByText("Photos updated")).toBeVisible();
   await shop.reload();
   await expect(shop.locator(".shop-detail-image img:visible")).toHaveCount(1);
   await expect(shop.locator(".shop-detail-image img:visible")).toHaveAttribute(
@@ -194,6 +228,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await shop
     .getByRole("button", { name: /Add to cart: Fictional client walkthrough/ })
     .click();
+  await expect(shop.getByText("Fictional client walkthrough: Added to cart.")).toBeAttached();
   await expect(shop.getByRole("link", { name: "Cart: 1" })).toBeVisible();
   await shop.getByRole("link", { name: "Cart: 1" }).click();
   await expect(shop.getByRole("heading", { name: "Your cart" })).toBeVisible();
@@ -203,6 +238,7 @@ test("Owner product workspace reaches the real storefront", async ({
   });
   await increase.focus();
   await shop.keyboard.press("Enter");
+  await expect(shop.getByText("Fictional client walkthrough: Quantity updated to 2.")).toBeAttached();
   await expect(shop.getByRole("link", { name: "Cart: 2" })).toBeVisible();
   await expect(shop.locator(".cart-total dd")).toHaveText("RM 36.00");
   await shop.reload();

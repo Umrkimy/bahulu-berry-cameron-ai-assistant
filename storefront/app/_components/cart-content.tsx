@@ -36,16 +36,16 @@ export function CartContent({ checkoutPreviewEnabled }: { checkoutPreviewEnabled
               {issue ? <p className="cart-line-warning" role="alert">{issue}</p> : null}
               <div className="cart-line-actions">
                 <div className="quantity-control" aria-label={`${text.quantity}: ${name}`}>
-                  <button type="button" onClick={() => updateItem(line.product_id, line.quantity - 1)} aria-label={`${text.decrease}: ${name}`}>−</button>
-                  <input type="number" min="1" max={MAX_CART_QUANTITY} value={line.quantity} aria-label={`${text.quantity}: ${name}`} onChange={(event) => updateItem(line.product_id, Number(event.target.value) || 1)} />
-                  <button type="button" disabled={line.quantity >= MAX_CART_QUANTITY} onClick={() => updateItem(line.product_id, line.quantity + 1)} aria-label={`${text.increase}: ${name}`}>+</button>
+                  <button type="button" disabled={line.quantity <= 1} onClick={() => updateItem(line.product_id, line.quantity - 1, `${name}: ${text.quantityUpdated} ${line.quantity - 1}.`)} aria-label={`${text.decrease}: ${name}`}>−</button>
+                  <input type="number" min="1" max={MAX_CART_QUANTITY} value={line.quantity} aria-label={`${text.quantity}: ${name}`} onChange={(event) => { const quantity = Math.min(MAX_CART_QUANTITY, Math.max(1, Number(event.target.value) || 1)); updateItem(line.product_id, quantity, `${name}: ${text.quantityUpdated} ${quantity}.`); }} />
+                  <button type="button" disabled={line.quantity >= MAX_CART_QUANTITY} onClick={() => updateItem(line.product_id, line.quantity + 1, `${name}: ${text.quantityUpdated} ${line.quantity + 1}.`)} aria-label={`${text.increase}: ${name}`}>+</button>
                 </div>
-                <button type="button" className="cart-remove" onClick={() => removeItem(line.product_id)}>{text.remove}</button>
+                <button type="button" className="cart-remove" onClick={() => removeItem(line.product_id, `${name}: ${text.removed}.`)}>{text.remove}</button>
               </div>
             </div>
           </article>;
         })}
-        <button type="button" className="home-text-link cart-clear" onClick={() => { if (window.confirm(text.clearConfirm)) clear(); }}>{text.clear}</button>
+        <button type="button" className="home-text-link cart-clear" onClick={() => { if (window.confirm(text.clearConfirm)) clear(`${text.cleared}.`); }}>{text.clear}</button>
       </div>
       <aside className="cart-summary" aria-labelledby="cart-summary-title">
         <h2 id="cart-summary-title">{text.orderSummary}</h2>
