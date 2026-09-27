@@ -63,6 +63,27 @@ toggle cannot bypass it. Reviews and location remain hidden until the listing,
 address, disclosures, quotas, and separately restricted Places and Embed keys
 are approved.
 
+The Places key is server-only and must be restricted to the Places API and the
+expected server source. The separate Maps Embed key is browser-visible by
+design and must be restricted to the Maps Embed API and approved web referrers.
+Keep both outside Git. The storefront requests only the Place Details fields it
+renders, never persists Google content, returns it with `Cache-Control:
+no-store`, and displays at most three of the reviews Google returns. Review
+author/source/report links, Google attribution, sorting notice, accessible
+rating text, and translation disclosure stay visible. The map is loaded only
+after a visitor chooses **Load map**.
+
+Before enabling the server gate, verify all of the following: the client has
+approved the exact listing and address; the Place ID belongs to that listing;
+the public privacy policy and terms include the required Google disclosures;
+both keys have appropriate API/application restrictions and quotas; and the
+dashboard Google readiness check succeeds. Publishing an enabled Google section
+also verifies the listing without saving the returned content. See Google's
+[Place Details documentation](https://developers.google.com/maps/documentation/places/web-service/place-details),
+[Places policies](https://developers.google.com/maps/documentation/places/web-service/policies),
+[Maps Embed documentation](https://developers.google.com/maps/documentation/embed/embedding-map),
+and [API key security guidance](https://developers.google.com/maps/api-security-best-practices).
+
 ## Design and asset provenance
 
 The approved direction is yellow/cream with strawberry-red controls, dynamic

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { homeCopy } from "../_lib/content";
 import type { BilingualText, HomepageContent } from "../_lib/types";
+import { GoogleSections } from "./google-sections";
 import { useLocale } from "./locale-provider";
 
 export function HomeContent({ children, hero, content }: { children: ReactNode; hero: ReactNode; content: HomepageContent }) {
@@ -56,6 +57,8 @@ export function HomeContent({ children, hero, content }: { children: ReactNode; 
           <Link href="/about" className="home-text-link">{pick(content.story.cta_label)}<span aria-hidden="true">↗</span></Link>
         </div>
       </section>
+
+      <GoogleSections content={content} />
 
       <section className="home-closing" aria-labelledby="closing-title"><div className="shell home-closing-inner"><div><p className="home-kicker">{pick(content.closing.eyebrow)}</p><h2 id="closing-title">{pick(content.closing.title)}</h2><p>{pick(content.closing.body)}</p></div><Link href="/products" className="home-button">{pick(content.closing.cta_label)}<span aria-hidden="true">↗</span></Link></div></section>
       <p className="shell home-concept-note">{text.conceptNote}</p>
