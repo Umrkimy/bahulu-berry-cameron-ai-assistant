@@ -12,6 +12,28 @@ test("Owner product workspace reaches the real storefront", async ({
     .fill("Fictional-E2E-Only-123!");
   await page.getByRole("button", { name: "Login", exact: true }).click();
   await page.waitForURL((url) => !url.pathname.includes("login"));
+
+  await page.goto("/storefront/homepage");
+  await expect(page.getByRole("heading", { name: "Storefront homepage" })).toBeVisible();
+  const publishedBeforeDraft = await (
+    await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
+  ).json();
+  const fictionalHomepageCopy = "Fictional private acceptance copy. Not approved business content.";
+  await page.getByLabel("Introduction — English").fill(fictionalHomepageCopy);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("Homepage draft saved")).toBeVisible();
+  const stillPublished = await (
+    await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
+  ).json();
+  expect(stillPublished.hero.body.en).toBe(publishedBeforeDraft.hero.body.en);
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.getByText("Homepage published")).toBeVisible();
+  const publishedHomepage = await (
+    await page.request.get("http://127.0.0.1:8100/api/storefront/homepage")
+  ).json();
+  expect(publishedHomepage.hero.body.en).toBe(fictionalHomepageCopy);
+  await expect(page.getByRole("switch", { name: "Not ready" })).toHaveCount(2);
+
   await page.goto("/products");
   await page.getByRole("button", { name: "Add Product", exact: true }).click();
   await expect(page).toHaveURL(/\/products\/new$/);
@@ -82,6 +104,7 @@ test("Owner product workspace reaches the real storefront", async ({
 
   const shop = await context.newPage();
   await shop.goto("http://127.0.0.1:3100/");
+  await expect(shop.getByText(fictionalHomepageCopy)).toBeVisible();
   const publicImage = published.image_path.match(
     /products\/(\d+)\/images\/(\d+)/,
   );
@@ -212,4 +235,9 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(shop.locator(".shop-state")).toBeVisible();
   await shop.goto("http://127.0.0.1:3100/");
   await expect(shop.locator(".hero-concept-image:visible")).toHaveCount(1);
+
+  await page.getByRole("tab", { name: "Details" }).click();
+  await page.getByRole("switch", { name: /Active for operations/ }).uncheck();
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("The product is inactive and has been unpublished.")).toBeVisible();
 });

@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import type { ProductPage, StorefrontProduct } from "./types";
+import type { HomepageContent, ProductPage, StorefrontProduct } from "./types";
 
 const apiBaseUrl = (process.env.STOREFRONT_SERVER_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
 
@@ -18,6 +18,7 @@ async function storefrontFetch<T>(path: string): Promise<T> {
 // Homepage retry must reach the API rather than reuse an earlier response.
 export const getProducts = cache(async (): Promise<ProductPage> => storefrontFetch<ProductPage>("/storefront/products"));
 export const getFeaturedProduct = cache(async (): Promise<StorefrontProduct | null> => storefrontFetch<StorefrontProduct | null>("/storefront/featured"));
+export const getHomepage = cache(async (): Promise<HomepageContent> => storefrontFetch<HomepageContent>("/storefront/homepage"));
 
 // The catalogue filters locally, so it needs every page, not just the first 24.
 // Keep the home page on getProducts: it only displays six featured products.

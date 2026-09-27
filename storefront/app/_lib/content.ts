@@ -1,4 +1,20 @@
-import type { Locale } from "./types";
+import type { HomepageContent, Locale } from "./types";
+
+export const defaultHomepage: HomepageContent = {
+  hero: {
+    eyebrow: { en: "HELLO FROM BAHULU BERRY CAMERON", ms: "SALAM DARI BAHULU BERRY CAMERON" },
+    title_primary: { en: "Bahulu.", ms: "Bahulu." }, title_accent: { en: "Berry.", ms: "Berry." }, title_suffix: { en: "Cameron.", ms: "Cameron." },
+    body: { en: "Meet Bahulu Berry Cameron. Take a closer look at our collection.", ms: "Kenali Bahulu Berry Cameron dan terokai koleksi kami." },
+    cta_label: { en: "Browse products", ms: "Lihat produk" },
+  },
+  benefits: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" }, items: Array.from({ length: 3 }, () => ({ title: { en: "", ms: "" }, body: { en: "", ms: "" } })) },
+  collection: { eyebrow: { en: "TAKE A CLOSER LOOK", ms: "LIHAT DENGAN LEBIH DEKAT" }, title: { en: "Meet the collection", ms: "Kenali koleksi kami" }, view_all_label: { en: "View all products", ms: "Lihat semua produk" } },
+  story: { eyebrow: { en: "A FACE TO REMEMBER", ms: "WAJAH UNTUK DIKENALI" }, title: { en: "Say hello to Bahulu Berry Cameron.", ms: "Salam daripada Bahulu Berry Cameron." }, body: { en: "Bahulu, a berry-inspired identity, and a character of our own. Get to know the name behind the collection.", ms: "Bahulu, identiti berinspirasikan beri, dan karakter tersendiri. Kenali nama di sebalik koleksi kami." }, cta_label: { en: "Meet Bahulu Berry Cameron", ms: "Kenali Bahulu Berry Cameron" } },
+  reviews: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" } },
+  location: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" }, load_map_label: { en: "", ms: "" }, directions_label: { en: "", ms: "" } },
+  closing: { eyebrow: { en: "EXPLORE THE COLLECTION", ms: "TEROKAI KOLEKSI" }, title: { en: "Find your next favourite.", ms: "Temui pilihan kegemaran anda." }, body: { en: "Browse the products currently available from Bahulu Berry Cameron.", ms: "Lihat produk Bahulu Berry Cameron yang tersedia pada masa ini." }, cta_label: { en: "Browse products", ms: "Lihat produk" } },
+  google_place_id: null,
+};
 
 export const copy = {
   en: {

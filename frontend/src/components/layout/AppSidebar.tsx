@@ -20,6 +20,7 @@ import {
   IconChecklist,
   IconClipboardCheck,
   IconMessageDots,
+  IconBrowser,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
@@ -95,6 +96,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
             link: "/products",
             icon: <IconPackage size={18} />,
           },
+          ...(admin?.role === "OWNER" ? [{ label: "Homepage", link: "/storefront/homepage", icon: <IconBrowser size={18} /> }] : []),
           {
             label: "Inventory",
             link: "/inventory",

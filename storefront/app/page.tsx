@@ -3,9 +3,10 @@ import { Suspense } from "react";
 
 import { HomeContent } from "./_components/home-content";
 import { HomeCollection } from "./_components/home-collection";
-import { getProducts, getFeaturedProduct } from "./_lib/api";
+import { getProducts, getFeaturedProduct, getHomepage } from "./_lib/api";
 import { ProductHero } from "./_components/product-hero";
 import type { StorefrontProduct } from "./_lib/types";
+import { defaultHomepage } from "./_lib/content";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -25,9 +26,12 @@ async function FeaturedProducts() {
   return <HomeCollection products={products} state={state} />;
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  let content = defaultHomepage;
+  try { content = await getHomepage(); }
+  catch { /* Keep the bundled approved preview if the content API is unavailable. */ }
   return (
-    <HomeContent hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}>
+    <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}>
       <Suspense fallback={<HomeCollection products={[]} state="loading" />}>
         <FeaturedProducts />
       </Suspense>

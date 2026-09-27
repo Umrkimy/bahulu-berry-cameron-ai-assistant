@@ -24,6 +24,10 @@ policies, delivery, payments, or WhatsApp commitments.
 5. In Products, show a saved bilingual product/photo update reaching the
    storefront after reload. Show the cart quote and disabled private checkout
    review without entering customer information or simulating payment success.
+6. In Storefront Homepage, change fictional bilingual draft copy and save it.
+   Confirm the storefront still shows the published snapshot, then publish and
+   refresh the storefront. Keep Benefits, Google Reviews, and Location disabled
+   unless their real claims, listing, policies, and keys have been approved.
 
 Close by stating the boundary: this is private fictional-data review. Live
 Meta intake/outbound replies, public checkout/payments, public content,

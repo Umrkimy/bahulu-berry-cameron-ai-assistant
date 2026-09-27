@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = "http://localhost:5173"
     PASSWORD_RESET_EXPIRE_MINUTES: int = 30
 
+    # Public Google content remains unavailable unless this server-only gate is
+    # explicitly enabled after the listing, policies, and restricted keys are
+    # approved. Database content cannot override this setting.
+    STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED: bool = False
+    GOOGLE_PLACES_API_KEY: SecretStr = SecretStr("")
+    GOOGLE_MAPS_EMBED_API_KEY: SecretStr = SecretStr("")
+
     @field_validator("ALLOWED_ORIGINS")
     @classmethod
     def parse_allowed_origins(cls, v: str) -> List[str]:

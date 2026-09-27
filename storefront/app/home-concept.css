@@ -50,6 +50,12 @@
 .stage-caption { position: absolute; bottom: -13px; left: 11%; display: flex; gap: 8px; align-items: center; font-size: 11px; font-weight: 600; transform: rotate(-4deg); }
 .stage-caption span { font-size: 28px; }
 .home-collection { padding-top: 86px; padding-bottom: 80px; scroll-margin-top: 24px; }
+.home-benefits { padding-top: 76px; }
+.benefit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.benefit-card { padding: 28px; border: 1px solid #30261826; border-radius: 18px; background: #f6efdf; }
+.benefit-card > span { color: var(--home-red); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.benefit-card h3 { margin: 18px 0 8px; font: 650 25px/1.15 var(--font-display), serif; }
+.benefit-card p { margin: 0; color: #665a46; font-size: 13px; line-height: 1.7; }
 .home-section-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 36px; }
 .home-section-heading .home-kicker { margin-bottom: 12px; }
 .home-section-heading h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; letter-spacing: -.045em; }
@@ -91,6 +97,10 @@
 .story-copy h2 { max-width: 440px; font-size: clamp(35px, 4vw, 50px); font-weight: 650; line-height: 1.06; }
 .story-copy > p:not(.home-kicker) { max-width: 370px; margin: 23px 0; color: #665a46; font-size: 14px; line-height: 1.85; }
 .home-concept-note { margin-block: 0; padding-bottom: 30px; color: #665a46; font-size: 11px; }
+.home-closing { margin-bottom: 30px; background: var(--home-yellow); }
+.home-closing-inner { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-block: 58px; }
+.home-closing h2 { font-size: clamp(34px, 4vw, 52px); }
+.home-closing p:not(.home-kicker) { max-width: 600px; margin: 14px 0 0; }
 @keyframes product-settle { from { transform: translateY(18px) rotate(3deg); } to { transform: translateY(0) rotate(0); } }
 @media (min-width: 1400px) { .home-concept .shell, .concept-header .shell { width: min(1240px, calc(100% - 100px)); } }
 @media (min-width: 761px) and (max-width: 1023px) {
@@ -100,6 +110,7 @@
   .stage-sticker { right: 0; padding: 12px; }
   .stage-sticker em { font-size: 20px; }
   .home-story { gap: 35px; }
+  .benefit-grid { grid-template-columns: 1fr; }
   .story-art { min-height: 350px; }
   .home-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -135,6 +146,8 @@
   .collection-state .home-text-link { margin-left: 0; }
   .collection-state h3 { font-size: 23px; }
   .home-story { grid-template-columns: 1fr; gap: 34px; padding-bottom: 45px; }
+  .home-benefits { padding-top: 48px; }
+  .home-closing-inner { align-items: flex-start; flex-direction: column; padding-block: 42px; }
   .story-art { min-height: 340px; max-width: 500px; width: 100%; }
   .story-mascot { max-width: 270px; }
   .story-copy h2 { max-width: 370px; font-size: 39px; }

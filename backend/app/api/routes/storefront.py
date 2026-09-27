@@ -20,10 +20,25 @@ from app.schemas.storefront import (
     StorefrontQuoteRequest,
     StorefrontQuoteResponse,
 )
+from app.schemas.storefront_homepage import StorefrontHomepageContent
 from app.services.pricing_services import calculate_order_pricing
+from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 
 router = APIRouter()
 MONEY = Decimal("0.01")
+
+
+@router.get("/homepage", response_model=StorefrontHomepageContent)
+async def public_storefront_homepage(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+):
+    await rate_limiter.check(request, "storefront-homepage", STOREFRONT_READ_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    record = await get_homepage_record(db)
+    content = record.published_content if record is not None else DEFAULT_HOMEPAGE_CONTENT
+    return StorefrontHomepageContent.model_validate(content)
 
 
 def _money(value: Decimal) -> Decimal:
