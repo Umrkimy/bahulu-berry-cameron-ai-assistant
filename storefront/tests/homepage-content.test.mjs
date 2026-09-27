@@ -15,9 +15,20 @@ test("bundled homepage fallback is bilingual and keeps unapproved sections hidde
 
 test("homepage keeps the agreed landing-page section order and fixed destinations", async () => {
   const source = await readFile(new URL("../app/_components/home-content.tsx", import.meta.url), "utf8");
-  const order = ["home-hero", "home-benefits", "home-collection", "home-story", "home-closing"].map((name) => source.indexOf(name));
+  const order = ["home-hero", "home-benefits", "home-collection", "home-story", "<GoogleSections", "home-closing"].map((name) => source.indexOf(name));
   assert.ok(order.every((position) => position >= 0));
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
   assert.equal((source.match(/href="\/products"/g) ?? []).length, 3);
   assert.equal((source.match(/href="\/about"/g) ?? []).length, 1);
+});
+
+test("Google content stays optional and the map loads only after visitor action", async () => {
+  const component = await readFile(new URL("../app/_components/google-sections.tsx", import.meta.url), "utf8");
+  const placeRoute = await readFile(new URL("../app/storefront-data/place/route.ts", import.meta.url), "utf8");
+  const mapRoute = await readFile(new URL("../app/storefront-data/map/route.ts", import.meta.url), "utf8");
+  assert.match(component, /if \(!enabled\) return null/);
+  assert.match(component, /setMapLoaded\(true\)/);
+  assert.match(component, /referrerPolicy="strict-origin-when-cross-origin"/);
+  assert.match(placeRoute, /Cache-Control": "no-store"/);
+  assert.match(mapRoute, /url\.hostname === "www\.google\.com"/);
 });

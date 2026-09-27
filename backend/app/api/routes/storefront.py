@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.rate_limit import STOREFRONT_READ_LIMIT, rate_limiter
+from app.core.config import settings
 from app.db.database import get_db
 from app.models.product import Product
 from app.models.product_image import ProductImage, StorefrontFeature
@@ -21,6 +22,8 @@ from app.schemas.storefront import (
     StorefrontQuoteResponse,
 )
 from app.schemas.storefront_homepage import StorefrontHomepageContent
+from app.schemas.storefront_place import StorefrontMap, StorefrontPlace
+from app.services.google_place import GooglePlaceUnavailable, fetch_google_place, google_map_embed_url
 from app.services.pricing_services import calculate_order_pricing
 from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 
@@ -38,7 +41,55 @@ async def public_storefront_homepage(
     response.headers["Cache-Control"] = "no-store"
     record = await get_homepage_record(db)
     content = record.published_content if record is not None else DEFAULT_HOMEPAGE_CONTENT
-    return StorefrontHomepageContent.model_validate(content)
+    public_content = StorefrontHomepageContent.model_validate(content)
+    if not settings.STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED:
+        public_content = public_content.model_copy(deep=True)
+        public_content.reviews.enabled = False
+        public_content.location.enabled = False
+    return public_content
+
+
+async def _published_google_content(db: AsyncSession) -> StorefrontHomepageContent:
+    record = await get_homepage_record(db)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location information is not available.", headers={"Cache-Control": "no-store"})
+    return StorefrontHomepageContent.model_validate(record.published_content)
+
+
+@router.get("/place", response_model=StorefrontPlace)
+async def public_storefront_place(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+    locale: str = Query(default="en", pattern="^(en|ms)$"),
+):
+    await rate_limiter.check(request, "storefront-place", STOREFRONT_READ_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    content = await _published_google_content(db)
+    if not settings.STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED or not content.google_place_id or not (content.reviews.enabled or content.location.enabled):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location information is not available.", headers={"Cache-Control": "no-store"})
+    try:
+        return await fetch_google_place(content.google_place_id, locale)
+    except GooglePlaceUnavailable as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google place information is temporarily unavailable.", headers={"Cache-Control": "no-store"}) from error
+
+
+@router.get("/map", response_model=StorefrontMap)
+async def public_storefront_map(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+    locale: str = Query(default="en", pattern="^(en|ms)$"),
+):
+    await rate_limiter.check(request, "storefront-map", STOREFRONT_READ_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    content = await _published_google_content(db)
+    if not settings.STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED or not content.google_place_id or not content.location.enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Map is not available.", headers={"Cache-Control": "no-store"})
+    try:
+        return StorefrontMap(embed_url=google_map_embed_url(content.google_place_id, locale))
+    except GooglePlaceUnavailable as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Map is temporarily unavailable.", headers={"Cache-Control": "no-store"}) from error
 
 
 def _money(value: Decimal) -> Decimal:

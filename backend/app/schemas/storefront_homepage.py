@@ -73,12 +73,12 @@ class StorefrontHomepageContent(BaseModel):
     reviews: HomepageReviews
     location: HomepageLocation
     closing: HomepageClosing
-    google_place_id: str | None = Field(default=None, max_length=255)
+    google_place_id: str | None = Field(default=None, max_length=255, pattern=r"^[A-Za-z0-9_-]+$")
 
-    @field_validator("google_place_id")
+    @field_validator("google_place_id", mode="before")
     @classmethod
     def empty_place_id_is_none(cls, value: str | None):
-        return value or None
+        return value.strip() or None if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def bound_text_by_purpose(self):
