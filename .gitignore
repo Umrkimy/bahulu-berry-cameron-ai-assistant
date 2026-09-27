@@ -112,5 +112,7 @@ backend/scripts/
 # Local AI-tool state
 # =====================
 
+.claude/
 .agents/
+skills-lock.json
 .claude/settings.local.json

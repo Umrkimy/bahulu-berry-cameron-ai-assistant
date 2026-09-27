@@ -10,9 +10,9 @@ interface CartContextValue {
   hydrated: boolean;
   changedProductIds: ReadonlySet<number>;
   addItem: (productId: number, displayPrice: string, announcement: string) => void;
-  updateItem: (productId: number, quantity: number) => void;
-  removeItem: (productId: number) => void;
-  clear: () => void;
+  updateItem: (productId: number, quantity: number, announcement: string) => void;
+  removeItem: (productId: number, announcement: string) => void;
+  clear: (announcement: string) => void;
   recordPrices: (prices: Array<{ productId: number; displayPrice: string | null }>) => void;
 }
 
@@ -54,11 +54,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setAnnouncement(message);
   }, [save]);
 
-  const updateItem = useCallback((productId: number, quantity: number) => {
+  const updateItem = useCallback((productId: number, quantity: number, message: string) => {
     save((current) => updateCartItem(current, productId, quantity));
+    setAnnouncement(message);
   }, [save]);
 
-  const removeItem = useCallback((productId: number) => {
+  const removeItem = useCallback((productId: number, message: string) => {
     save((current) => current.filter((item) => item.productId !== productId));
     prices.current.delete(productId);
     setChangedProductIds((current) => {
@@ -66,12 +67,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       next.delete(productId);
       return next;
     });
+    setAnnouncement(message);
   }, [save]);
 
-  const clear = useCallback(() => {
+  const clear = useCallback((message: string) => {
     save(() => []);
     prices.current.clear();
     setChangedProductIds(new Set());
+    setAnnouncement(message);
   }, [save]);
 
   const recordPrices = useCallback((currentPrices: Array<{ productId: number; displayPrice: string | null }>) => {
