@@ -5,21 +5,23 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { homeCopy } from "../_lib/content";
+import type { BilingualText, HomepageContent } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 
-export function HomeContent({ children, hero }: { children: ReactNode; hero: ReactNode }) {
+export function HomeContent({ children, hero, content }: { children: ReactNode; hero: ReactNode; content: HomepageContent }) {
   const { locale } = useLocale();
   const text = homeCopy[locale];
+  const pick = (value: BilingualText) => value[locale];
 
   return (
     <div className="home-concept">
       <section className="home-hero" aria-labelledby="home-title">
         <div className="shell home-hero-grid">
           <div className="home-hero-copy">
-            <p className="home-kicker"><span aria-hidden="true" />{text.eyebrow}</p>
-            <h1 id="home-title">Bahulu.<br /><em>Berry.</em><br />Cameron<span className="title-dot">.</span></h1>
-            <p className="home-intro">{text.intro}</p>
-            <Link href="/products" className="home-button">{text.browse}<span aria-hidden="true">↗</span></Link>
+            <p className="home-kicker"><span aria-hidden="true" />{pick(content.hero.eyebrow)}</p>
+            <h1 id="home-title">{pick(content.hero.title_primary)}<br /><em>{pick(content.hero.title_accent)}</em><br />{pick(content.hero.title_suffix)}</h1>
+            <p className="home-intro">{pick(content.hero.body)}</p>
+            <Link href="/products" className="home-button">{pick(content.hero.cta_label)}<span aria-hidden="true">↗</span></Link>
             <a className="hero-scroll" href="#collection"><span aria-hidden="true">↓</span>{text.explore}</a>
           </div>
           {hero}
@@ -27,10 +29,15 @@ export function HomeContent({ children, hero }: { children: ReactNode; hero: Rea
         <div className="hero-bottom shell"><span>BAHULU BERRY CAMERON</span><span>{text.previewShort} <span aria-hidden="true">✳</span></span></div>
       </section>
 
+      {content.benefits.enabled ? <section className="shell home-benefits" aria-labelledby="benefits-title">
+        <div className="home-section-heading"><div><p className="home-kicker">{pick(content.benefits.eyebrow)}</p><h2 id="benefits-title">{pick(content.benefits.title)}</h2></div></div>
+        <div className="benefit-grid">{content.benefits.items.map((item, index) => <article className="benefit-card" key={index}><span aria-hidden="true">0{index + 1}</span><h3>{pick(item.title)}</h3><p>{pick(item.body)}</p></article>)}</div>
+      </section> : null}
+
       <section id="collection" className="shell home-collection" aria-labelledby="collection-title">
         <div className="home-section-heading">
-          <div><p className="home-kicker">{text.collectionEyebrow}</p><h2 id="collection-title">{text.collectionTitle}<span aria-hidden="true"> ✳</span></h2></div>
-          <Link href="/products" className="home-text-link">{text.viewAll}<span aria-hidden="true">↗</span></Link>
+          <div><p className="home-kicker">{pick(content.collection.eyebrow)}</p><h2 id="collection-title">{pick(content.collection.title)}<span aria-hidden="true"> ✳</span></h2></div>
+          <Link href="/products" className="home-text-link">{pick(content.collection.view_all_label)}<span aria-hidden="true">↗</span></Link>
         </div>
         {children}
       </section>
@@ -43,12 +50,14 @@ export function HomeContent({ children, hero }: { children: ReactNode; hero: Rea
           <span className="story-sticker">HELLO,<br />CAMERON!</span>
         </div>
         <div className="story-copy">
-          <p className="home-kicker">{text.storyEyebrow}</p>
-          <h2 id="story-title">{text.storyTitle}</h2>
-          <p>{text.storyBody}</p>
-          <Link href="/about" className="home-text-link">{text.about}<span aria-hidden="true">↗</span></Link>
+          <p className="home-kicker">{pick(content.story.eyebrow)}</p>
+          <h2 id="story-title">{pick(content.story.title)}</h2>
+          <p>{pick(content.story.body)}</p>
+          <Link href="/about" className="home-text-link">{pick(content.story.cta_label)}<span aria-hidden="true">↗</span></Link>
         </div>
       </section>
+
+      <section className="home-closing" aria-labelledby="closing-title"><div className="shell home-closing-inner"><div><p className="home-kicker">{pick(content.closing.eyebrow)}</p><h2 id="closing-title">{pick(content.closing.title)}</h2><p>{pick(content.closing.body)}</p></div><Link href="/products" className="home-button">{pick(content.closing.cta_label)}<span aria-hidden="true">↗</span></Link></div></section>
       <p className="shell home-concept-note">{text.conceptNote}</p>
     </div>
   );

@@ -43,18 +43,39 @@ migration is not a substitute for restoring matching data/media backups.
   requires a separately approved provider, fulfilment rules, policies, business
   details, customer intake, idempotency, and signed webhook design.
 
+## Homepage workflow
+
+Owners manage the fixed landing-page content at `/storefront/homepage` in the
+dashboard. English and Bahasa Melayu are edited together, but **Save draft** is
+private and **Publish** is a separate audited action. A version check prevents
+one browser session from silently overwriting another. The public storefront
+reads only the published snapshot.
+
+The section order and destinations are intentionally fixed: USP hero, optional
+benefits, backend-authoritative featured collection, brand story, optional
+Google reviews, optional location/map, and a closing catalogue CTA. Hero and
+closing actions open `/products`; the story opens `/about`. Benefits start
+disabled so no business claim is invented.
+
+Google content is additionally controlled by the server-only
+`STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED` gate. A saved Place ID or database
+toggle cannot bypass it. Reviews and location remain hidden until the listing,
+address, disclosures, quotas, and separately restricted Places and Embed keys
+are approved.
+
 ## Design and asset provenance
 
 The approved direction is yellow/cream with strawberry-red controls, dynamic
 Owner-selected product imagery, restrained motion, and English/BM support.
 Touch and reduced-motion users receive a stable composition.
 
-The generated `public/concept/bahulu-bag.webp` and
-`public/concept/brand-preview.webp` are private reference assets, not approved
-packaging photography or a master logo. Umar supplied the source references on
-24 September 2026. Public image ownership/licensing and final brand approval
-remain pending. Do not silently substitute concept imagery for missing product
-photos.
+The generated `public/concept/bahulu-bag.webp` is explicitly approved as the
+private homepage fallback when no featured product photo is available, while
+still awaiting final public-asset approval. `public/concept/brand-preview.webp`
+remains private concept artwork, not approved packaging photography or a master
+logo. Umar supplied the source references on 24 September 2026. Public image
+ownership/licensing and final brand approval remain pending. Product cards do
+not silently substitute concept imagery for missing product photos.
 
 ## Verification
 
