@@ -103,7 +103,7 @@ test("Owner product workspace reaches the real storefront", async ({
   ).toBe(200);
 
   const shop = await context.newPage();
-  await shop.goto("http://127.0.0.1:3100/");
+  await shop.goto("http://127.0.0.1:4100/");
   await expect(shop.getByText(fictionalHomepageCopy)).toBeVisible();
   const publicImage = published.image_path.match(
     /products\/(\d+)\/images\/(\d+)/,
@@ -112,7 +112,7 @@ test("Owner product workspace reaches the real storefront", async ({
   expect(
     (
       await shop.request.get(
-        `http://127.0.0.1:3100/product-media/${publicImage![1]}/${publicImage![2]}`,
+        `http://127.0.0.1:4100/product-media/${publicImage![1]}/${publicImage![2]}`,
       )
     ).status(),
   ).toBe(200);
@@ -224,16 +224,16 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByRole("tab", { name: "Storefront" }).click();
   await page.getByRole("switch", { name: /Published online/ }).uncheck();
   await page.getByRole("button", { name: "Save storefront" }).click();
-  await shop.goto("http://127.0.0.1:3100/cart");
+  await shop.goto("http://127.0.0.1:4100/cart");
   await expect(
     shop.getByText("This product is no longer available."),
   ).toBeVisible();
   await expect(
     shop.getByRole("link", { name: "Private checkout preview" }),
   ).toHaveCount(0);
-  await shop.goto(`http://127.0.0.1:3100/products/${published.id}`);
+  await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
   await expect(shop.locator(".shop-state")).toBeVisible();
-  await shop.goto("http://127.0.0.1:3100/");
+  await shop.goto("http://127.0.0.1:4100/");
   await expect(shop.locator(".hero-concept-image:visible")).toHaveCount(1);
 
   await page.getByRole("tab", { name: "Details" }).click();

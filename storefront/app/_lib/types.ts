@@ -12,6 +12,18 @@ export interface HomepageContent {
   google_place_id: string | null;
 }
 
+export interface StorefrontReview {
+  author_name: string; author_uri: string | null; rating: number; text: string;
+  relative_time: string; review_uri: string | null; report_uri: string | null;
+  translated: boolean; original_language: string | null;
+}
+
+export interface StorefrontPlace {
+  display_name: string; formatted_address: string; rating: number | null; review_count: number;
+  place_uri: string; reviews_uri: string; directions_uri: string; reviews: StorefrontReview[];
+  provider: "Google"; sorting_notice: string;
+}
+
 export interface Promotion {
   label: string;
   discount_type: "PERCENTAGE" | "FIXED_AMOUNT" | "BUNDLE_PRICE";

@@ -23,6 +23,7 @@ from app.schemas.storefront_homepage import (
 )
 from app.services.activity_services import record_activity
 from app.services.email_services import send_password_setup_email
+from app.services.google_place import GooglePlaceUnavailable, fetch_google_place
 from app.services.storefront_homepage import ensure_homepage_record, get_homepage_record
 
 
@@ -40,7 +41,7 @@ def _google_readiness(content: StorefrontHomepageContent) -> GoogleReadiness:
         maps_embed_key_configured=maps_key,
         place_id_configured=place_id,
         ready_for_reviews=enabled and places_key and place_id,
-        ready_for_map=enabled and maps_key and place_id,
+        ready_for_map=enabled and places_key and maps_key and place_id,
     )
 
 
@@ -117,6 +118,14 @@ async def publish_storefront_homepage(
     issues = publication_issues(content, _google_readiness(content))
     if issues:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "HOMEPAGE_NOT_READY", "issues": issues})
+    if content.reviews.enabled or content.location.enabled:
+        try:
+            await fetch_google_place(content.google_place_id or "", "en")
+        except GooglePlaceUnavailable as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"code": "GOOGLE_PLACE_NOT_READY", "issues": ["The approved Google listing could not be verified safely."]},
+            ) from error
 
     now = datetime.now(UTC)
     result = await db.execute(
@@ -152,6 +161,11 @@ async def check_storefront_google_readiness(
     await db.commit()
     readiness = _google_readiness(StorefrontHomepageContent.model_validate(record.draft_content))
     ready = readiness.ready_for_reviews and readiness.ready_for_map
+    if ready:
+        try:
+            await fetch_google_place(StorefrontHomepageContent.model_validate(record.draft_content).google_place_id or "", "en")
+        except GooglePlaceUnavailable:
+            return HomepageGoogleCheckResponse(ready=False, message="Google configuration was found, but the approved listing could not be verified safely.")
     return HomepageGoogleCheckResponse(
         ready=ready,
         message=("Google Reviews and Maps configuration is ready for a private check." if ready else "Google integrations remain unavailable until the server gate, approved Place ID, and both restricted keys are configured."),
