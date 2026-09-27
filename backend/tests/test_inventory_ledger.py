@@ -40,3 +40,27 @@ async def test_inventory_adjustment_cannot_go_negative_or_create_movement(sessio
     with pytest.raises(Exception):
         await adjust_inventory(session, product.id, -2, movement_type="MANUAL_DECREASE", reason="Damaged stock")
     assert await session.scalar(select(StockMovement)) is None
+
+
+@pytest.mark.asyncio
+async def test_automated_order_movement_records_its_source(session):
+    product = Product(name="Order Source Bahulu", price=Decimal("10.00"), is_active=True)
+    session.add(product)
+    await session.flush()
+    session.add(Inventory(product_id=product.id, quantity=4, low_stock_threshold=1))
+    await session.commit()
+
+    await adjust_inventory(
+        session,
+        product.id,
+        -1,
+        movement_type="ORDER_DEDUCTION",
+        reason="Stock deducted for order.",
+        source_type="ORDER",
+        source_id=42,
+    )
+    await session.commit()
+
+    movement = await session.scalar(select(StockMovement))
+    assert movement is not None
+    assert (movement.admin_id, movement.source_type, movement.source_id) == (None, "ORDER", 42)
