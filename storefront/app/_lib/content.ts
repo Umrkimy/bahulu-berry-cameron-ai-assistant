@@ -21,9 +21,11 @@ export const defaultHomepage: HomepageContent = {
   google_place_id: null,
 };
 
-// Approved by Umar on 29 September 2026; address as shown on the shop's Google listing.
-// Opening hours are not published until the full weekly times are confirmed.
+// Approved by Umar on 29 September 2026 (address, WhatsApp, hours, map).
 export const business = {
+  hours: { en: "Open daily, 9am–5:30pm (until sold out)", ms: "Dibuka setiap hari, 9 pagi–5:30 petang (sehingga habis dijual)" },
+  // Google Maps "Embed a map" share URL; loaded only after the visitor asks for it.
+  mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3977.634300310369!2d101.3800129!3d4.4788545!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31ca590066263efb%3A0x47ce3ff6e6722a41!2sBahulu%20Berry%20Cameron!5e0!3m2!1sen!2smy!4v1790615230149!5m2!1sen!2smy",
   addressLines: ["Kg Taman Sedia, Selorong KHM", "39000 Tanah Rata, Pahang"],
   town: "Tanah Rata, Cameron Highlands",
   phoneDisplay: "019-966 9316",
@@ -55,13 +57,13 @@ export const placeholderStats: Stat[] = [
 
 export const copy = {
   en: {
-    visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp",
+    visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp", hoursLabel: "Opening hours", showMap: "Show map", mapTitle: "Map to Bahulu Berry Cameron", mapNote: "The map loads from Google when you press Show map.",
     navProducts: "Products", navAbout: "About", home: "Home", language: "English", enquire: "Ask us on WhatsApp",
     aboutTitle: "About Bahulu Berry Cameron", aboutText: "A Cameron Highlands bakery centred on bahulu and berry-inspired products.",
     contactTitle: "Questions about an order?", contactText: "Message us on WhatsApp with any questions about our products or your order.",
   },
   ms: {
-    visitTitle: "Kunjungi kami", openMaps: "Buka di Google Maps", whatsApp: "WhatsApp",
+    visitTitle: "Kunjungi kami", openMaps: "Buka di Google Maps", whatsApp: "WhatsApp", hoursLabel: "Waktu operasi", showMap: "Tunjuk peta", mapTitle: "Peta ke Bahulu Berry Cameron", mapNote: "Peta dimuatkan daripada Google apabila anda tekan Tunjuk peta.",
     navProducts: "Produk", navAbout: "Tentang", home: "Laman utama", language: "Bahasa Melayu", enquire: "Tanya kami di WhatsApp",
     aboutTitle: "Tentang Bahulu Berry Cameron", aboutText: "Bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri.",
     contactTitle: "Ada soalan tentang pesanan?", contactText: "Hubungi kami di WhatsApp untuk sebarang pertanyaan tentang produk atau pesanan anda.",

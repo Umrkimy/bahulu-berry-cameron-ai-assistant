@@ -72,7 +72,16 @@
 .info-hero h1 { max-width: 14ch; font-size: clamp(46px, 5.6vw, 76px); font-weight: 750; letter-spacing: -.04em; line-height: 1; }
 .info-intro { max-width: 44ch; margin: 22px 0 0; font-size: 19px; line-height: 1.6; }
 .info-mascot { width: 100%; height: auto; transform: rotate(6deg); }
-.info-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding-block: 64px 96px; }
+.info-visit { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; padding-top: 64px; }
+.info-hours h3 { font-family: var(--font-body), sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0; }
+.info-hours p { margin-top: 4px; color: var(--ink); font-size: 18px; }
+.info-map { min-height: 380px; overflow: hidden; border-radius: 24px; background: #f3e9d4; }
+.info-map iframe { display: block; width: 100%; height: 100%; min-height: 380px; border: 0; }
+.info-map-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; height: 100%; min-height: 380px; padding: 32px; text-align: center; }
+.info-map-placeholder img { width: 96px; height: auto; transform: rotate(-6deg); }
+.info-map-placeholder p { max-width: 36ch; margin: 0; color: var(--muted); font-size: 14px; }
+.info-body { padding-block: 24px 96px; }
+.info-body .info-panel { max-width: none; }
 .info-panel { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: clamp(24px, 4vw, 40px); border-radius: 24px; background: var(--surface); }
 .info-panel h2 { font-size: clamp(28px, 3.4vw, 38px); }
 .info-panel p { max-width: 48ch; margin: 0; color: var(--muted); font-size: 17px; }
@@ -108,7 +117,9 @@
   .info-hero-grid { grid-template-columns: 1fr 96px; gap: 16px; padding-block: 36px 44px; }
   .info-hero h1 { font-size: clamp(38px, 10vw, 56px); }
   .info-intro { font-size: 17px; }
-  .info-body { grid-template-columns: 1fr; padding-block: 40px 64px; }
+  .info-visit { grid-template-columns: 1fr; padding-top: 40px; }
+  .info-map, .info-map iframe, .info-map-placeholder { min-height: 320px; }
+  .info-body { padding-block: 24px 64px; }
 }
 @media (max-width: 600px) { .catalogue-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .catalogue-card-image img { transition: none; } .catalogue-card-image:hover img { transform: none; } }
