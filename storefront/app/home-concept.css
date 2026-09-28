@@ -121,3 +121,50 @@
 }
 @media (max-width: 600px) { .home-product-grid { grid-template-columns: 1fr; } .home-card-action { flex-direction: row; align-items: center; } }
 @media (prefers-reduced-motion: reduce) { .product-settle { animation: none; } .home-product-photo:hover img { transform: none; } }
+
+/* Numbers band */
+.home-stats { border-block: 1px solid var(--line); background: var(--cream); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px 40px; margin: 0; padding-block: 48px 12px; }
+.stat { display: flex; flex-direction: column-reverse; gap: 4px; }
+.stat dd { margin: 0; color: var(--red); font: 800 clamp(48px, 5.4vw, 72px)/1 var(--font-display), Georgia, serif; letter-spacing: -.04em; font-variant-numeric: lining-nums; }
+.stat dt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.stat.is-placeholder { padding: 12px 16px; border: 2px dashed #b9203266; border-radius: 16px; }
+.stat.is-placeholder dd { color: #b9203299; }
+.stat-flag { padding: 2px 8px; border-radius: 999px; background: #ffe7a8; color: #713825; font-size: 14px; font-weight: 700; }
+.stats-source { margin: 0; padding-bottom: 36px; color: var(--muted); font-size: 14px; }
+
+/* TikTok videos */
+.home-videos { padding-bottom: 88px; }
+.section-intro { margin: 10px 0 0; color: var(--muted); font-size: 17px; }
+.video-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+.video-card { position: relative; aspect-ratio: 9 / 16; overflow: hidden; border-radius: 20px; background: var(--ink); }
+.video-card iframe { width: 100%; height: 100%; border: 0; }
+.video-poster { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #3a2e1f; color: var(--cream); text-align: left; }
+.video-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .4s cubic-bezier(.16, 1, .3, 1); }
+.video-poster::after { position: absolute; inset: 45% 0 0; content: ""; background: linear-gradient(to top, #1d160ecc, transparent); }
+.video-poster:hover img { transform: scale(1.03); }
+.video-play { position: absolute; top: 50%; left: 50%; z-index: 1; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--yellow); box-shadow: 0 8px 20px #0000004d; transform: translate(-50%, -50%); transition: transform .2s cubic-bezier(.16, 1, .3, 1); }
+.video-play svg { width: 26px; height: 26px; margin-left: 3px; fill: var(--ink); }
+.video-poster:hover .video-play { transform: translate(-50%, -50%) scale(1.08); }
+.video-caption { position: absolute; right: 16px; bottom: 16px; left: 16px; z-index: 1; display: -webkit-box; overflow: hidden; font-size: 15px; font-weight: 600; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.videos-note { margin: 16px 0 0; color: var(--muted); font-size: 14px; }
+
+/* Floating WhatsApp chat */
+.chat-bubble { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: flex; align-items: center; gap: 10px; animation: bubble-in .6s .8s cubic-bezier(.16, 1, .3, 1) both; }
+.chat-bubble-label { padding: 10px 16px; border-radius: 999px; background: var(--paper); box-shadow: 0 8px 24px #3026182e; color: var(--ink); font-size: 15px; font-weight: 700; }
+.chat-bubble-mascot { display: grid; place-items: center; width: 64px; height: 64px; overflow: hidden; border: 3px solid var(--paper); border-radius: 50%; background: #25d366; box-shadow: 0 10px 24px #3026183d; transition: transform .2s cubic-bezier(.16, 1, .3, 1); }
+.chat-bubble-mascot img { width: 54px; height: 54px; object-fit: contain; }
+.chat-bubble:hover .chat-bubble-mascot { transform: scale(1.06); }
+.chat-bubble:hover .chat-bubble-label { color: var(--red); }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1023px) { .video-row { grid-template-columns: repeat(4, 62%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; } .video-card { scroll-snap-align: start; } }
+@media (max-width: 760px) {
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; padding-top: 36px; }
+  .home-videos { padding-bottom: 56px; }
+  .video-row { grid-template-columns: repeat(4, 72%); gap: 14px; }
+  .chat-bubble { right: 16px; bottom: 16px; }
+  .chat-bubble-label { display: none; }
+  .chat-bubble-mascot { width: 58px; height: 58px; }
+}
+@media (prefers-reduced-motion: reduce) { .chat-bubble { animation: none; } .video-poster:hover img { transform: none; } }

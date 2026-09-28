@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { business, copy } from "../_lib/content";
+import { business, copy, social } from "../_lib/content";
 import { whatsAppNumber, whatsAppUrl } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 
@@ -15,6 +15,7 @@ export function SiteFooter() {
     <nav className="footer-links" aria-label={locale === "ms" ? "Pautan bawah" : "Footer links"}>
       <Link href="/products">{text.navProducts}</Link>
       <Link href="/about">{text.navAbout}</Link>
+      <a href={social.tiktokUrl} target="_blank" rel="noreferrer">TikTok<span aria-hidden="true"> ↗</span></a>
       <a href={business.mapsUrl} target="_blank" rel="noreferrer">Google Maps<span aria-hidden="true"> ↗</span></a>
       {number ? <a href={whatsAppUrl(number, "")} target="_blank" rel="noreferrer">{text.whatsApp} {business.phoneDisplay}<span aria-hidden="true"> ↗</span></a> : null}
     </nav>

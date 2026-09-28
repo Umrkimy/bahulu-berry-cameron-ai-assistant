@@ -9,6 +9,7 @@ import { LocaleProvider } from "./_components/locale-provider";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
 import { CartProvider } from "./_components/cart-provider";
+import { WhatsAppBubble } from "./_components/whatsapp-bubble";
 
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display" });
 const body = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body" });
@@ -17,5 +18,5 @@ export const metadata: Metadata = { title: { default: "Bahulu Berry Cameron", te
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffdc24" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><CartProvider><SiteHeader /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter /></CartProvider></LocaleProvider></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><CartProvider><SiteHeader /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter /><WhatsAppBubble /></CartProvider></LocaleProvider></body></html>;
 }

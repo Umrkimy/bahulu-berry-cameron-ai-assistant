@@ -30,6 +30,29 @@ export const business = {
   mapsUrl: "https://www.google.com/maps/place/Bahulu+Berry+Cameron/@4.4788545,101.3800129,17z/data=!4m6!3m5!1s0x31ca590066263efb:0x47ce3ff6e6722a41!8m2!3d4.4788545!4d101.3800129",
 } as const;
 
+export const social = {
+  tiktokHandle: "@bahuluberrycameron",
+  tiktokUrl: "https://www.tiktok.com/@bahuluberrycameron",
+} as const;
+
+// Most-viewed videos on the shop's TikTok as of 29 September 2026. Order = display order.
+export const tiktokVideoIds = ["7646792404988660999", "7560309627712294152", "7655544972535483655", "7572942928092368146"] as const;
+
+export type Stat = { value: string; label: { en: string; ms: string }; placeholder?: boolean };
+
+// Real figures, from the shop's public TikTok profile on 29 September 2026.
+export const stats: Stat[] = [
+  { value: "27.5K", label: { en: "followers on TikTok", ms: "pengikut di TikTok" } },
+  { value: "576.6K", label: { en: "likes on TikTok", ms: "suka di TikTok" } },
+];
+
+// Stand-ins until the client supplies real figures. They render only when the
+// server-only STOREFRONT_SHOW_PLACEHOLDERS=true flag is set, and are labelled.
+export const placeholderStats: Stat[] = [
+  { value: "20K+", label: { en: "packs sold", ms: "pek terjual" }, placeholder: true },
+  { value: "6", label: { en: "flavours", ms: "perisa" }, placeholder: true },
+];
+
 export const copy = {
   en: {
     visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp",
@@ -52,12 +75,18 @@ export function money(value: string): string {
 export const homeCopy = {
   en: {
     imageAlt: "Illustration of golden bahulu in a clear bag with the Bahulu Berry Cameron strawberry label",
+    statsTitle: "Bahulu Berry Cameron in numbers", statsSource: "TikTok figures as of September 2026.", placeholder: "Placeholder",
+    videosTitle: "Watch us on TikTok", videosIntro: "Our most-watched videos from the shop.", play: "Play video", videosNote: "Videos load from TikTok when you press play.", follow: "Follow us on TikTok",
+    chat: "Chat with us on WhatsApp",
     viewProduct: "View product", loading: "Loading products…", errorTitle: "We couldn’t load the products.", errorBody: "Please try again.", retry: "Try again",
     emptyTitle: "No products to show yet.",
     skip: "Skip to content", navigation: "Main navigation", chooseLanguage: "Choose language",
   },
   ms: {
     imageAlt: "Ilustrasi bahulu keemasan dalam beg lutsinar dengan label strawberi Bahulu Berry Cameron",
+    statsTitle: "Bahulu Berry Cameron dalam angka", statsSource: "Angka TikTok setakat September 2026.", placeholder: "Contoh",
+    videosTitle: "Tonton kami di TikTok", videosIntro: "Video kedai kami yang paling banyak ditonton.", play: "Main video", videosNote: "Video dimuatkan daripada TikTok apabila anda tekan main.", follow: "Ikuti kami di TikTok",
+    chat: "Sembang dengan kami di WhatsApp",
     viewProduct: "Lihat produk", loading: "Memuatkan produk…", errorTitle: "Kami tidak dapat memuatkan produk.", errorBody: "Sila cuba lagi.", retry: "Cuba lagi",
     emptyTitle: "Belum ada produk untuk dipaparkan.",
     skip: "Langkau ke kandungan", navigation: "Navigasi utama", chooseLanguage: "Pilih bahasa",

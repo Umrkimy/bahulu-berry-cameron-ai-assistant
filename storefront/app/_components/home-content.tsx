@@ -8,7 +8,7 @@ import type { BilingualText, HomepageContent } from "../_lib/types";
 import { GoogleSections } from "./google-sections";
 import { useLocale } from "./locale-provider";
 
-export function HomeContent({ children, hero, content }: { children: ReactNode; hero: ReactNode; content: HomepageContent }) {
+export function HomeContent({ children, hero, stats, videos, content }: { children: ReactNode; hero: ReactNode; stats: ReactNode; videos: ReactNode; content: HomepageContent }) {
   const { locale } = useLocale();
   const pick = (value: BilingualText) => value[locale];
 
@@ -24,6 +24,8 @@ export function HomeContent({ children, hero, content }: { children: ReactNode; 
           {hero}
         </div>
       </section>
+
+      {stats}
 
       {content.benefits.enabled ? <section className="shell home-benefits" aria-labelledby="benefits-title">
         <div className="home-section-heading"><h2 id="benefits-title">{pick(content.benefits.title)}</h2></div>
@@ -49,6 +51,8 @@ export function HomeContent({ children, hero, content }: { children: ReactNode; 
           <Link href="/about" className="home-text-link">{pick(content.story.cta_label)}</Link>
         </div>
       </section>
+
+      {videos}
 
       <GoogleSections content={content} />
 
