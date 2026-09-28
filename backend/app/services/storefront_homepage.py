@@ -8,11 +8,11 @@ from app.models.storefront_homepage import StorefrontHomepage
 
 DEFAULT_HOMEPAGE_CONTENT = {
     "hero": {
-        "eyebrow": {"en": "HELLO FROM BAHULU BERRY CAMERON", "ms": "SALAM DARI BAHULU BERRY CAMERON"},
+        "eyebrow": {"en": "", "ms": ""},
         "title_primary": {"en": "Bahulu.", "ms": "Bahulu."},
         "title_accent": {"en": "Berry.", "ms": "Berry."},
         "title_suffix": {"en": "Cameron.", "ms": "Cameron."},
-        "body": {"en": "Meet Bahulu Berry Cameron. Take a closer look at our collection.", "ms": "Kenali Bahulu Berry Cameron dan terokai koleksi kami."},
+        "body": {"en": "Browse our bahulu and current prices.", "ms": "Lihat bahulu kami dan harga semasa."},
         "cta_label": {"en": "Browse products", "ms": "Lihat produk"},
     },
     "benefits": {
@@ -21,15 +21,15 @@ DEFAULT_HOMEPAGE_CONTENT = {
         "items": [{"title": {"en": "", "ms": ""}, "body": {"en": "", "ms": ""}} for _ in range(3)],
     },
     "collection": {
-        "eyebrow": {"en": "TAKE A CLOSER LOOK", "ms": "LIHAT DENGAN LEBIH DEKAT"},
-        "title": {"en": "Meet the collection", "ms": "Kenali koleksi kami"},
+        "eyebrow": {"en": "", "ms": ""},
+        "title": {"en": "Our bahulu", "ms": "Bahulu kami"},
         "view_all_label": {"en": "View all products", "ms": "Lihat semua produk"},
     },
     "story": {
-        "eyebrow": {"en": "A FACE TO REMEMBER", "ms": "WAJAH UNTUK DIKENALI"},
-        "title": {"en": "Say hello to Bahulu Berry Cameron.", "ms": "Salam daripada Bahulu Berry Cameron."},
-        "body": {"en": "Bahulu, a berry-inspired identity, and a character of our own. Get to know the name behind the collection.", "ms": "Bahulu, identiti berinspirasikan beri, dan karakter tersendiri. Kenali nama di sebalik koleksi kami."},
-        "cta_label": {"en": "Meet Bahulu Berry Cameron", "ms": "Kenali Bahulu Berry Cameron"},
+        "eyebrow": {"en": "", "ms": ""},
+        "title": {"en": "The bakery behind the bahulu", "ms": "Bakeri di sebalik bahulu ini"},
+        "body": {"en": "Bahulu Berry Cameron is a Cameron Highlands bakery centred on bahulu and berry-inspired products.", "ms": "Bahulu Berry Cameron ialah bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri."},
+        "cta_label": {"en": "About us", "ms": "Tentang kami"},
     },
     "reviews": {"enabled": False, "eyebrow": {"en": "", "ms": ""}, "title": {"en": "", "ms": ""}},
     "location": {
@@ -37,9 +37,9 @@ DEFAULT_HOMEPAGE_CONTENT = {
         "load_map_label": {"en": "", "ms": ""}, "directions_label": {"en": "", "ms": ""},
     },
     "closing": {
-        "eyebrow": {"en": "EXPLORE THE COLLECTION", "ms": "TEROKAI KOLEKSI"},
-        "title": {"en": "Find your next favourite.", "ms": "Temui pilihan kegemaran anda."},
-        "body": {"en": "Browse the products currently available from Bahulu Berry Cameron.", "ms": "Lihat produk Bahulu Berry Cameron yang tersedia pada masa ini."},
+        "eyebrow": {"en": "", "ms": ""},
+        "title": {"en": "Browse all our products", "ms": "Lihat semua produk kami"},
+        "body": {"en": "Current products and prices from Bahulu Berry Cameron.", "ms": "Produk dan harga semasa daripada Bahulu Berry Cameron."},
         "cta_label": {"en": "Browse products", "ms": "Lihat produk"},
     },
     "google_place_id": None,

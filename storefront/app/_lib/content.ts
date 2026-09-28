@@ -1,27 +1,73 @@
-import type { HomepageContent, Locale } from "./types";
+import type { HomepageContent } from "./types";
 
+const noText = { en: "", ms: "" };
+
+// Fallback used only when the published homepage cannot be loaded. The Owner
+// edits the live wording in the dashboard. Eyebrow fields stay in the schema
+// but the storefront no longer renders them.
 export const defaultHomepage: HomepageContent = {
   hero: {
-    eyebrow: { en: "HELLO FROM BAHULU BERRY CAMERON", ms: "SALAM DARI BAHULU BERRY CAMERON" },
+    eyebrow: noText,
     title_primary: { en: "Bahulu.", ms: "Bahulu." }, title_accent: { en: "Berry.", ms: "Berry." }, title_suffix: { en: "Cameron.", ms: "Cameron." },
-    body: { en: "Meet Bahulu Berry Cameron. Take a closer look at our collection.", ms: "Kenali Bahulu Berry Cameron dan terokai koleksi kami." },
+    body: { en: "Browse our bahulu and current prices.", ms: "Lihat bahulu kami dan harga semasa." },
     cta_label: { en: "Browse products", ms: "Lihat produk" },
   },
-  benefits: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" }, items: Array.from({ length: 3 }, () => ({ title: { en: "", ms: "" }, body: { en: "", ms: "" } })) },
-  collection: { eyebrow: { en: "TAKE A CLOSER LOOK", ms: "LIHAT DENGAN LEBIH DEKAT" }, title: { en: "Meet the collection", ms: "Kenali koleksi kami" }, view_all_label: { en: "View all products", ms: "Lihat semua produk" } },
-  story: { eyebrow: { en: "A FACE TO REMEMBER", ms: "WAJAH UNTUK DIKENALI" }, title: { en: "Say hello to Bahulu Berry Cameron.", ms: "Salam daripada Bahulu Berry Cameron." }, body: { en: "Bahulu, a berry-inspired identity, and a character of our own. Get to know the name behind the collection.", ms: "Bahulu, identiti berinspirasikan beri, dan karakter tersendiri. Kenali nama di sebalik koleksi kami." }, cta_label: { en: "Meet Bahulu Berry Cameron", ms: "Kenali Bahulu Berry Cameron" } },
-  reviews: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" } },
-  location: { enabled: false, eyebrow: { en: "", ms: "" }, title: { en: "", ms: "" }, load_map_label: { en: "", ms: "" }, directions_label: { en: "", ms: "" } },
-  closing: { eyebrow: { en: "EXPLORE THE COLLECTION", ms: "TEROKAI KOLEKSI" }, title: { en: "Find your next favourite.", ms: "Temui pilihan kegemaran anda." }, body: { en: "Browse the products currently available from Bahulu Berry Cameron.", ms: "Lihat produk Bahulu Berry Cameron yang tersedia pada masa ini." }, cta_label: { en: "Browse products", ms: "Lihat produk" } },
+  benefits: { enabled: false, eyebrow: noText, title: noText, items: Array.from({ length: 3 }, () => ({ title: noText, body: noText })) },
+  collection: { eyebrow: noText, title: { en: "Our bahulu", ms: "Bahulu kami" }, view_all_label: { en: "View all products", ms: "Lihat semua produk" } },
+  story: { eyebrow: noText, title: { en: "The bakery behind the bahulu", ms: "Bakeri di sebalik bahulu ini" }, body: { en: "Bahulu Berry Cameron is a Cameron Highlands bakery centred on bahulu and berry-inspired products.", ms: "Bahulu Berry Cameron ialah bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri." }, cta_label: { en: "About us", ms: "Tentang kami" } },
+  reviews: { enabled: false, eyebrow: noText, title: noText },
+  location: { enabled: false, eyebrow: noText, title: noText, load_map_label: noText, directions_label: noText },
+  closing: { eyebrow: noText, title: { en: "Browse all our products", ms: "Lihat semua produk kami" }, body: { en: "Current products and prices from Bahulu Berry Cameron.", ms: "Produk dan harga semasa daripada Bahulu Berry Cameron." }, cta_label: { en: "Browse products", ms: "Lihat produk" } },
   google_place_id: null,
 };
 
+// Approved by Umar on 29 September 2026 (address, WhatsApp, hours, map).
+export const business = {
+  hours: { en: "Open daily, 9am–5:30pm (until sold out)", ms: "Dibuka setiap hari, 9 pagi–5:30 petang (sehingga habis dijual)" },
+  // Google Maps "Embed a map" share URL, shown on the About page.
+  mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3977.634300310369!2d101.3800129!3d4.4788545!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31ca590066263efb%3A0x47ce3ff6e6722a41!2sBahulu%20Berry%20Cameron!5e0!3m2!1sen!2smy!4v1790615230149!5m2!1sen!2smy",
+  addressLines: ["Kg Taman Sedia, Selorong KHM", "39000 Tanah Rata, Pahang"],
+  town: "Tanah Rata, Cameron Highlands",
+  phoneDisplay: "019-966 9316",
+  mapsUrl: "https://www.google.com/maps/place/Bahulu+Berry+Cameron/@4.4788545,101.3800129,17z/data=!4m6!3m5!1s0x31ca590066263efb:0x47ce3ff6e6722a41!8m2!3d4.4788545!4d101.3800129",
+} as const;
+
+export const social = {
+  tiktokHandle: "@bahuluberrycameron",
+  tiktokUrl: "https://www.tiktok.com/@bahuluberrycameron",
+  facebookUrl: "https://www.facebook.com/p/Bahulu-Berry-Cameron-61571178085895",
+} as const;
+
+// Most-viewed videos on the shop's TikTok as of 29 September 2026. Order = display order.
+export const tiktokVideoIds = ["7646792404988660999", "7560309627712294152", "7655544972535483655", "7572942928092368146"] as const;
+
+export type Stat = { value: string; label: { en: string; ms: string } };
+
+// Real figures, from the shop's public TikTok profile on 29 September 2026.
+export const stats: Stat[] = [
+  { value: "27.5K", label: { en: "followers on TikTok", ms: "pengikut di TikTok" } },
+  { value: "576.6K", label: { en: "likes on TikTok", ms: "suka di TikTok" } },
+];
+
+// DRAFT: stand-in figures until the client confirms real ones. Rendered only
+// when the server-only STOREFRONT_DRAFT_CONTENT=true flag is set.
+export const draftStats: Stat[] = [
+  { value: "20K+", label: { en: "packs sold", ms: "pek terjual" } },
+  { value: "6", label: { en: "flavours", ms: "perisa" } },
+];
+
 export const copy = {
   en: {
-    navProducts: "Products", navPickup: "Pickup & delivery", navAbout: "About", browse: "Browse products", enquire: "Enquire on WhatsApp", available: "Available", unavailable: "Currently unavailable", regularPrice: "Regular price", offers: "Current offers", back: "Back to products", catalogue: "Our catalogue", catalogueIntro: "Browse the products currently approved for the storefront.", noProducts: "Products will appear here once they are approved for the storefront.", heroEyebrow: "Bahulu Berry Cameron", heroTitle: "Bakery treats, ready for your next visit.", heroText: "Explore the current collection and speak directly with the team on WhatsApp for availability and arrangements.", pickupTitle: "Pickup & delivery", pickupText: "Pickup and local delivery arrangements are confirmed directly with the team so each order can be handled with care.", aboutTitle: "About Bahulu Berry Cameron", aboutText: "A Cameron Highlands bakery centred on bahulu and berry-inspired products.", contactTitle: "Questions about an order?", contactText: "Message the team on WhatsApp for current availability, pickup, or delivery arrangements.", language: "English", imagePending: "Product image awaiting approval", notFound: "This product is not currently available.", home: "Home",
+    visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp", hoursLabel: "Opening hours", mapTitle: "Map to Bahulu Berry Cameron",
+    navProducts: "Products", navAbout: "About", home: "Home", language: "English", enquire: "Ask us on WhatsApp",
+    aboutTitle: "About Bahulu Berry Cameron", aboutText: "A Cameron Highlands bakery centred on bahulu and berry-inspired products.",
+    contactTitle: "Questions about an order?", contactText: "Message us on WhatsApp with any questions about our products or your order.",
   },
   ms: {
-    navProducts: "Produk", navPickup: "Ambil & penghantaran", navAbout: "Tentang", browse: "Lihat produk", enquire: "Tanya di WhatsApp", available: "Tersedia", unavailable: "Tidak tersedia buat masa ini", regularPrice: "Harga biasa", offers: "Promosi semasa", back: "Kembali ke produk", catalogue: "Katalog kami", catalogueIntro: "Lihat produk yang kini diluluskan untuk laman pelanggan.", noProducts: "Produk akan dipaparkan di sini selepas diluluskan untuk laman pelanggan.", heroEyebrow: "Bahulu Berry Cameron", heroTitle: "Kudapan bakeri untuk kunjungan anda yang seterusnya.", heroText: "Terokai koleksi semasa dan hubungi pasukan kami di WhatsApp untuk ketersediaan serta urusan pesanan.", pickupTitle: "Ambil & penghantaran", pickupText: "Urusan ambil sendiri dan penghantaran tempatan akan disahkan terus bersama pasukan kami supaya setiap pesanan diurus dengan teliti.", aboutTitle: "Tentang Bahulu Berry Cameron", aboutText: "Bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri.", contactTitle: "Ada soalan tentang pesanan?", contactText: "Hubungi pasukan kami di WhatsApp untuk ketersediaan, ambil sendiri, atau urusan penghantaran semasa.", language: "Bahasa Melayu", imagePending: "Imej produk menunggu kelulusan", notFound: "Produk ini tidak tersedia buat masa ini.", home: "Laman utama",
+    visitTitle: "Kunjungi kami", openMaps: "Buka di Google Maps", whatsApp: "WhatsApp", hoursLabel: "Waktu operasi", mapTitle: "Peta ke Bahulu Berry Cameron",
+    navProducts: "Produk", navAbout: "Tentang", home: "Laman utama", language: "Bahasa Melayu", enquire: "Tanya kami di WhatsApp",
+    aboutTitle: "Tentang Bahulu Berry Cameron", aboutText: "Bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri.",
+    contactTitle: "Ada soalan tentang pesanan?", contactText: "Hubungi kami di WhatsApp untuk sebarang pertanyaan tentang produk atau pesanan anda.",
   },
 } as const;
 
@@ -31,25 +77,21 @@ export function money(value: string): string {
 
 export const homeCopy = {
   en: {
-    preview: "Private design preview", previewShort: "A LITTLE PREVIEW", eyebrow: "HELLO FROM BAHULU BERRY CAMERON",
-    intro: "Meet Bahulu Berry Cameron. Take a closer look at our collection.", browse: "Browse products", explore: "A little more to discover",
-    imageAlt: "Concept illustration of golden bahulu in a clear bag with a strawberry mascot label", mockupLabel: "Product mockup · for design review", imageUnavailable: "Product preview unavailable",
-    collectionEyebrow: "TAKE A CLOSER LOOK", collectionTitle: "Meet the collection", viewAll: "View all products", viewProduct: "Explore product", photoPending: "Product photo coming later",
-    loading: "Opening the collection…", loadingBody: "The product details are on their way.", errorTitle: "The collection is taking a little break.", errorBody: "We couldn’t load the products. Please try again.", retry: "Try again",
-    emptyTitle: "A little space for what’s next.", emptyBody: "Our product collection will appear here once it’s ready to share.",
-    storyEyebrow: "A FACE TO REMEMBER", storyTitle: "Say hello to Bahulu Berry Cameron.", storyBody: "Bahulu, a berry-inspired identity, and a character of our own. Get to know the name behind the collection.", about: "Meet Bahulu Berry Cameron",
-    conceptNote: "Private preview · Brand treatment awaits approval. Products and photos are managed by the Owner.",
+    imageAlt: "Illustration of golden bahulu in a clear bag with the Bahulu Berry Cameron strawberry label",
+    statsTitle: "Bahulu Berry Cameron in numbers",
+    videosTitle: "Watch us on TikTok", videosIntro: "Our most-watched videos from the shop.", play: "Play video", videosNote: "Videos load from TikTok when you press play.", follow: "Follow us on TikTok",
+    chat: "Chat with us on WhatsApp",
+    viewProduct: "View product", loading: "Loading products…", errorTitle: "We couldn’t load the products.", errorBody: "Please try again.", retry: "Try again",
+    emptyTitle: "No products to show yet.",
     skip: "Skip to content", navigation: "Main navigation", chooseLanguage: "Choose language",
   },
   ms: {
-    preview: "Pratonton reka bentuk peribadi", previewShort: "SEBUAH PRATONTON", eyebrow: "SALAM DARI BAHULU BERRY CAMERON",
-    intro: "Kenali Bahulu Berry Cameron dan terokai koleksi kami.", browse: "Lihat produk", explore: "Terokai dengan lebih dekat",
-    imageAlt: "Ilustrasi konsep bahulu keemasan dalam beg lutsinar dengan label maskot strawberi", mockupLabel: "Mockup produk · untuk semakan reka bentuk", imageUnavailable: "Pratonton produk tidak tersedia",
-    collectionEyebrow: "LIHAT DENGAN LEBIH DEKAT", collectionTitle: "Kenali koleksi kami", viewAll: "Lihat semua produk", viewProduct: "Terokai produk", photoPending: "Foto produk akan ditambah nanti",
-    loading: "Memuatkan koleksi…", loadingBody: "Maklumat produk sedang dimuatkan.", errorTitle: "Koleksi belum dapat dipaparkan.", errorBody: "Kami tidak dapat memuatkan produk. Sila cuba lagi.", retry: "Cuba lagi",
-    emptyTitle: "Ruang untuk sesuatu yang bakal tiba.", emptyBody: "Koleksi produk kami akan dipaparkan di sini apabila sedia untuk dikongsi.",
-    storyEyebrow: "WAJAH UNTUK DIKENALI", storyTitle: "Salam daripada Bahulu Berry Cameron.", storyBody: "Bahulu, identiti berinspirasikan beri, dan karakter tersendiri. Kenali nama di sebalik koleksi kami.", about: "Kenali Bahulu Berry Cameron",
-    conceptNote: "Pratonton peribadi · Olahan jenama menunggu kelulusan. Produk dan foto diurus oleh Pemilik.",
+    imageAlt: "Ilustrasi bahulu keemasan dalam beg lutsinar dengan label strawberi Bahulu Berry Cameron",
+    statsTitle: "Bahulu Berry Cameron dalam angka",
+    videosTitle: "Tonton kami di TikTok", videosIntro: "Video kedai kami yang paling banyak ditonton.", play: "Main video", videosNote: "Video dimuatkan daripada TikTok apabila anda tekan main.", follow: "Ikuti kami di TikTok",
+    chat: "Sembang dengan kami di WhatsApp",
+    viewProduct: "Lihat produk", loading: "Memuatkan produk…", errorTitle: "Kami tidak dapat memuatkan produk.", errorBody: "Sila cuba lagi.", retry: "Cuba lagi",
+    emptyTitle: "Belum ada produk untuk dipaparkan.",
     skip: "Langkau ke kandungan", navigation: "Navigasi utama", chooseLanguage: "Pilih bahasa",
   },
 } as const;

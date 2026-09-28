@@ -7,11 +7,17 @@ import { getProducts, getFeaturedProduct, getHomepage } from "./_lib/api";
 import { ProductHero } from "./_components/product-hero";
 import type { StorefrontProduct } from "./_lib/types";
 import { defaultHomepage } from "./_lib/content";
+import { HomeStats } from "./_components/home-stats";
+import { FaqSection } from "./_components/faq-section";
+import { TikTokSection } from "./_components/tiktok-section";
+import { getFeaturedVideos } from "./_lib/tiktok";
+import { showDraftContent } from "./_lib/draft-content";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Homepage concept | Bahulu Berry Cameron",
-  description: "Private homepage design preview for Bahulu Berry Cameron.",
+  title: { absolute: "Bahulu Berry Cameron" },
+  description: "Bahulu from Bahulu Berry Cameron in Cameron Highlands. Browse our products and current prices.",
+  // Stays unindexed until the client approves the public launch.
   robots: { index: false, follow: false },
 };
 
@@ -29,9 +35,12 @@ async function FeaturedProducts() {
 export default async function HomePage() {
   let content = defaultHomepage;
   try { content = await getHomepage(); }
-  catch { /* Keep the bundled approved preview if the content API is unavailable. */ }
+  catch { /* Keep the bundled fallback if the content API is unavailable. */ }
   return (
-    <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}>
+    <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}
+      stats={<HomeStats showDraft={showDraftContent()} />}
+      videos={<Suspense fallback={null}><FeaturedVideos /></Suspense>}
+      faq={<FaqSection showDraft={showDraftContent()} />}>
       <Suspense fallback={<HomeCollection products={[]} state="loading" />}>
         <FeaturedProducts />
       </Suspense>
@@ -44,4 +53,8 @@ async function FeaturedHero() {
   try { product = await getFeaturedProduct(); }
   catch { /* Keep the branded hero available when the API is unavailable. */ }
   return <ProductHero key={product?.image_path ?? "empty"} product={product} />;
+}
+
+async function FeaturedVideos() {
+  return <TikTokSection videos={await getFeaturedVideos()} />;
 }
