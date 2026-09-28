@@ -283,17 +283,23 @@ async def test_concurrent_uploads_cannot_exceed_gallery_limit(client, session):
     if session.bind.dialect.name != "postgresql":
         pytest.skip("Requires PostgreSQL row locks")
     pid = await create(client)
-    for _ in range(5):
-        await upload(client, pid)
+    colors = ["red", "blue", "green", "yellow", "purple"]
+    for color in colors:
+        await upload(client, pid, photo(color))
     factory = async_sessionmaker(session.bind, expire_on_commit=False)
-    async def attempt():
+    async def attempt(color):
         async with factory() as db:
             try:
-                await product_images.upload_image(pid, UploadFile(file=BytesIO(photo()), filename="photo.png"), db, client.owner)
+                await product_images.upload_image(
+                    pid,
+                    UploadFile(file=BytesIO(photo(color)), filename="photo.png"),
+                    db,
+                    client.owner,
+                )
                 return 201
             except HTTPException as error:
                 return error.status_code
-    assert sorted(await asyncio.gather(attempt(), attempt())) == [201, 422]
+    assert sorted(await asyncio.gather(attempt("orange"), attempt("cyan"))) == [201, 422]
 
 
 async def test_concurrent_feature_selection_has_one_winner(client, session):
