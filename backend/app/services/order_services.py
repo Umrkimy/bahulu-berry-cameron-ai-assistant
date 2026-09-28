@@ -269,7 +269,17 @@ async def create_order(
     db: AsyncSession,
     customer_id: int,
     items: list[dict],
+    *,
+    source: str = "ADMIN",
+    delivery_details: dict | None = None,
 ) -> dict:
+    """Create an order, price it on the server and deduct stock.
+
+    ``delivery_details`` (recipient_name, recipient_phone, address, city,
+    state, postal_code, country) replaces the customer's saved address in the
+    delivery snapshot; website checkout uses it so a returning customer's
+    record is never overwritten by public input.
+    """
     customer_result = await db.execute(
         select(Customer).where(
             Customer.id == customer_id,
@@ -309,6 +319,10 @@ async def create_order(
         subtotal=pricing["subtotal"],
         discount_amount=pricing["discount_amount"],
         total_amount=pricing["total_amount"],
+        source=source,
+        # Start with a loaded, empty collection so appending after the flush
+        # below does not trigger a lazy load.
+        items=[],
     )
 
     db.add(order)
@@ -318,19 +332,21 @@ async def create_order(
     # The customer's current information is copied here so
     # the delivery address becomes a snapshot of the address
     # used when the order was created.
-    delivery = Delivery(
-        order=order,
-        recipient_name=customer.full_name,
-        recipient_phone=customer.phone_number,
-        address=customer.address,
-        city=customer.city,
-        state=customer.state,
-        postal_code=customer.postal_code,
-        country=customer.country,
-        status="PENDING",
-    )
+    snapshot = delivery_details or {
+        "recipient_name": customer.full_name,
+        "recipient_phone": customer.phone_number,
+        "address": customer.address,
+        "city": customer.city,
+        "state": customer.state,
+        "postal_code": customer.postal_code,
+        "country": customer.country,
+    }
+    delivery = Delivery(order=order, status="PENDING", **snapshot)
 
     db.add(delivery)
+
+    # Assign the order id before stock movements reference it.
+    await db.flush()
 
     # Create OrderItems and reduce inventory.
     for item in pricing["items"]:
@@ -759,6 +775,7 @@ def _serialize_order(
         },
         "status": order.status,
         "payment_status": order.payment_status,
+        "source": order.source,
         "subtotal": float(order.subtotal),
         "discount_amount": float(order.discount_amount),
         "total_amount": float(order.total_amount),

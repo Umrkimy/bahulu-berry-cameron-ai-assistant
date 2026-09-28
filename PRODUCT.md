@@ -45,7 +45,8 @@ ingredients, awards) needs the client's approval before it appears anywhere.
   29 September 2026). The number comes from environment configuration, never
   from source.
 - The payment provider is undecided. ToyyibPay is on hold because of its fees,
-  and HitPay is a possibility. Public checkout stays disabled until a provider,
+  and HitPay is a possibility. Website checkout is built and tested with Stripe
+  in test mode only (off by default). Public checkout stays disabled until a provider,
   fulfilment rules, and policies are approved.
 - Owners control product records, photos, the homepage feature, and homepage
   copy from the dashboard. The storefront reads only published content.

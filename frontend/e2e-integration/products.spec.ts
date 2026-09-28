@@ -265,19 +265,35 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(shop.locator(".cart-total dd")).toHaveText("RM 36.00");
   await shop.reload();
   await expect(shop.getByRole("link", { name: "Cart: 2" })).toBeVisible();
-  await shop.getByRole("link", { name: "Checkout preview" }).click();
-  await expect(
-    shop.getByRole("heading", { name: "Checkout preview" }),
-  ).toBeVisible();
-  await expect(
-    shop.getByText(
-      "No payment provider has been selected. Payment is unavailable and test-only.",
-    ),
-  ).toBeVisible();
-  await expect(shop.locator("input")).toHaveCount(0);
-  await expect(
-    shop.getByRole("button", { name: /ordering and payment are disabled/i }),
-  ).toBeDisabled();
+  await shop.getByRole("link", { name: "Pay online" }).click();
+  await expect(shop.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  await expect(shop.getByText("Test mode")).toBeVisible();
+  await shop.getByRole("button", { name: "Continue to payment" }).click();
+  await expect(shop.locator(".checkout-form [role=alert][tabindex='-1']")).toBeFocused();
+  await expect(shop.getByLabel("Full name")).toHaveAttribute("aria-invalid", "true");
+  await shop.getByLabel("Full name").fill("Fictional Walkthrough Buyer");
+  await shop.getByLabel("Phone number").fill("012-000 0001");
+  await shop.getByLabel("Street address").fill("1 Jalan Rekaan");
+  await shop.getByLabel("Town or city").fill("Tanah Rata");
+  await shop.getByLabel("Postcode").fill("39000");
+  await shop.getByLabel("State").selectOption("Pahang");
+  await shop.getByLabel(/may use these details/).check();
+  // The fictional provider's hosted page is intercepted and sent back to the
+  // storefront's return page, as Stripe would after payment.
+  await shop.route("https://payments.example.com/**", (route) =>
+    route.fulfill({ status: 302, headers: { location: "http://127.0.0.1:4100/checkout/success" } }),
+  );
+  const placed = shop.waitForResponse((response) => response.url().endsWith("/storefront-data/checkout"));
+  await shop.getByRole("button", { name: "Continue to payment" }).click();
+  expect((await placed).status()).toBe(201);
+  await expect(shop.getByRole("heading", { name: "Thank you!" })).toBeVisible();
+  await expect(shop.locator(".checkout-order-number strong")).toHaveText(/^#\d+$/);
+  await expect(shop.getByRole("link", { name: "Cart: 0" })).toBeVisible();
+  await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
+  await shop
+    .getByRole("button", { name: /Add to cart: Fictional client walkthrough/ })
+    .click();
+  await expect(shop.getByRole("link", { name: "Cart: 1" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Storefront" }).click();
   await page.getByRole("switch", { name: /Published online/ }).uncheck();
@@ -287,7 +303,7 @@ test("Owner product workspace reaches the real storefront", async ({
     shop.getByText("This product is no longer available."),
   ).toBeVisible();
   await expect(
-    shop.getByRole("link", { name: "Checkout preview" }),
+    shop.getByRole("link", { name: "Pay online" }),
   ).toHaveCount(0);
   await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
   await expect(shop.locator(".shop-state")).toBeVisible();

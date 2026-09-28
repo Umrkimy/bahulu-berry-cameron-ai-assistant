@@ -9,7 +9,8 @@ from sqlalchemy.orm import selectinload
 
 from app.models.order import Order
 from app.models.payment import Payment
-from app.payments.providers.stripe import StripeProvider
+from app.core.config import settings
+from app.payments.registry import get_payment_provider
 
 
 logger = logging.getLogger("bahulu.payments")
@@ -18,7 +19,16 @@ logger = logging.getLogger("bahulu.payments")
 async def create_payment(
     db: AsyncSession,
     order: Order,
+    *,
+    customer_name: str | None = None,
+    customer_email: str | None = None,
+    customer_phone: str | None = None,
 ) -> tuple[Payment, bool]:
+    """Create (or reuse) the pending payment link for an order.
+
+    Website checkout passes the contact details the customer typed so an
+    existing customer record is never used to label someone else's payment.
+    """
 
     result = await db.execute(
         select(Payment)
@@ -39,7 +49,7 @@ async def create_payment(
 
     payment = Payment(
         order_id=order.id,
-        provider="stripe",
+        provider=settings.PAYMENT_PROVIDER,
         amount=Decimal(str(order.total_amount)),
         currency="MYR",
         status="PENDING",
@@ -57,16 +67,17 @@ async def create_payment(
     )
     order_with_customer = order_result.scalar_one()
 
-    provider = StripeProvider()
+    provider = get_payment_provider(payment.provider)
+    customer = order_with_customer.customer
 
     stripe_result = await provider.create_payment(
         payment_id=payment.id,
         amount=payment.amount,
         currency=payment.currency,
         description=f"Bahulu Berry Cameron Order #{order.id}",
-        customer_name=order_with_customer.customer.full_name,
-        customer_email=order_with_customer.customer.email,
-        customer_phone=order_with_customer.customer.phone_number,
+        customer_name=customer_name or customer.full_name,
+        customer_email=customer_email if customer_name is not None else customer.email,
+        customer_phone=customer_phone or customer.phone_number,
     )
 
     payment.provider_payment_id = (
@@ -99,11 +110,11 @@ async def expire_pending_payments(
     )
 
     for payment in result.scalars().all():
-        if payment.provider == "stripe" and payment.provider_payment_id:
+        if payment.provider_payment_id:
             try:
-                await StripeProvider().expire_payment(payment.provider_payment_id)
-            except stripe.StripeError:
-                logger.warning("stripe_session_expire_failed", extra={"payment_id": payment.id})
+                await get_payment_provider(payment.provider).expire_payment(payment.provider_payment_id)
+            except (stripe.StripeError, ValueError):
+                logger.warning("payment_link_expire_failed", extra={"payment_id": payment.id})
 
         payment.status = "EXPIRED"
 
@@ -121,10 +132,10 @@ async def refund_payment(
     if payment.status != "PAID":
         raise ValueError("Only paid payments can be refunded.")
 
-    if payment.provider != "stripe" or not payment.provider_payment_id:
-        raise ValueError("This payment cannot be refunded through Stripe.")
+    if not payment.provider_payment_id:
+        raise ValueError("This payment cannot be refunded through its provider.")
 
-    provider = StripeProvider()
+    provider = get_payment_provider(payment.provider)
     stripe_result = await provider.refund_payment(
         payment.provider_payment_id,
         payment.id,

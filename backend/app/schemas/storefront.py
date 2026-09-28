@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.schemas.product import StorefrontPromotion
 
@@ -43,3 +43,43 @@ class StorefrontQuoteResponse(BaseModel):
     subtotal: Decimal | None = None
     discount_amount: Decimal | None = None
     total_amount: Decimal | None = None
+
+
+class StorefrontCheckoutContact(BaseModel):
+    full_name: str = Field(min_length=2, max_length=120)
+    phone_number: str = Field(min_length=9, max_length=20)
+    email: EmailStr | None = None
+    address: str = Field(min_length=5, max_length=255)
+    city: str = Field(min_length=2, max_length=100)
+    state: str = Field(min_length=2, max_length=100)
+    postal_code: str = Field(pattern=r"^\d{5}$")
+
+    @field_validator("full_name", "address", "city", "state", mode="before")
+    @classmethod
+    def strip_text(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def blank_email_is_none(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+class StorefrontCheckoutRequest(StorefrontQuoteRequest):
+    contact: StorefrontCheckoutContact
+    locale: Literal["en", "ms"] = "en"
+    # The customer must tick the privacy notice before we store their details.
+    privacy_notice_accepted: Literal[True]
+
+
+class StorefrontCheckoutResponse(BaseModel):
+    order_number: int
+    total_amount: Decimal
+    payment_url: str
+
+
+class StorefrontCheckoutStatus(BaseModel):
+    enabled: bool
+    test_mode: bool

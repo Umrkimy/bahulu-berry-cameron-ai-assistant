@@ -44,6 +44,7 @@ class Payment(Base):
         String(255),
         nullable=True,
         index=True,
+        unique=True,
     )
 
     amount: Mapped[Decimal] = mapped_column(

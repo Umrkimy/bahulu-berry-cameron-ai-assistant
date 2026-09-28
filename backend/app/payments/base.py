@@ -3,6 +3,13 @@ from decimal import Decimal
 
 
 class PaymentProvider(ABC):
+    """A hosted-payment provider (Stripe today; HitPay or ToyyibPay later).
+
+    Implementations must only report money as paid from provider-signed
+    webhook events, never from a browser redirect.
+    """
+
+    name: str
 
     @abstractmethod
     async def create_payment(
@@ -24,7 +31,19 @@ class PaymentProvider(ABC):
         {
             "provider_payment_id": "...",
             "payment_url": "...",
-            "status": "PENDING",
         }
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def expire_payment(self, provider_payment_id: str) -> None:
+        """Close an open payment link so it can no longer be paid."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def refund_payment(self, provider_payment_id: str, payment_id: int) -> dict:
+        """Refund a paid payment in full.
+
+        Returns {"provider_refund_id": "...", "status": "..."}.
         """
         raise NotImplementedError
