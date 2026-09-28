@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
-const apiBaseUrl = (process.env.STOREFRONT_SERVER_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+import { apiBaseUrl, requestClientIpHeaders } from "../../_lib/server-api.ts";
 
 export async function GET(request: Request) {
   const locale = new URL(request.url).searchParams.get("locale") === "ms" ? "ms" : "en";
   try {
     const response = await fetch(`${apiBaseUrl}/storefront/place?locale=${locale}`, {
+      headers: requestClientIpHeaders(request),
       cache: "no-store",
       signal: AbortSignal.timeout(7000),
     });

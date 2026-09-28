@@ -1,5 +1,6 @@
 services:
   db:
+    restart: unless-stopped
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
@@ -25,6 +26,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "uv run --no-sync alembic upgrade head"]
 
   api:
+    restart: unless-stopped
     build: ./backend
     volumes:
       - product_media:/app/media/products
@@ -82,6 +84,7 @@ services:
       - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       args:
@@ -99,6 +102,7 @@ services:
       retries: 6
 
   storefront:
+    restart: unless-stopped
     build:
       context: ./storefront
       args:

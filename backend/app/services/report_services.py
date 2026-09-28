@@ -37,11 +37,11 @@ def resolve_report_range(
     if preset is None and start_date is None and end_date is None:
         preset = "LAST_30_DAYS"
     if preset and (start_date or end_date):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose a preset or a custom date range, not both.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Choose a preset or a custom date range, not both.")
     if preset:
         normalized = preset.upper()
         if normalized not in PRESETS:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose a valid report preset.")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Choose a valid report preset.")
         current = today or datetime.now(MALAYSIA_TZ).date()
         if normalized == "TODAY":
             return current, current, "Today"
@@ -57,11 +57,11 @@ def resolve_report_range(
         days = {"LAST_7_DAYS": 7, "LAST_30_DAYS": 30, "LAST_90_DAYS": 90}[normalized]
         return current - timedelta(days=days - 1), current, f"Last {days} days"
     if start_date is None or end_date is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose a report preset or both custom dates.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Choose a report preset or both custom dates.")
     if end_date < start_date:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="End date must be on or after start date.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="End date must be on or after start date.")
     if (end_date - start_date).days + 1 > 366:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Custom reports can cover up to 366 days.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Custom reports can cover up to 366 days.")
     return start_date, end_date, "Custom range"
 
 

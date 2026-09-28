@@ -41,3 +41,8 @@ def test_staging_requires_strict_runtime_security():
 def test_staging_rejects_insecure_runtime_configuration(overrides):
     with pytest.raises(RuntimeError):
         build_settings(**overrides).validate_runtime_security()
+
+
+@pytest.mark.parametrize(("environment", "secure"), [("development", False), ("staging", True), ("production", True)])
+def test_session_cookies_are_secure_wherever_https_is_served(environment, secure):
+    assert build_settings(ENVIRONMENT=environment).cookie_secure is secure
