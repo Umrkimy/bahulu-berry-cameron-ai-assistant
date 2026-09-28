@@ -1,4 +1,6 @@
 version: 2
+# Minor and patch updates arrive as one grouped PR per ecosystem; majors
+# stay separate so breaking upgrades are reviewed on their own.
 updates:
   # uv keeps backend/uv.lock in step with pyproject.toml, which CI installs
   # with `uv sync --locked`.
@@ -8,6 +10,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: npm
     directory: /frontend
     schedule:
@@ -19,12 +26,21 @@ updates:
       mantine:
         patterns:
           - "@mantine/*"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: npm
     directory: /storefront
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
     ignore:
       # eslint-config-next's React plugin does not load under ESLint 10 yet.
       - dependency-name: eslint
@@ -54,3 +70,8 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
