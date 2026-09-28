@@ -130,28 +130,29 @@ class HomepageGoogleCheckResponse(BaseModel):
 
 
 def publication_issues(content: StorefrontHomepageContent, readiness: GoogleReadiness) -> list[str]:
+    # Eyebrow fields are kept for compatibility but are no longer shown or required.
     required = [
-        content.hero.eyebrow, content.hero.title_primary, content.hero.title_accent, content.hero.title_suffix,
-        content.hero.body, content.hero.cta_label, content.collection.eyebrow, content.collection.title,
-        content.collection.view_all_label, content.story.eyebrow, content.story.title, content.story.body,
-        content.story.cta_label, content.closing.eyebrow, content.closing.title, content.closing.body,
+        content.hero.title_primary, content.hero.title_accent, content.hero.title_suffix,
+        content.hero.body, content.hero.cta_label, content.collection.title,
+        content.collection.view_all_label, content.story.title, content.story.body,
+        content.story.cta_label, content.closing.title, content.closing.body,
         content.closing.cta_label,
     ]
     issues = []
     if any(not value.en or not value.ms for value in required):
         issues.append("Complete all required English and Bahasa Melayu content before publishing.")
     if content.benefits.enabled:
-        benefit_fields = [content.benefits.eyebrow, content.benefits.title, *[value for item in content.benefits.items for value in (item.title, item.body)]]
+        benefit_fields = [content.benefits.title, *[value for item in content.benefits.items for value in (item.title, item.body)]]
         if any(not value.en or not value.ms for value in benefit_fields):
             issues.append("Complete all English and Bahasa Melayu benefit content or disable the section.")
     if content.reviews.enabled and not readiness.ready_for_reviews:
         issues.append("Google Reviews cannot be enabled until the approved integration is ready.")
     if content.reviews.enabled:
-        review_fields = [content.reviews.eyebrow, content.reviews.title]
+        review_fields = [content.reviews.title]
         if any(not value.en or not value.ms for value in review_fields):
             issues.append("Complete all English and Bahasa Melayu review content or disable the section.")
     if content.location.enabled:
-        location_fields = [content.location.eyebrow, content.location.title, content.location.load_map_label, content.location.directions_label]
+        location_fields = [content.location.title, content.location.load_map_label, content.location.directions_label]
         if any(not value.en or not value.ms for value in location_fields):
             issues.append("Complete all English and Bahasa Melayu location content or disable the section.")
         if not readiness.ready_for_map:

@@ -18,9 +18,8 @@ export function SiteHeader() {
   const { count, hydrated } = useCart();
   const cart = cartCopy[locale];
 
-  return <header className={`site-header concept-header${pathname === "/" || pathname.startsWith("/products") ? " home-header" : ""}`}>
+  return <header className="site-header concept-header">
     <a href="#main-content" className="skip-link">{home.skip}</a>
-    <div className="concept-banner">{home.preview}<span aria-hidden="true"> · </span>BAHULU BERRY CAMERON</div>
     <div className="shell header-inner">
       <Link className="brand concept-brand" href="/" aria-label={`Bahulu Berry Cameron — ${text.home}`}><Image src="/concept/brand-preview.webp" alt="" width={100} height={100} priority /><span>Bahulu Berry<br />Cameron</span></Link>
       <nav aria-label={home.navigation}>

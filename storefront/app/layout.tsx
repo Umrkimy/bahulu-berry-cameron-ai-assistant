@@ -13,8 +13,8 @@ import { CartProvider } from "./_components/cart-provider";
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display" });
 const body = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body" });
 
-export const metadata: Metadata = { title: { default: "Bahulu Berry Cameron", template: "%s | Bahulu Berry Cameron" }, description: "Browse the current Bahulu Berry Cameron collection and enquire directly with the team.", icons: { icon: "/concept/brand-preview.webp" }, metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") };
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#7c2534" };
+export const metadata: Metadata = { title: { default: "Bahulu Berry Cameron", template: "%s | Bahulu Berry Cameron" }, description: "Browse Bahulu Berry Cameron products and current prices.", icons: { icon: "/concept/brand-preview.webp" }, metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffdc24" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><CartProvider><SiteHeader /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter /></CartProvider></LocaleProvider></body></html>;

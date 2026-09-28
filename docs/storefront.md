@@ -44,6 +44,13 @@ migration is not a substitute for restoring matching data/media backups.
   key. It re-quotes published products through the read-only API; browser totals
   never create orders or determine payment/stock state.
 - Checkout collects no personal information and has no submission action.
+- Until online payment is approved, the cart ends with **Send order on
+  WhatsApp**: it opens WhatsApp with a draft of the quoted items and total that
+  the customer reviews and sends. Nothing is sent automatically. It appears only
+  when `NEXT_PUBLIC_WHATSAPP_NUMBER` is set; without it the cart says online
+  ordering isn't available yet. The payment provider is still undecided.
+- `/pickup-delivery` returns not found and is left out of navigation and the
+  sitemap until pickup and delivery details are approved.
 - `/checkout` returns not found unless the server-only
   `STOREFRONT_CHECKOUT_PREVIEW_ENABLED=true` flag is set. Checked-in examples
   default to false.
@@ -59,7 +66,9 @@ private and **Publish** is a separate audited action. A version check prevents
 one browser session from silently overwriting another. The public storefront
 reads only the published snapshot.
 
-The section order and destinations are intentionally fixed: USP hero, optional
+Eyebrow fields remain in the saved content for compatibility, but the storefront
+no longer shows them and publishing no longer requires them. The section order
+and destinations are intentionally fixed: USP hero, optional
 benefits, backend-authoritative featured collection, brand story, optional
 Google reviews, optional location/map, and a closing catalogue CTA. Hero and
 closing actions open `/products`; the story opens `/about`. Benefits start
@@ -101,8 +110,8 @@ Touch and reduced-motion users receive a stable composition.
 The generated `public/concept/bahulu-bag.webp` is explicitly approved as the
 private homepage fallback when no featured product photo is available, while
 still awaiting final public-asset approval. `public/concept/brand-preview.webp`
-remains private concept artwork, not approved packaging photography or a master
-logo. Umar supplied the source references on 24 September 2026. Public image
+is the strawberry mascot, confirmed by Umar on 29 September 2026 as the final
+brand character; it is not packaging photography or a master logo. Umar supplied the source references on 24 September 2026. Public image
 ownership/licensing and final brand approval remain pending. Product cards do
 not silently substitute concept imagery for missing product photos.
 

@@ -10,8 +10,9 @@ import { defaultHomepage } from "./_lib/content";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Homepage concept | Bahulu Berry Cameron",
-  description: "Private homepage design preview for Bahulu Berry Cameron.",
+  title: { absolute: "Bahulu Berry Cameron" },
+  description: "Bahulu from Bahulu Berry Cameron in Cameron Highlands. Browse our products and current prices.",
+  // Stays unindexed until the client approves the public launch.
   robots: { index: false, follow: false },
 };
 
@@ -29,7 +30,7 @@ async function FeaturedProducts() {
 export default async function HomePage() {
   let content = defaultHomepage;
   try { content = await getHomepage(); }
-  catch { /* Keep the bundled approved preview if the content API is unavailable. */ }
+  catch { /* Keep the bundled fallback if the content API is unavailable. */ }
   return (
     <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}>
       <Suspense fallback={<HomeCollection products={[]} state="loading" />}>

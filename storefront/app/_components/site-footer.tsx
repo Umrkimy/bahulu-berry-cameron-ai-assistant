@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 
-import { copy } from "../_lib/content";
+import { business, copy } from "../_lib/content";
+import { whatsAppNumber, whatsAppUrl } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 
 export function SiteFooter() {
   const { locale } = useLocale();
   const text = copy[locale];
-  return <footer className="site-footer"><div className="shell footer-inner"><p>© {new Date().getFullYear()} Bahulu Berry Cameron</p><div><Link href="/pickup-delivery">{text.navPickup}</Link><Link href="/about">{text.navAbout}</Link></div></div></footer>;
+  const number = whatsAppNumber();
+  return <footer className="site-footer"><div className="shell footer-inner">
+    <div className="footer-brand"><p className="footer-name">Bahulu Berry Cameron</p><p>{business.town}</p><p>© {new Date().getFullYear()} Bahulu Berry Cameron</p></div>
+    <nav className="footer-links" aria-label={locale === "ms" ? "Pautan bawah" : "Footer links"}>
+      <Link href="/products">{text.navProducts}</Link>
+      <Link href="/about">{text.navAbout}</Link>
+      <a href={business.mapsUrl} target="_blank" rel="noreferrer">Google Maps<span aria-hidden="true"> ↗</span></a>
+      {number ? <a href={whatsAppUrl(number, "")} target="_blank" rel="noreferrer">{text.whatsApp} {business.phoneDisplay}<span aria-hidden="true"> ↗</span></a> : null}
+    </nav>
+  </div></footer>;
 }
