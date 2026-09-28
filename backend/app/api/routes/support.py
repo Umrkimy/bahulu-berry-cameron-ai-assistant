@@ -1,24 +1,26 @@
 from datetime import UTC, datetime
-import re
 from typing import Annotated, Type
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.core.config import settings
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.activity_log import ActivityLog
 from app.models.customer import Customer
 from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
+from app.models.support_draft import DRAFT_STATUSES, SupportDraft
 from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.activity import ActivityPublic
-from app.schemas.support import FAQInput, FAQPublic, KnowledgeArticleInput, KnowledgeArticlePublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftInput, SupportDraftPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
+from app.schemas.support import FAQInput, FAQPublic, KnowledgeArticleInput, KnowledgeArticlePublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftApprovalPublic, SupportDraftApproveInput, SupportDraftInput, SupportDraftPublic, SupportDraftReviewPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, sync_knowledge_source
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
 from app.services.notification_services import add_notification, notify_owners
+from app.services.support_drafts import review_public, save_draft, whatsapp_number, whatsapp_url
 
 router = APIRouter()
 VALID_STATUS = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"}
@@ -123,6 +125,12 @@ async def create_support_draft(
         message=data.message,
         requested_language=data.language,
     )
+    conversation_id = None
+    if data.support_request_id is not None:
+        conversation_id = await db.scalar(select(MessagingConversation.id).where(MessagingConversation.support_request_id == data.support_request_id).order_by(MessagingConversation.id.desc()).limit(1))
+    saved = await save_draft(db, draft=draft, customer_message=data.message, conversation_id=conversation_id, messaging_event_id=None, support_request_id=data.support_request_id)
+    if saved is not None:
+        draft = draft.model_copy(update={"draft_id": saved.id})
     await record_activity(
         db,
         admin=admin,
@@ -134,7 +142,9 @@ async def create_support_draft(
             "model": draft.model,
             "prompt_version": draft.prompt_version,
             "latency_ms": draft.latency_ms,
-            "estimated_cost_rm": 0,
+            "estimated_cost_usd": draft.estimated_cost_usd,
+            "estimated_cost_rm": round(draft.estimated_cost_usd * settings.AI_DISPLAY_EXCHANGE_RATE, 6),
+            "draft_id": draft.draft_id,
             "source_ids": [source.id for source in draft.sources],
             "handoff_required": draft.handoff_required,
             "handoff_reason": draft.handoff_reason,
@@ -388,10 +398,98 @@ async def whatsapp_link(item_id: int, db: Annotated[AsyncSession, Depends(get_db
     ticket, conversation = await _ticket_conversation(db, item_id)
     if not _can_manage_handoff(ticket, admin):
         raise HTTPException(403, detail="Only the assigned staff member or an Owner can open this WhatsApp conversation.")
-    number = re.sub(r"\D", "", conversation.contact_reference or ticket.contact or "")
-    if len(number) < 8:
+    number = whatsapp_number(conversation.contact_reference, ticket.contact)
+    if number is None:
         raise HTTPException(409, detail="A valid WhatsApp contact is not available for this conversation.")
-    return WhatsAppLinkPublic(url=f"https://wa.me/{number}")
+    return WhatsAppLinkPublic(url=whatsapp_url(number))
+
+
+async def _draft_contact(db: AsyncSession, draft: SupportDraft) -> tuple[SupportRequest | None, str | None]:
+    ticket = await db.get(SupportRequest, draft.support_request_id) if draft.support_request_id else None
+    conversation = await db.get(MessagingConversation, draft.conversation_id) if draft.conversation_id else None
+    return ticket, whatsapp_number(conversation.contact_reference if conversation else None, ticket.contact if ticket else None)
+
+
+@router.get("/drafts", response_model=PaginatedResponse[SupportDraftReviewPublic])
+async def support_drafts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Admin, Depends(get_current_admin)],
+    status_filter: str | None = "PENDING_REVIEW",
+    support_request_id: int | None = None,
+    page: int = 1,
+    page_size: int = 20,
+):
+    if status_filter is not None and status_filter not in DRAFT_STATUSES:
+        raise HTTPException(422, detail="Invalid draft status.")
+    if page < 1 or not 1 <= page_size <= 100:
+        raise HTTPException(422, detail="Invalid pagination settings.")
+    await purge_expired_message_content(db)
+    filters = []
+    if status_filter:
+        filters.append(SupportDraft.status == status_filter)
+    if support_request_id is not None:
+        filters.append(SupportDraft.support_request_id == support_request_id)
+    total = await db.scalar(select(func.count()).select_from(SupportDraft).where(*filters))
+    drafts = (await db.execute(select(SupportDraft).where(*filters).order_by(SupportDraft.created_at.desc(), SupportDraft.id.desc()).offset((page - 1) * page_size).limit(page_size))).scalars().all()
+    items = []
+    for draft in drafts:
+        _, number = await _draft_contact(db, draft)
+        items.append(review_public(draft, whatsapp_available=number is not None))
+    return PaginatedResponse.create(items=items, page=page, page_size=page_size, total=total or 0)
+
+
+async def _pending_draft_for_review(db: AsyncSession, draft_id: int, admin: Admin) -> tuple[SupportDraft, SupportRequest | None, str | None]:
+    draft = await db.scalar(select(SupportDraft).where(SupportDraft.id == draft_id).with_for_update().execution_options(populate_existing=True))
+    if draft is None:
+        raise HTTPException(404, detail="Draft not found.")
+    if draft.status != "PENDING_REVIEW":
+        raise HTTPException(409, detail="This draft has already been reviewed or replaced by a newer one.")
+    ticket, number = await _draft_contact(db, draft)
+    if ticket is not None and ticket.handoff_state == "HUMAN_HANDLING" and not _can_manage_handoff(ticket, admin):
+        raise HTTPException(403, detail="Only the assigned staff member or an Owner can review drafts for this conversation.")
+    return draft, ticket, number
+
+
+async def _record_draft_review(db: AsyncSession, admin: Admin, draft: SupportDraft, action: str, description: str, edited: bool = False) -> None:
+    linked = draft.support_request_id is not None
+    await record_activity(
+        db,
+        admin=admin,
+        action=action,
+        entity_type="support_request" if linked else "support_draft",
+        entity_id=draft.support_request_id if linked else draft.id,
+        description=description,
+        metadata={"draft_id": draft.id, "edited": edited},
+    )
+
+
+@router.post("/drafts/{draft_id}/approve", response_model=SupportDraftApprovalPublic)
+async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    draft, _, number = await _pending_draft_for_review(db, draft_id, admin)
+    if draft.body is None:
+        raise HTTPException(409, detail="This draft has expired.")
+    edited = data.edited_body is not None and data.edited_body.strip() != draft.body.strip()
+    text = data.edited_body.strip() if edited else draft.body
+    draft.edited_body = text if edited else None
+    draft.status = "EDITED_APPROVED" if edited else "APPROVED"
+    draft.reviewed_by_admin_id = admin.id
+    draft.reviewed_at = datetime.now(UTC)
+    await _record_draft_review(db, admin, draft, "draft_approved", f"Approved an edited reply draft #{draft.id}." if edited else f"Approved reply draft #{draft.id}.", edited)
+    await db.commit()
+    await db.refresh(draft)
+    return SupportDraftApprovalPublic(draft=review_public(draft, whatsapp_available=number is not None), text=text, whatsapp_url=whatsapp_url(number, text) if number else None)
+
+
+@router.post("/drafts/{draft_id}/reject", response_model=SupportDraftReviewPublic)
+async def reject_support_draft(draft_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+    draft, _, number = await _pending_draft_for_review(db, draft_id, admin)
+    draft.status = "REJECTED"
+    draft.reviewed_by_admin_id = admin.id
+    draft.reviewed_at = datetime.now(UTC)
+    await _record_draft_review(db, admin, draft, "draft_rejected", f"Rejected reply draft #{draft.id}.")
+    await db.commit()
+    await db.refresh(draft)
+    return review_public(draft, whatsapp_available=number is not None)
 
 
 @router.post("/requests/{item_id}/notes", response_model=SupportRequestNotePublic)
