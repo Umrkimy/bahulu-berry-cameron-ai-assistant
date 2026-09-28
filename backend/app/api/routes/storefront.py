@@ -1,12 +1,12 @@
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.rate_limit import STOREFRONT_READ_LIMIT, rate_limiter
+from app.core.rate_limit import STOREFRONT_CHECKOUT_LIMIT, STOREFRONT_READ_LIMIT, rate_limiter
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.product import Product
@@ -17,6 +17,9 @@ from app.schemas.product import ProductImagePublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.product import StorefrontProduct, StorefrontPromotion
 from app.schemas.storefront import (
+    StorefrontCheckoutRequest,
+    StorefrontCheckoutResponse,
+    StorefrontCheckoutStatus,
     StorefrontQuoteLine,
     StorefrontQuoteRequest,
     StorefrontQuoteResponse,
@@ -25,6 +28,7 @@ from app.schemas.storefront_homepage import StorefrontHomepageContent
 from app.schemas.storefront_place import StorefrontMap, StorefrontPlace
 from app.services.google_place import GooglePlaceUnavailable, fetch_google_place, google_map_embed_url
 from app.services.pricing_services import calculate_order_pricing
+from app.services.storefront_checkout import CheckoutError, place_storefront_order
 from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 
 router = APIRouter()
@@ -288,6 +292,53 @@ async def quote_storefront_cart(
         discount_amount=pricing["discount_amount"] if ready else None,
         total_amount=pricing["total_amount"] if ready else None,
     )
+
+
+@router.get("/checkout/status", response_model=StorefrontCheckoutStatus)
+async def storefront_checkout_status(request: Request, response: Response):
+    await rate_limiter.check(request, "storefront-checkout-status", STOREFRONT_READ_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    return StorefrontCheckoutStatus(
+        enabled=settings.STOREFRONT_CHECKOUT_ENABLED,
+        test_mode=settings.payments_test_mode,
+    )
+
+
+@router.post("/checkout", response_model=StorefrontCheckoutResponse, status_code=status.HTTP_201_CREATED)
+async def storefront_checkout(
+    checkout_data: StorefrontCheckoutRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", pattern=r"^[A-Za-z0-9-]{16,64}$")],
+):
+    """Create a website order and return the hosted payment page.
+
+    Disabled unless STOREFRONT_CHECKOUT_ENABLED is set. The order is priced
+    and stock-checked here; the browser's totals are never used.
+    """
+    if not settings.STOREFRONT_CHECKOUT_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
+    await rate_limiter.check(request, "storefront-checkout", STOREFRONT_CHECKOUT_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+
+    product_ids = [item.product_id for item in checkout_data.items]
+    published = set((await db.scalars(
+        select(Product.id).where(Product.id.in_(product_ids), *_published_filters())
+    )).all())
+    if published != set(product_ids):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "UNAVAILABLE", "message": "Some items are no longer available. Please review your cart."},
+        )
+
+    try:
+        return await place_storefront_order(db, checkout_data, idempotency_key)
+    except CheckoutError as error:
+        raise HTTPException(
+            status_code=error.status_code,
+            detail={"code": error.code, "message": error.message},
+        ) from error
 
 
 @router.get("/products/{product_id}/images/{image_id}/content")

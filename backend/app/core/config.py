@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: SecretStr
     STRIPE_SUCCESS_URL: str
     STRIPE_CANCEL_URL: str
+    # Which PaymentProvider new payments use. Stripe is wired for test-mode
+    # development; HitPay or ToyyibPay can be added behind the same interface.
+    PAYMENT_PROVIDER: str = "stripe"
+    # Public website checkout stays off until Umar and the client approve it.
+    # When on, only Stripe test keys are accepted unless live payments are
+    # explicitly approved with PAYMENTS_LIVE_APPROVED.
+    STOREFRONT_CHECKOUT_ENABLED: bool = False
+    PAYMENTS_LIVE_APPROVED: bool = False
+    # Unpaid website orders are cancelled (and stock restored) after this long.
+    STOREFRONT_UNPAID_ORDER_MINUTES: int = 45
 
     SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"
@@ -110,6 +120,18 @@ class Settings(BaseSettings):
     @property
     def cookie_samesite(self) -> str:
         return "none" if self.is_production else "lax"
+
+    @property
+    def payments_test_mode(self) -> bool:
+        return self.STRIPE_SECRET_KEY.get_secret_value().startswith("sk_test_")
+
+    def validate_payment_safety(self) -> None:
+        if self.PAYMENT_PROVIDER != "stripe":
+            raise RuntimeError("PAYMENT_PROVIDER must be 'stripe'; no other provider is integrated yet.")
+        if self.STOREFRONT_CHECKOUT_ENABLED and not self.payments_test_mode and not self.PAYMENTS_LIVE_APPROVED:
+            raise RuntimeError(
+                "Website checkout needs a Stripe test key (sk_test_...) unless PAYMENTS_LIVE_APPROVED is set."
+            )
 
     def validate_runtime_security(self) -> None:
         if not self.requires_strict_runtime_security:

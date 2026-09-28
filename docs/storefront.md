@@ -61,9 +61,27 @@ migration is not a substitute for restoring matching data/media backups.
 - `/checkout` returns not found unless the server-only
   `STOREFRONT_CHECKOUT_PREVIEW_ENABLED=true` flag is set. Checked-in examples
   default to false.
-- Existing Stripe routes remain authenticated admin operations. Public checkout
-  requires a separately approved provider, fulfilment rules, policies, business
-  details, customer intake, idempotency, and signed webhook design.
+- With the page visible, the API's `STOREFRONT_CHECKOUT_ENABLED` decides the
+  mode. Off (the default), `/checkout` is the review-only preview. On, it shows
+  the order form: `POST /api/storefront/checkout` prices the order on the
+  server, deducts stock, finds or creates the customer by phone (never
+  overwriting an existing record; the order's delivery snapshot holds what was
+  typed), and returns a hosted payment page. Each submission carries an
+  `Idempotency-Key`, so a retry returns the same order.
+- Checkout is **Stripe test mode only**. The API refuses to start with the
+  flag on and a non-`sk_test_` key unless `PAYMENTS_LIVE_APPROVED=true`, which
+  needs Umar's and the client's approval. HitPay or ToyyibPay can replace
+  Stripe behind `app/payments/base.py` (`PAYMENT_PROVIDER`).
+- Money is marked paid only by the signed webhook (`/api/payments/webhook`),
+  which skips redelivered event ids. Expired or failed payments cancel the
+  website order and restore stock; a sweep also cancels website orders left
+  unpaid for `STOREFRONT_UNPAID_ORDER_MINUTES` (45). Admin orders are never
+  auto-cancelled. `/checkout/success` and `/checkout/cancelled` are the Stripe
+  return pages; the success page never treats the redirect as proof of payment.
+- Local test run: set `STOREFRONT_CHECKOUT_ENABLED=true` with your Stripe test
+  keys, run `stripe listen --forward-to localhost:8000/api/payments/webhook`,
+  use its `whsec_...` as `STRIPE_WEBHOOK_SECRET`, and pay with card
+  `4242 4242 4242 4242`.
 
 ## Homepage workflow
 

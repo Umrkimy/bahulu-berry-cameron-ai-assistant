@@ -7,6 +7,7 @@ from app.models.product_image import MediaAsset, ProductImage, StorefrontFeature
 from app.models.inventory import Inventory
 from app.models.admin import Admin
 from app.models.payment import Payment
+from app.models.checkout import CheckoutRequest, PaymentWebhookEvent
 from app.models.delivery import Delivery
 from app.models.discount import Discount
 from app.models.ai_action_confirmation import AIActionConfirmation

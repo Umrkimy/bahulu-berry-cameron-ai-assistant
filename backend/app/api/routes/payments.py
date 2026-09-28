@@ -18,12 +18,14 @@ from app.core.config import settings
 from app.core.rate_limit import PAYMENT_LIMIT, rate_limiter
 from app.db.database import get_db
 from app.models.admin import Admin
+from app.models.checkout import PaymentWebhookEvent
 from app.models.order import Order
 from app.models.payment import Payment
 from app.payments.service import create_payment
 from app.schemas.payment import PaymentResponse
 from app.services.activity_services import record_activity
 from app.services.notification_services import notify_owners_with_email
+from app.services.storefront_checkout import cancel_unpaid_storefront_order
 
 
 router = APIRouter()
@@ -174,11 +176,28 @@ async def stripe_webhook(
     if event_type not in {
         "checkout.session.completed",
         "checkout.session.async_payment_succeeded",
+        "checkout.session.async_payment_failed",
         "checkout.session.expired",
     }:
         return {
             "received": True,
         }
+
+    # Stripe may redeliver an event; each event id is handled once. The row is
+    # committed together with the changes the event makes.
+    event_id = str(event["id"])
+    already_handled = await db.scalar(
+        select(PaymentWebhookEvent.id).where(
+            PaymentWebhookEvent.provider == "stripe",
+            PaymentWebhookEvent.event_id == event_id,
+        )
+    )
+    if already_handled is not None:
+        return {
+            "received": True,
+            "message": "Event already processed.",
+        }
+    db.add(PaymentWebhookEvent(provider="stripe", event_id=event_id, event_type=event_type))
 
     session = event["data"]["object"].to_dict()
 
@@ -229,30 +248,43 @@ async def stripe_webhook(
             "message": "Payment does not match this Stripe session.",
         }
 
-    if event_type == "checkout.session.expired":
+    if event_type in {"checkout.session.expired", "checkout.session.async_payment_failed"}:
         if payment.status == "PAID":
             return {
                 "received": True,
                 "message": "Payment already paid.",
             }
 
-        if payment.status == "EXPIRED":
+        if payment.status in {"EXPIRED", "FAILED"}:
             # Already closed locally, e.g. when the order was cancelled.
             return {
                 "received": True,
-                "message": "Payment already expired.",
+                "message": f"Payment already {payment.status.lower()}.",
             }
 
-        payment.status = "EXPIRED"
+        failed = event_type == "checkout.session.async_payment_failed"
+        payment.status = "FAILED" if failed else "EXPIRED"
+        if failed:
+            order = await db.get(Order, payment.order_id)
+            if order is not None and order.payment_status == "UNPAID":
+                order.payment_status = "FAILED"
+        await db.flush()
 
-        await notify_owners_with_email(db, notification_type="PAYMENT", title="Payment link expired", description=f"The payment link for order #{payment.order_id} expired without a completed payment.", entity_type="payment", entity_id=payment.id, email_type="PAYMENT_FAILED", idempotency_key_prefix=f"payment-expired:{payment.id}")
-        await record_activity(db, admin=None, action="expired", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} expired.")
+        # Unpaid website orders give their stock back straight away.
+        released = await cancel_unpaid_storefront_order(db, payment.order_id)
+        outcome = "failed" if failed else "expired without a completed payment"
+        description = f"The payment for order #{payment.order_id} {outcome}."
+        if released:
+            description += " The website order was cancelled and its stock restored."
+
+        await notify_owners_with_email(db, notification_type="PAYMENT", title="Payment failed" if failed else "Payment link expired", description=description, entity_type="payment", entity_id=payment.id, email_type="PAYMENT_FAILED", idempotency_key_prefix=f"payment-{'failed' if failed else 'expired'}:{payment.id}")
+        await record_activity(db, admin=None, action="failed" if failed else "expired", entity_type="payment", entity_id=payment.id, description=description)
 
         await db.commit()
 
         return {
             "received": True,
-            "message": "Payment expired.",
+            "message": "Payment failed." if failed else "Payment expired.",
         }
 
     if event_type in {

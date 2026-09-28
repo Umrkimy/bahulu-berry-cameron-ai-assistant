@@ -39,7 +39,7 @@ async def create_paid_payment(session):
 
 
 async def test_refund_updates_payment_and_order_after_stripe_confirmation(session, monkeypatch):
-    monkeypatch.setattr("app.payments.service.StripeProvider", SuccessfulStripeProvider)
+    monkeypatch.setattr("app.payments.service.get_payment_provider", lambda _name: SuccessfulStripeProvider())
     order, payment = await create_paid_payment(session)
 
     refunded = await refund_payment(session, payment, "Customer changed their mind")
@@ -52,7 +52,7 @@ async def test_refund_updates_payment_and_order_after_stripe_confirmation(sessio
 
 
 async def test_refund_rejects_duplicate_or_unpaid_payments(session, monkeypatch):
-    monkeypatch.setattr("app.payments.service.StripeProvider", SuccessfulStripeProvider)
+    monkeypatch.setattr("app.payments.service.get_payment_provider", lambda _name: SuccessfulStripeProvider())
     _, payment = await create_paid_payment(session)
     payment.status = "REFUNDED"
 
@@ -65,7 +65,7 @@ async def test_refund_rejects_duplicate_or_unpaid_payments(session, monkeypatch)
 
 
 async def test_refund_does_not_change_local_state_before_stripe_confirms(session, monkeypatch):
-    monkeypatch.setattr("app.payments.service.StripeProvider", PendingStripeProvider)
+    monkeypatch.setattr("app.payments.service.get_payment_provider", lambda _name: PendingStripeProvider())
     order, payment = await create_paid_payment(session)
 
     with pytest.raises(ValueError, match="not confirmed"):
