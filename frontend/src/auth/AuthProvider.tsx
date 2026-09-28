@@ -1,29 +1,11 @@
-import { createContext, useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ensureCsrfToken, getCurrentAdmin, logoutRequest } from "../api/auth";
-
-interface Admin {
-  id: number;
-  username: string;
-  email: string;
-  is_superuser: boolean;
-  role: "OWNER" | "STAFF";
-  is_active: boolean;
-}
-
-interface AuthContextType {
-  isAuthenticated: boolean;
-  admin: Admin | null;
-  loading: boolean;
-
-  login: (nextAdmin: Admin) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from "./authContext";
+import type { Admin } from "./authContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -100,5 +82,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-export { AuthContext };

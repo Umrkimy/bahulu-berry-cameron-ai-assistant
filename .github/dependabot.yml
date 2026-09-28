@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  # uv keeps backend/uv.lock in step with pyproject.toml, which CI installs
+  # with `uv sync --locked`.
+  - package-ecosystem: uv
     directory: /backend
     schedule:
       interval: weekly
@@ -12,12 +14,22 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    groups:
+      # Mantine packages declare exact peer versions of each other.
+      mantine:
+        patterns:
+          - "@mantine/*"
   - package-ecosystem: npm
     directory: /storefront
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # eslint-config-next's React plugin does not load under ESLint 10 yet.
+      - dependency-name: eslint
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: docker
     directory: /backend
     schedule:
