@@ -9,7 +9,11 @@ export interface SupportTemplate { id:number; category:string; name:string; cont
 export interface KnowledgeArticle { id:number; category:string; title_en:string; content_en:string; title_ms:string|null; content_ms:string|null; is_active:boolean; updated_at:string; }
 export interface HandoffRule { id:number; trigger:string; description:string; is_active:boolean; updated_at:string; }
 export interface SupportDraftSource { type:"FAQ"|"TEMPLATE"|"ARTICLE"; id:number; label:string; similarity:number|null; }
-export interface SupportDraft { reply:string|null; language:"EN"|"MS"; handoff_required:boolean; handoff_reason:string|null; sources:SupportDraftSource[]; prompt_version:string; model:string; latency_ms:number; retrieval_mode:"SEMANTIC_RAG"|"HANDOFF"; }
+export interface SupportDraft { reply:string|null; language:"EN"|"MS"; handoff_required:boolean; handoff_reason:string|null; sources:SupportDraftSource[]; prompt_version:string; model:string; latency_ms:number; retrieval_mode:"SEMANTIC_RAG"|"HANDOFF"; estimated_cost_usd?:number; draft_id?:number|null; }
+export type SupportDraftStatus = "PENDING_REVIEW" | "APPROVED" | "EDITED_APPROVED" | "REJECTED" | "SUPERSEDED";
+export interface SupportDraftReview { id:number; support_request_id:number|null; conversation_id:number|null; language:"EN"|"MS"; customer_message:string|null; body:string|null; edited_body:string|null; sources:SupportDraftSource[]; status:SupportDraftStatus; reviewed_by_admin_id:number|null; reviewed_at:string|null; created_at:string; whatsapp_available:boolean; }
+export interface SupportDraftReviewPage { items: SupportDraftReview[]; page: number; page_size: number; total: number; total_pages: number; }
+export interface SupportDraftApproval { draft: SupportDraftReview; text: string; whatsapp_url: string | null; }
 export interface SimulatorInboundResult { outcome: "DRAFTED" | "HANDOFF" | "DUPLICATE"; duplicate: boolean; support_request_id: number | null; ticket_created: boolean; draft: SupportDraft | null; }
 export interface MetaConnectionStatus { provider: "META_WHATSAPP_CLOUD_API"; inbound_enabled: boolean; webhook_url: string; app_secret_configured: boolean; verify_token_configured: boolean; phone_number_configured: boolean; outbound_enabled: false; mode: "DRAFT_ONLY"; }
 export interface SupportMessagingConversation { id: number; provider: string; support_request_id: number; }
