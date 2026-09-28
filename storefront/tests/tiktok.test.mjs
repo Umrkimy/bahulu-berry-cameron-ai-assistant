@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { placeholderStats, stats, tiktokVideoIds } from "../app/_lib/content.ts";
+import { draftStats, stats, tiktokVideoIds } from "../app/_lib/content.ts";
 import { cleanCaption, isFeaturedVideo, isTikTokImageHost } from "../app/_lib/tiktok.ts";
 
 test("the thumbnail proxy only serves featured videos from TikTok's image CDN", () => {
@@ -20,7 +20,6 @@ test("captions drop hashtags and stay short", () => {
   assert.ok(cleanCaption("a ".repeat(80)).length <= 89);
 });
 
-test("only placeholder figures are marked as placeholders", () => {
-  assert.ok(stats.every((item) => !item.placeholder && item.label.en && item.label.ms));
-  assert.ok(placeholderStats.every((item) => item.placeholder === true));
+test("every figure is bilingual", () => {
+  assert.ok([...stats, ...draftStats].every((item) => item.value && item.label.en && item.label.ms));
 });

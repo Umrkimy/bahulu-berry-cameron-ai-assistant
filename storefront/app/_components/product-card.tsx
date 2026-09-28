@@ -7,6 +7,7 @@ import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 import { ProductArtwork } from "./product-artwork";
 import { AddToCartButton } from "./add-to-cart-button";
+import { StaggerItem } from "./motion";
 
 export function ProductCard({ product }: { product: StorefrontProduct }) {
   const { locale } = useLocale();
@@ -14,7 +15,7 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
   const name = locale === "ms" ? product.name_ms : product.name_en;
   const description = locale === "ms" ? product.description_ms : product.description_en;
   const discounted = product.sale_price !== null && Number(product.sale_price) < Number(product.price);
-  return <article className="catalogue-card">
+  return <StaggerItem as="article" className="catalogue-card">
     <Link className="catalogue-card-image" href={`/products/${product.id}`} tabIndex={-1} aria-hidden="true">
       <ProductArtwork imagePath={product.image_path} name={name} />
     </Link>
@@ -23,5 +24,5 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
     {description ? <p className="catalogue-card-description">{description}</p> : null}
     {product.promotions.length > 0 ? <ul className="catalogue-promotions" aria-label={text.offers}>{product.promotions.map((promotion, i) => <li key={i}>{promotionText(promotion, locale)}</li>)}</ul> : null}
     <div className="catalogue-card-bottom"><div><strong>{money(product.sale_price ?? product.price)}</strong>{discounted ? <s aria-label={`${text.regular}: ${money(product.price)}`}>{money(product.price)}</s> : null}</div><AddToCartButton product={product} /></div>
-  </article>;
+  </StaggerItem>;
 }

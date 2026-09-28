@@ -5,6 +5,7 @@ import { filterProducts, productCopy, type ProductSort } from "../_lib/product-v
 import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 import { ProductCard } from "./product-card";
+import { Stagger } from "./motion";
 
 // Search and sort only help once there is something to sift through.
 const TOOLBAR_MIN_PRODUCTS = 7;
@@ -31,7 +32,7 @@ export function Catalogue({ products }: { products: StorefrontProduct[] }) {
       {showCategories ? <div className="catalogue-tabs" role="group" aria-label={text.categories}><button type="button" aria-pressed={category === null} onClick={() => setCategory(null)}>{text.all}</button>{categories.map(item => <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div> : null}
       <p className="catalogue-count" role="status" aria-live="polite">{locale === "ms" ? `${visible.length} produk` : `${visible.length} ${visible.length === 1 ? "product" : "products"}`}</p>
     </div> : null}
-    {visible.length ? <div className="catalogue-grid">{visible.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="catalogue-empty"><h2>{products.length ? text.noMatches : text.empty}</h2>{products.length ? <p>{text.noMatchesBody}</p> : null}{filtered ? <button type="button" className="home-button" onClick={clear}>{text.clear}</button> : null}</div>}
+    {visible.length ? <Stagger key={`${category}-${sort}`} className="catalogue-grid">{visible.map((product) => <ProductCard key={product.id} product={product} />)}</Stagger> : <div className="catalogue-empty"><h2>{products.length ? text.noMatches : text.empty}</h2>{products.length ? <p>{text.noMatchesBody}</p> : null}{filtered ? <button type="button" className="home-button" onClick={clear}>{text.clear}</button> : null}</div>}
     {visible.length > 0 && filtered ? <button type="button" className="home-text-link catalogue-clear" onClick={clear}>{text.clear}</button> : null}
   </section>;
 }

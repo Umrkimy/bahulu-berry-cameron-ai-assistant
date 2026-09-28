@@ -24,7 +24,7 @@ export const defaultHomepage: HomepageContent = {
 // Approved by Umar on 29 September 2026 (address, WhatsApp, hours, map).
 export const business = {
   hours: { en: "Open daily, 9am–5:30pm (until sold out)", ms: "Dibuka setiap hari, 9 pagi–5:30 petang (sehingga habis dijual)" },
-  // Google Maps "Embed a map" share URL; loaded only after the visitor asks for it.
+  // Google Maps "Embed a map" share URL, shown on the About page.
   mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3977.634300310369!2d101.3800129!3d4.4788545!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31ca590066263efb%3A0x47ce3ff6e6722a41!2sBahulu%20Berry%20Cameron!5e0!3m2!1sen!2smy!4v1790615230149!5m2!1sen!2smy",
   addressLines: ["Kg Taman Sedia, Selorong KHM", "39000 Tanah Rata, Pahang"],
   town: "Tanah Rata, Cameron Highlands",
@@ -35,12 +35,13 @@ export const business = {
 export const social = {
   tiktokHandle: "@bahuluberrycameron",
   tiktokUrl: "https://www.tiktok.com/@bahuluberrycameron",
+  facebookUrl: "https://www.facebook.com/p/Bahulu-Berry-Cameron-61571178085895",
 } as const;
 
 // Most-viewed videos on the shop's TikTok as of 29 September 2026. Order = display order.
 export const tiktokVideoIds = ["7646792404988660999", "7560309627712294152", "7655544972535483655", "7572942928092368146"] as const;
 
-export type Stat = { value: string; label: { en: string; ms: string }; placeholder?: boolean };
+export type Stat = { value: string; label: { en: string; ms: string } };
 
 // Real figures, from the shop's public TikTok profile on 29 September 2026.
 export const stats: Stat[] = [
@@ -48,22 +49,22 @@ export const stats: Stat[] = [
   { value: "576.6K", label: { en: "likes on TikTok", ms: "suka di TikTok" } },
 ];
 
-// Stand-ins until the client supplies real figures. They render only when the
-// server-only STOREFRONT_SHOW_PLACEHOLDERS=true flag is set, and are labelled.
-export const placeholderStats: Stat[] = [
-  { value: "20K+", label: { en: "packs sold", ms: "pek terjual" }, placeholder: true },
-  { value: "6", label: { en: "flavours", ms: "perisa" }, placeholder: true },
+// DRAFT: stand-in figures until the client confirms real ones. Rendered only
+// when the server-only STOREFRONT_DRAFT_CONTENT=true flag is set.
+export const draftStats: Stat[] = [
+  { value: "20K+", label: { en: "packs sold", ms: "pek terjual" } },
+  { value: "6", label: { en: "flavours", ms: "perisa" } },
 ];
 
 export const copy = {
   en: {
-    visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp", hoursLabel: "Opening hours", showMap: "Show map", mapTitle: "Map to Bahulu Berry Cameron", mapNote: "The map loads from Google when you press Show map.",
+    visitTitle: "Visit us", openMaps: "Open in Google Maps", whatsApp: "WhatsApp", hoursLabel: "Opening hours", mapTitle: "Map to Bahulu Berry Cameron",
     navProducts: "Products", navAbout: "About", home: "Home", language: "English", enquire: "Ask us on WhatsApp",
     aboutTitle: "About Bahulu Berry Cameron", aboutText: "A Cameron Highlands bakery centred on bahulu and berry-inspired products.",
     contactTitle: "Questions about an order?", contactText: "Message us on WhatsApp with any questions about our products or your order.",
   },
   ms: {
-    visitTitle: "Kunjungi kami", openMaps: "Buka di Google Maps", whatsApp: "WhatsApp", hoursLabel: "Waktu operasi", showMap: "Tunjuk peta", mapTitle: "Peta ke Bahulu Berry Cameron", mapNote: "Peta dimuatkan daripada Google apabila anda tekan Tunjuk peta.",
+    visitTitle: "Kunjungi kami", openMaps: "Buka di Google Maps", whatsApp: "WhatsApp", hoursLabel: "Waktu operasi", mapTitle: "Peta ke Bahulu Berry Cameron",
     navProducts: "Produk", navAbout: "Tentang", home: "Laman utama", language: "Bahasa Melayu", enquire: "Tanya kami di WhatsApp",
     aboutTitle: "Tentang Bahulu Berry Cameron", aboutText: "Bakeri Cameron Highlands yang menumpukan bahulu dan produk berinspirasikan beri.",
     contactTitle: "Ada soalan tentang pesanan?", contactText: "Hubungi kami di WhatsApp untuk sebarang pertanyaan tentang produk atau pesanan anda.",
@@ -77,7 +78,7 @@ export function money(value: string): string {
 export const homeCopy = {
   en: {
     imageAlt: "Illustration of golden bahulu in a clear bag with the Bahulu Berry Cameron strawberry label",
-    statsTitle: "Bahulu Berry Cameron in numbers", statsSource: "TikTok figures as of September 2026.", placeholder: "Placeholder",
+    statsTitle: "Bahulu Berry Cameron in numbers",
     videosTitle: "Watch us on TikTok", videosIntro: "Our most-watched videos from the shop.", play: "Play video", videosNote: "Videos load from TikTok when you press play.", follow: "Follow us on TikTok",
     chat: "Chat with us on WhatsApp",
     viewProduct: "View product", loading: "Loading products…", errorTitle: "We couldn’t load the products.", errorBody: "Please try again.", retry: "Try again",
@@ -86,7 +87,7 @@ export const homeCopy = {
   },
   ms: {
     imageAlt: "Ilustrasi bahulu keemasan dalam beg lutsinar dengan label strawberi Bahulu Berry Cameron",
-    statsTitle: "Bahulu Berry Cameron dalam angka", statsSource: "Angka TikTok setakat September 2026.", placeholder: "Contoh",
+    statsTitle: "Bahulu Berry Cameron dalam angka",
     videosTitle: "Tonton kami di TikTok", videosIntro: "Video kedai kami yang paling banyak ditonton.", play: "Main video", videosNote: "Video dimuatkan daripada TikTok apabila anda tekan main.", follow: "Ikuti kami di TikTok",
     chat: "Sembang dengan kami di WhatsApp",
     viewProduct: "Lihat produk", loading: "Memuatkan produk…", errorTitle: "Kami tidak dapat memuatkan produk.", errorBody: "Sila cuba lagi.", retry: "Cuba lagi",

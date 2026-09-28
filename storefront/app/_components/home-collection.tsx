@@ -10,6 +10,7 @@ import { useLocale } from "./locale-provider";
 
 import { ProductArtwork } from "./product-artwork";
 import { AddToCartButton } from "./add-to-cart-button";
+import { Stagger, StaggerItem } from "./motion";
 
 export function HomeCollection({ products, state }: { products: StorefrontProduct[]; state: "ready" | "loading" | "error" }) {
   const { locale } = useLocale();
@@ -25,14 +26,14 @@ export function HomeCollection({ products, state }: { products: StorefrontProduc
     </div>;
   }
 
-  return <div className="home-product-grid">{products.map((product) => {
+  return <Stagger className="home-product-grid">{products.map((product) => {
     const name = locale === "ms" ? product.name_ms : product.name_en;
-    return <article className="home-product-card" key={product.id}>
+    return <StaggerItem as="article" className="home-product-card" key={product.id}>
       <Link href={`/products/${product.id}`} className="home-product-photo" tabIndex={-1} aria-hidden="true">
         <ProductArtwork imagePath={product.image_path} name={name} />
       </Link>
       <h3><Link href={`/products/${product.id}`}>{name}</Link></h3>
       <div className="home-card-action"><p>{money(product.sale_price ?? product.price)}</p><AddToCartButton product={product} /></div>
-    </article>;
-  })}</div>;
+    </StaggerItem>;
+  })}</Stagger>;
 }

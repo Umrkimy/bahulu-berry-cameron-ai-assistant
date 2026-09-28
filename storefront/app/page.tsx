@@ -8,8 +8,10 @@ import { ProductHero } from "./_components/product-hero";
 import type { StorefrontProduct } from "./_lib/types";
 import { defaultHomepage } from "./_lib/content";
 import { HomeStats } from "./_components/home-stats";
+import { FaqSection } from "./_components/faq-section";
 import { TikTokSection } from "./_components/tiktok-section";
 import { getFeaturedVideos } from "./_lib/tiktok";
+import { showDraftContent } from "./_lib/draft-content";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -36,8 +38,9 @@ export default async function HomePage() {
   catch { /* Keep the bundled fallback if the content API is unavailable. */ }
   return (
     <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}
-      stats={<HomeStats showPlaceholders={process.env.STOREFRONT_SHOW_PLACEHOLDERS === "true"} />}
-      videos={<Suspense fallback={null}><FeaturedVideos /></Suspense>}>
+      stats={<HomeStats showDraft={showDraftContent()} />}
+      videos={<Suspense fallback={null}><FeaturedVideos /></Suspense>}
+      faq={<FaqSection showDraft={showDraftContent()} />}>
       <Suspense fallback={<HomeCollection products={[]} state="loading" />}>
         <FeaturedProducts />
       </Suspense>

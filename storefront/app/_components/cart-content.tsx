@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { MAX_CART_QUANTITY } from "../_lib/cart";
 import { cartCopy } from "../_lib/cart-copy";
@@ -30,11 +31,11 @@ export function CartContent({ checkoutPreviewEnabled }: { checkoutPreviewEnabled
     {state === "error" ? <div className="cart-error" role="alert"><p>{text.error}</p><button type="button" className="home-text-link" onClick={retry}>{text.retry}</button></div> : null}
     {quote ? <div className="cart-layout">
       <div className="cart-lines">
-        {quote.items.map((line) => {
+        <AnimatePresence initial={false}>{quote.items.map((line) => {
           const name = (locale === "ms" ? line.name_ms : line.name_en) ?? `Product #${line.product_id}`;
           const issue = line.status === "NOT_AVAILABLE" ? text.noLongerAvailable : line.status === "QUANTITY_UNAVAILABLE" ? text.quantityUnavailable : null;
           const setQuantity = (quantity: number) => updateItem(line.product_id, quantity, `${name}: ${text.quantityUpdated} ${quantity}.`);
-          return <article className={`cart-line${issue ? " cart-line-issue" : ""}`} key={line.product_id}>
+          return <motion.article layout className={`cart-line${issue ? " cart-line-issue" : ""}`} key={line.product_id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40, height: 0, paddingTop: 0, paddingBottom: 0 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}>
             <div className="cart-line-image"><ProductArtwork imagePath={line.image_path} name={name} /></div>
             <div className="cart-line-main">
               <div className="cart-line-heading"><div><h2>{name}</h2>{changedProductIds.has(line.product_id) ? <span className="price-changed">{text.priceChanged}</span> : null}</div>{line.total_amount ? <strong>{money(line.total_amount)}</strong> : null}</div>
@@ -49,8 +50,8 @@ export function CartContent({ checkoutPreviewEnabled }: { checkoutPreviewEnabled
                 <button type="button" className="cart-remove" onClick={() => removeItem(line.product_id, `${name}: ${text.removed}.`)}>{text.remove}</button>
               </div>
             </div>
-          </article>;
-        })}
+          </motion.article>;
+        })}</AnimatePresence>
         <button type="button" className="cart-clear" onClick={() => { if (window.confirm(text.clearConfirm)) clear(`${text.cleared}.`); }}>{text.clear}</button>
       </div>
       <aside className="cart-summary" aria-labelledby="cart-summary-title">

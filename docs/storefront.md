@@ -49,6 +49,13 @@ migration is not a substitute for restoring matching data/media backups.
   the customer reviews and sends. Nothing is sent automatically. It appears only
   when `NEXT_PUBLIC_WHATSAPP_NUMBER` is set; without it the cart says online
   ordering isn't available yet. The payment provider is still undecided.
+- Unconfirmed content (two homepage figures, some FAQ answers, and the Terms,
+  Privacy, Shipping and Cancellation & Refund pages under `/policies/*`) is
+  drafted in `app/_lib/content.ts`, `faq.ts` and `policies.ts`. It renders only
+  when the server-only `STOREFRONT_DRAFT_CONTENT=true` flag is set, which
+  checked-in examples keep false. The client must confirm the figures and
+  approve the policies (ideally with legal review) before the flag is enabled
+  anywhere public. The FAQ deliberately makes no halal or allergen claims.
 - `/pickup-delivery` returns not found and is left out of navigation and the
   sitemap until pickup and delivery details are approved.
 - `/checkout` returns not found unless the server-only
