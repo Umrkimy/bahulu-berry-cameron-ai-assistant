@@ -1,23 +1,27 @@
 import { ActionIcon, Alert, Badge, Button, Card, FileButton, Group, Image, SimpleGrid, Stack, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconArrowRight, IconPhoto, IconStar, IconTrash, IconUpload } from "@tabler/icons-react";
+import { IconArrowLeft, IconArrowRight, IconLibraryPhoto, IconPhoto, IconStar, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import api from "../../api/axios";
 import { getApiError } from "../../api/errors";
 import type { ProductImage } from "../../types/product";
+import type { MediaAsset } from "../../types/media";
+import MediaPicker from "../media/MediaPicker";
 
 type GalleryAction =
   | { type: "upload"; files: File[] }
   | { type: "replace"; imageId: number; file: File }
+  | { type: "attach"; assetId: number }
   | { type: "order"; imageIds: number[] }
   | { type: "remove"; imageId: number };
 
 export default function ProductPhotos({ productId, canEdit }: { productId: number; canEdit: boolean }) {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState("");
+  const [pickerOpened, setPickerOpened] = useState(false);
   const query = useQuery({
     queryKey: ["product-images", productId],
     queryFn: async () => (await api.get<ProductImage[]>(`/products/${productId}/images`)).data,
@@ -26,6 +30,7 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
   const mutation = useMutation({
     mutationFn: async (action: GalleryAction) => {
       const base = `/products/${productId}`;
+      let reused = 0;
       if (action.type === "upload") {
         const remaining = Math.max(0, 6 - images.length);
         const files = action.files.slice(0, remaining);
@@ -33,32 +38,38 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
           setProgress(`Uploading photo ${index + 1} of ${files.length}…`);
           const data = new FormData();
           data.append("file", files[index]);
-          await api.post(`${base}/images`, data, { headers: { "Content-Type": "multipart/form-data" } });
+          const response = await api.post<ProductImage>(`${base}/images`, data, { headers: { "Content-Type": "multipart/form-data" } });
+          if (response.data.media_reused) reused += 1;
         }
       } else if (action.type === "replace") {
         const data = new FormData();
         data.append("file", action.file);
         await api.put(`${base}/images/${action.imageId}`, data, { headers: { "Content-Type": "multipart/form-data" } });
+      } else if (action.type === "attach") {
+        await api.post(`${base}/images/attach`, { asset_id: action.assetId });
       } else if (action.type === "order") {
         await api.put(`${base}/images`, { image_ids: action.imageIds });
       } else {
         await api.delete(`${base}/images/${action.imageId}`);
       }
+      return reused;
     },
-    onSuccess: async () => {
+    onSuccess: async (reused) => {
       setProgress("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["product-images", productId] }),
         queryClient.invalidateQueries({ queryKey: ["products", productId] }),
         queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["media"] }),
       ]);
-      notifications.show({ color: "green", title: "Photos updated", message: "The product gallery was saved." });
+      notifications.show({ color: "green", title: "Photos updated", message: reused ? `${reused} existing library ${reused === 1 ? "photo was" : "photos were"} reused.` : "The product gallery was saved." });
     },
     onError: (error) => {
       setProgress("");
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["product-images", productId] }),
         queryClient.invalidateQueries({ queryKey: ["products", productId] }),
+        queryClient.invalidateQueries({ queryKey: ["media"] }),
         queryClient.invalidateQueries({ queryKey: ["products"] }),
       ]);
       notifications.show({ color: "red", title: "Photo update failed", message: getApiError(error).message });
@@ -82,6 +93,7 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
     onConfirm: () => mutation.mutate({ type: "remove", imageId: image.id }),
   });
   const origin = String(api.defaults.baseURL ?? "/api").replace(/\/api\/?$/, "");
+  const attach = (asset: MediaAsset) => { setPickerOpened(false); mutation.mutate({ type: "attach", assetId: asset.id }); };
 
   return <Stack gap="lg">
     <div>
@@ -111,6 +123,8 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
     {canEdit ? <Group>
       <FileButton multiple accept="image/jpeg,image/png,image/webp" onChange={(files) => files.length && mutation.mutate({ type: "upload", files })}>{(props) => <Button {...props} leftSection={<IconUpload size={16} />} loading={mutation.isPending} disabled={!query.isSuccess || images.length >= 6}>Upload photos</Button>}</FileButton>
       <Text size="sm" c="dimmed">{progress || `${images.length} of 6 photos`}</Text>
+      <Button variant="default" leftSection={<IconLibraryPhoto size={16} />} disabled={!query.isSuccess || images.length >= 6 || mutation.isPending} onClick={() => setPickerOpened(true)}>Choose from library</Button>
     </Group> : null}
+    <MediaPicker opened={pickerOpened} onClose={() => setPickerOpened(false)} onSelect={attach} excluded={images.map((image) => image.media_asset_id).filter((id): id is number => typeof id === "number")} />
   </Stack>;
 }

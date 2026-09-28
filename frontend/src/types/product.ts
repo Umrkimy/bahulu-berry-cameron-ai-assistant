@@ -37,8 +37,10 @@ export interface ActiveDiscount {
 
 export interface ProductImage {
   id: number;
+  media_asset_id?: number;
   image_path: string;
   position: number;
+  media_reused?: boolean;
 }
 
 export interface PaginatedProducts {

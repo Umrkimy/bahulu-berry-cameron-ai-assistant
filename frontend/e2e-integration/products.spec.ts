@@ -80,6 +80,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByLabel("Opening stock").fill("3");
   await page.getByRole("button", { name: "Create product" }).click();
   await expect(page).toHaveURL(/\/products\/\d+\/photos$/);
+  const primaryProductPhotosUrl = page.url();
   await expect(page.getByText("Product created")).toBeVisible();
 
   const choose = page.waitForEvent("filechooser");
@@ -95,6 +96,24 @@ test("Owner product workspace reaches the real storefront", async ({
     page.getByAltText("Gallery 2 photo for this product"),
   ).toBeVisible();
   await expect(page.getByText("Photos updated")).toBeVisible();
+
+  await page.goto("/media");
+  await expect(page.getByRole("heading", { name: "Media Library" })).toBeVisible();
+  await expect(page.getByText("bahulu bag")).toBeVisible();
+  await expect(page.getByText("brand preview")).toBeVisible();
+  await page.goto("/products");
+  await page.getByRole("button", { name: "Add Product", exact: true }).click();
+  await page.getByLabel(/Product name.*English/).fill("Fictional shared-media product");
+  await page.getByLabel("Base price").fill("9.00");
+  await page.getByLabel("Opening stock").fill("0");
+  await page.getByRole("button", { name: "Create product" }).click();
+  await page.getByRole("button", { name: "Choose from library" }).click();
+  await page.getByRole("button", { name: "Choose bahulu bag" }).click();
+  await expect(page.getByText("Photos updated")).toBeVisible();
+  await page.goto("/media");
+  await expect(page.getByText("Used by 2 products")).toBeVisible();
+  await page.goto(primaryProductPhotosUrl);
+  await expect(page.getByAltText("Cover photo for this product")).toBeVisible();
 
   await page.getByRole("tab", { name: "Storefront" }).click();
   await page

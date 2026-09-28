@@ -9,6 +9,7 @@ const Home = lazy(() => import("../pages/Dashboard/Home"));
 const Products = lazy(() => import("../pages/Products/Products"));
 const ProductWorkspace = lazy(() => import("../pages/Products/ProductWorkspace"));
 const HomepageWorkspace = lazy(() => import("../pages/Storefront/HomepageWorkspace"));
+const MediaLibrary = lazy(() => import("../pages/Media/MediaLibrary"));
 const Orders = lazy(() => import("../pages/Orders/Orders"));
 const Customers = lazy(() => import("../pages/Customers/Customers"));
 const WhatsApp = lazy(() => import("../pages/WhatsApp/Whatsapp"));
@@ -55,6 +56,7 @@ export default function AppRoutes() {
         <Route path="/products" element={<Products />} />
         <Route path="/products/new" element={<OwnerRoute><ProductWorkspace /></OwnerRoute>} />
         <Route path="/products/:productId/*" element={<ProductWorkspace />} />
+        <Route path="/media" element={<MediaLibrary />} />
         <Route path="/storefront/homepage" element={<OwnerRoute><HomepageWorkspace /></OwnerRoute>} />
 
         <Route path="/inventory" element={<Inventory />} />
