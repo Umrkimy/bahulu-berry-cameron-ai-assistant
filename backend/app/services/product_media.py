@@ -1,5 +1,7 @@
 from io import BytesIO
 from pathlib import Path
+from dataclasses import dataclass
+from hashlib import sha256
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -20,7 +22,17 @@ def media_path(filename: str, legacy: bool = False) -> Path:
     return path
 
 
-def save_image(data: bytes) -> str:
+@dataclass(frozen=True)
+class SavedMedia:
+    filename: str
+    mime_type: str
+    width: int
+    height: int
+    byte_size: int
+    sha256: str
+
+
+def save_media(data: bytes) -> SavedMedia:
     if not data or len(data) > MAX_UPLOAD:
         raise HTTPException(422, "Choose an image up to 5 MB.")
     try:
@@ -40,9 +52,15 @@ def save_image(data: bytes) -> str:
     filename = f"{uuid4().hex}.webp"
     path = media_path(filename)
     path.parent.mkdir(parents=True, exist_ok=True)
+    encoded = output.getvalue()
     try:
-        path.write_bytes(output.getvalue())
+        path.write_bytes(encoded)
     except OSError:
         path.unlink(missing_ok=True)
         raise
-    return filename
+    return SavedMedia(filename, "image/webp", clean.width, clean.height, len(encoded), sha256(encoded).hexdigest())
+
+
+def save_image(data: bytes) -> str:
+    """Compatibility wrapper for callers that only need the storage key."""
+    return save_media(data).filename

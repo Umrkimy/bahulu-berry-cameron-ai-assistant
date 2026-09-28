@@ -527,7 +527,7 @@ async def update_product(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Upload at least one approved product photo before publishing.",
         )
-    if publishing and not media_path(product.images[0].filename, product.images[0].legacy).is_file():
+    if publishing and not media_path(product.images[0].asset.storage_key, product.images[0].asset.legacy).is_file():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Upload a working cover photo before publishing.",
