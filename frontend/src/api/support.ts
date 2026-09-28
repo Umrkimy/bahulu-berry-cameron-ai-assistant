@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { HandoffRule, KnowledgeArticle, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+import type { HandoffRule, SupportDraftApproval, SupportDraftReview, SupportDraftReviewPage, KnowledgeArticle, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 import type { Activity } from "./activity";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
 export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
@@ -37,3 +37,6 @@ export const returnSupportConversationToAi=async(id:number)=> (await api.post<Su
 export const requestHumanTakeover=async(id:number)=> (await api.post<SupportRequest>(`/support/requests/${id}/request-human-takeover`)).data;
 export const sendSimulatedDashboardReply=async(id:number, content:string)=> (await api.post<SupportMessage>(`/support/requests/${id}/dashboard-replies`, { content })).data;
 export const getWhatsAppLink=async(id:number)=> (await api.get<{url:string}>(`/support/requests/${id}/whatsapp-link`)).data;
+export const getSupportDrafts=async(params:{status_filter?:string;support_request_id?:number;page?:number;page_size?:number}={})=> (await api.get<SupportDraftReviewPage>("/support/drafts", { params })).data;
+export const approveSupportDraft=async(id:number, edited_body?:string)=> (await api.post<SupportDraftApproval>(`/support/drafts/${id}/approve`, edited_body === undefined ? {} : { edited_body })).data;
+export const rejectSupportDraft=async(id:number)=> (await api.post<SupportDraftReview>(`/support/drafts/${id}/reject`)).data;

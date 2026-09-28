@@ -15,6 +15,7 @@ from app.models.support import SupportRequest
 from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
+from app.services.support_drafts import purge_expired_drafts, save_draft
 from app.services.transaction_lock import acquire_transaction_lock
 
 
@@ -104,6 +105,7 @@ async def purge_expired_message_content(db: AsyncSession) -> None:
         .where(MessagingEvent.content.is_not(None), MessagingEvent.expires_at.is_not(None), MessagingEvent.expires_at <= datetime.now(UTC))
         .values(content=None)
     )
+    await purge_expired_drafts(db)
     await db.commit()
 
 
@@ -207,6 +209,10 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
     )
     db.add(event)
     await db.flush()
+    if outcome == "DRAFTED" and draft is not None:
+        saved = await save_draft(db, draft=draft, customer_message=message.message, conversation_id=conversation.id, messaging_event_id=event.id, support_request_id=support_request_id)
+        if saved is not None:
+            draft = draft.model_copy(update={"draft_id": saved.id})
     await record_activity(
         db,
         admin=actor,

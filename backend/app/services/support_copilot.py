@@ -2,7 +2,9 @@
 import hashlib
 import re
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
+from decimal import Decimal
 
 from openai import APIConnectionError, APITimeoutError, APIStatusError, AsyncOpenAI, OpenAIError
 from sqlalchemy import delete, select, text
@@ -22,6 +24,14 @@ SAFETY_HANDOFF_PATTERNS = {
     "Allergy or food-safety concern": ("allergy", "allergic", "alergi", "ingredient", "ramuan"),
 }
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY.get_secret_value(), max_retries=0)
+# Settled ledger cost of the draft being prepared in this task, so callers can
+# record what a draft actually cost without re-reading the usage table.
+_draft_cost_usd: ContextVar[Decimal | None] = ContextVar("support_draft_cost_usd", default=None)
+
+def _add_draft_cost(usage: object) -> None:
+    total = _draft_cost_usd.get()
+    if total is not None:
+        _draft_cost_usd.set(total + Decimal(str(getattr(usage, "estimated_cost_usd", 0) or 0)))
 
 @dataclass(frozen=True)
 class RetrievedChunk:
@@ -47,6 +57,14 @@ def _handoff(*, language: str, reason: str, started: float) -> SupportDraftPubli
     return SupportDraftPublic(reply=None, language=language, handoff_required=True, handoff_reason=reason, sources=[], prompt_version=PROMPT_VERSION, model=MODEL_NAME, latency_ms=round((time.perf_counter()-started)*1000), retrieval_mode="HANDOFF")
 
 async def create_grounded_draft(db: AsyncSession, *, message: str, requested_language: str) -> SupportDraftPublic:
+    token = _draft_cost_usd.set(Decimal("0"))
+    try:
+        draft = await _create_grounded_draft(db, message=message, requested_language=requested_language)
+        return draft.model_copy(update={"estimated_cost_usd": float(_draft_cost_usd.get() or 0)})
+    finally:
+        _draft_cost_usd.reset(token)
+
+async def _create_grounded_draft(db: AsyncSession, *, message: str, requested_language: str) -> SupportDraftPublic:
     started = time.perf_counter(); language = _language(message, requested_language)
     rules = (await db.execute(select(HandoffRule).where(HandoffRule.is_active.is_(True)))).scalars().all()
     reason = _handoff_reason(message, rules)
@@ -75,6 +93,7 @@ async def _embed(db: AsyncSession, value: str, *, commit_usage: bool = True) -> 
         await settle_ai_usage(db, usage, outcome="UNCERTAIN", commit=commit_usage); raise
     tokens = response.usage.total_tokens if response.usage else 0
     await settle_ai_usage(db, usage, input_tokens=tokens, output_tokens=0, outcome="COMPLETED", commit=commit_usage)
+    _add_draft_cost(usage)
     return response.data[0].embedding
 
 async def _retrieve(db: AsyncSession, embedding: list[float], language: str) -> list[RetrievedChunk]:
@@ -106,6 +125,7 @@ async def _draft(db: AsyncSession, message: str, language: str, chunks: list[Ret
         await settle_ai_usage(db, usage, outcome="UNCERTAIN"); raise
     provider_usage = response.usage
     await settle_ai_usage(db, usage, input_tokens=provider_usage.prompt_tokens if provider_usage else 0, output_tokens=provider_usage.completion_tokens if provider_usage else 0, outcome="COMPLETED")
+    _add_draft_cost(usage)
     reply = (response.choices[0].message.content or "").strip()
     if not reply or reply.upper() == "HANDOFF": raise ValueError("Unsupported answer")
     return reply

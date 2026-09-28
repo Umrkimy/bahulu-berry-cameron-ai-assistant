@@ -25,6 +25,35 @@ class SupportDraftPublic(BaseModel):
     model: str
     latency_ms: int
     retrieval_mode: str = "HANDOFF"
+    estimated_cost_usd: float = 0
+    draft_id: int | None = None
+
+
+class SupportDraftReviewPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    support_request_id: int | None
+    conversation_id: int | None
+    language: str
+    customer_message: str | None
+    body: str | None
+    edited_body: str | None
+    sources: list[SupportDraftSource] = []
+    status: str
+    reviewed_by_admin_id: int | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    whatsapp_available: bool = False
+
+
+class SupportDraftApproveInput(BaseModel):
+    edited_body: str | None = Field(default=None, min_length=2, max_length=2_000)
+
+
+class SupportDraftApprovalPublic(BaseModel):
+    draft: SupportDraftReviewPublic
+    text: str
+    whatsapp_url: str | None = None
 
 
 class SupportAssigneePublic(BaseModel):
