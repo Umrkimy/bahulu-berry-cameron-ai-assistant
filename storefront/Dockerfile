@@ -1,4 +1,4 @@
-FROM node:26-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -15,7 +15,7 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
     STOREFRONT_CHECKOUT_PREVIEW_ENABLED=$STOREFRONT_CHECKOUT_PREVIEW_ENABLED
 RUN npm run build
 
-FROM node:26-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 ARG NEXT_PUBLIC_WHATSAPP_NUMBER=

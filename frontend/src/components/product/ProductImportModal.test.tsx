@@ -23,8 +23,10 @@ function fileInput() {
 describe("ProductImportModal", () => {
   it("shows row errors and prevents confirmation when a CSV cannot be imported", async () => {
     server.use(http.post("http://localhost:8000/api/products/import/preview", async ({ request }) => {
-      const form = await request.formData();
-      expect(form.get("file")).not.toBeNull();
+      // Check the raw multipart body. Under Node 24, jsdom's File is not
+      // undici's File, so request.formData() cannot parse it in tests.
+      expect(request.headers.get("content-type")).toMatch(/^multipart\/form-data/);
+      expect(await request.text()).toContain('name="file"');
       return HttpResponse.json({ rows: [], errors: [{ row_number: 2, field: "price_myr", message: "Price must be greater than zero." }], can_import: false });
     }));
     const user = userEvent.setup();
