@@ -21,7 +21,7 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "stripe>=15.5.1",
     "tzdata>=2025.2",
-    "uvicorn>=0.51.0",
+    "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
