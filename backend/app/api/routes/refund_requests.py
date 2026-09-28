@@ -102,10 +102,11 @@ async def create_refund_request(
         raise HTTPException(status_code=404, detail="Order not found.")
     if order.payment_status != "PAID":
         raise HTTPException(status_code=400, detail="Only paid orders can have a refund request.")
-    if order.status not in {"PENDING", "PROCESSING"}:
+    # CANCELLED covers a payment that arrived after cancellation (see the Stripe webhook).
+    if order.status not in {"PENDING", "PROCESSING", "CANCELLED"}:
         raise HTTPException(
             status_code=400,
-            detail="Only paid orders that are pending or processing can have a refund request.",
+            detail="Only paid orders that are pending, processing, or cancelled can have a refund request.",
         )
     existing = await db.scalar(select(RefundRequest.id).where(RefundRequest.order_id == data.order_id))
     if existing is not None:

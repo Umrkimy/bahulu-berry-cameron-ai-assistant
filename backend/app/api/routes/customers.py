@@ -69,7 +69,7 @@ async def create_customer(
     try:
         canonical_phone = normalize_phone_number(customer_data.phone_number)
     except ContactNormalizationError as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"field": error.field, "message": error.message}) from error
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"field": error.field, "message": error.message}) from error
     canonical_email = normalize_email(customer_data.email)
 
     existing_phone = await db.scalar(select(Customer).where(Customer.canonical_phone_number == canonical_phone))
@@ -124,7 +124,7 @@ async def update_customer(
         try:
             canonical_phone = normalize_phone_number(update_data["phone_number"])
         except ContactNormalizationError as error:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"field": error.field, "message": error.message}) from error
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"field": error.field, "message": error.message}) from error
         if canonical_phone != customer.canonical_phone_number:
             existing_customer = await db.scalar(select(Customer).where(Customer.canonical_phone_number == canonical_phone, Customer.id != customer.id))
             if existing_customer is not None:

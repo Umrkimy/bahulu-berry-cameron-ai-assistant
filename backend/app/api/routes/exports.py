@@ -20,6 +20,7 @@ from app.models.product import Product
 from app.models.stock_movement import StockMovement
 from app.models.supplier import Supplier
 from app.services.activity_services import record_activity
+from app.utils.csv_safety import csv_safe_rows
 
 
 router = APIRouter()
@@ -77,7 +78,7 @@ async def export_csv(
         raise HTTPException(status_code=404, detail="Export type not found.")
 
     output = io.StringIO()
-    csv.writer(output).writerows(rows)
+    csv.writer(output).writerows(csv_safe_rows(rows))
     output.seek(0)
     await record_activity(db, admin=current_admin, action="exported", entity_type=resource, entity_id=None, description=f"Exported {resource} CSV.")
     await db.commit()

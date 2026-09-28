@@ -1,6 +1,8 @@
+import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import stripe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,6 +10,9 @@ from sqlalchemy.orm import selectinload
 from app.models.order import Order
 from app.models.payment import Payment
 from app.payments.providers.stripe import StripeProvider
+
+
+logger = logging.getLogger("bahulu.payments")
 
 
 async def create_payment(
@@ -73,6 +78,36 @@ async def create_payment(
     )
 
     return payment, True
+
+
+async def expire_pending_payments(
+    db: AsyncSession,
+    order_id: int,
+) -> None:
+    """Close open payment links so a cancelled order cannot be paid.
+
+    Stripe may already be completing a session; that is handled by the webhook,
+    so a failed provider call is logged rather than blocking the cancellation.
+    """
+    result = await db.execute(
+        select(Payment)
+        .where(
+            Payment.order_id == order_id,
+            Payment.status == "PENDING",
+        )
+        .with_for_update()
+    )
+
+    for payment in result.scalars().all():
+        if payment.provider == "stripe" and payment.provider_payment_id:
+            try:
+                await StripeProvider().expire_payment(payment.provider_payment_id)
+            except stripe.StripeError:
+                logger.warning("stripe_session_expire_failed", extra={"payment_id": payment.id})
+
+        payment.status = "EXPIRED"
+
+    await db.flush()
 
 
 async def refund_payment(

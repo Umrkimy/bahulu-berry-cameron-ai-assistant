@@ -104,7 +104,8 @@ class Settings(BaseSettings):
 
     @property
     def cookie_secure(self) -> bool:
-        return self.is_production
+        # Staging (the private demo) is also served over HTTPS.
+        return self.requires_strict_runtime_security
 
     @property
     def cookie_samesite(self) -> str:

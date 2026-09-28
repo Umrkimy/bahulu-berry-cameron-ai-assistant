@@ -57,7 +57,7 @@ async def import_products(
     preview = await read_product_import(file, db)
     if not preview.can_import:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"message": "Correct every CSV error before importing.", "errors": [error.model_dump() for error in preview.errors]},
         )
 
@@ -509,7 +509,7 @@ async def update_product(
     active = update_data.get("is_active", product.is_active)
     if update_data.get("storefront_published") is True and not active:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Activate this product for operations before publishing it online.",
         )
     if not active:
@@ -519,17 +519,17 @@ async def update_product(
     name_ms = update_data.get("name_ms", product.name_ms)
     if publishing and (not name_ms or not name_ms.strip()):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Add the approved Bahasa Melayu product name before publishing.",
         )
     if publishing and not product.images:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Upload at least one approved product photo before publishing.",
         )
     if publishing and not media_path(product.images[0].asset.storage_key, product.images[0].asset.legacy).is_file():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Upload a working cover photo before publishing.",
         )
 

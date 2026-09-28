@@ -58,6 +58,12 @@ class StripeProvider(PaymentProvider):
             "payment_url": checkout_session.url,
         }
 
+    async def expire_payment(self, provider_payment_id: str) -> None:
+        await asyncio.to_thread(
+            self.client.v1.checkout.sessions.expire,
+            provider_payment_id,
+        )
+
     async def refund_payment(self, provider_payment_id: str, payment_id: int) -> dict:
         checkout_session = await asyncio.to_thread(
             self.client.v1.checkout.sessions.retrieve,
