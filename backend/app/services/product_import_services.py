@@ -58,7 +58,7 @@ def _whole_number(value: str | None, *, field_label: str, default: int | None = 
 
 async def read_product_import(file: UploadFile, db: AsyncSession) -> ProductImportPreview:
     if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Choose a .csv file.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Choose a .csv file.")
 
     contents = await file.read(MAX_IMPORT_BYTES + 1)
     if len(contents) > MAX_IMPORT_BYTES:
@@ -66,17 +66,17 @@ async def read_product_import(file: UploadFile, db: AsyncSession) -> ProductImpo
     try:
         text = contents.decode("utf-8-sig")
     except UnicodeDecodeError as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="CSV files must use UTF-8 encoding.") from error
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="CSV files must use UTF-8 encoding.") from error
 
     try:
         reader = csv.DictReader(io.StringIO(text))
     except csv.Error as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="The CSV file could not be read.") from error
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="The CSV file could not be read.") from error
 
     headers = tuple((header or "").strip() for header in (reader.fieldnames or ()))
     if headers != CSV_HEADERS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"message": "Use the downloaded CSV template headers in the same order.", "expected_headers": CSV_HEADERS},
         )
 

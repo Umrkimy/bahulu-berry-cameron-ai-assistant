@@ -13,6 +13,7 @@ from app.models.admin import Admin
 from app.schemas.reports import ReportSummary
 from app.services.activity_services import record_activity
 from app.services.report_services import get_report_summary
+from app.utils.csv_safety import csv_safe_rows
 
 
 router = APIRouter()
@@ -60,7 +61,7 @@ async def summary_csv(
 ):
     report = await get_report_summary(db, preset=preset, start_date=start_date, end_date=end_date)
     output = io.StringIO()
-    csv.writer(output).writerows(_csv_rows(report))
+    csv.writer(output).writerows(csv_safe_rows(_csv_rows(report)))
     output.seek(0)
     await record_activity(db, admin=current_admin, action="exported", entity_type="report", entity_id=None, description="Exported owner reporting summary CSV.")
     await db.commit()

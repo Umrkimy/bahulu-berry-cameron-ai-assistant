@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const apiBaseUrl = (process.env.STOREFRONT_SERVER_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+import { apiBaseUrl, requestClientIpHeaders } from "../../_lib/server-api.ts";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(`${apiBaseUrl}/storefront/quote`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...requestClientIpHeaders(request) },
       body: JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(8000),

@@ -46,5 +46,5 @@ def verify_csrf_request(request: Request) -> None:
             detail="Your security token is missing or expired. Refresh the page and try again.",
         )
     origin = request.headers.get("origin")
-    if settings.is_production and (not origin or origin.rstrip("/") not in settings.ALLOWED_ORIGINS):
+    if settings.requires_strict_runtime_security and (not origin or origin.rstrip("/") not in settings.ALLOWED_ORIGINS):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This request was blocked for security reasons.")

@@ -7,7 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin
-from app.auth.jwt import create_access_token
+from app.auth.jwt import create_access_token, verify_access_token
 from app.auth.password import hash_password, verify_password
 from app.core.config import settings
 from app.core.rate_limit import LOGIN_LIMIT, PASSWORD_RESET_CONFIRM_LIMIT, PASSWORD_RESET_LIMIT, rate_limiter
@@ -24,6 +24,10 @@ from app.schemas.admin import (
 )
 
 router = APIRouter()
+
+# Unknown or inactive accounts are checked against this hash so a failed login
+# takes the same time whether or not the email belongs to an account.
+_TIMING_EQUALISER_HASH = hash_password("bahulu-login-timing-equaliser")
 
 
 @router.post(
@@ -49,10 +53,12 @@ async def login(
 
     admin = result.scalar_one_or_none()
 
-    if admin is None or not admin.is_active or not verify_password(
+    password_matches = verify_password(
         form_data.password,
-        admin.password_hash,
-    ):
+        admin.password_hash if admin is not None else _TIMING_EQUALISER_HASH,
+    )
+
+    if admin is None or not admin.is_active or not password_matches:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
@@ -86,7 +92,23 @@ async def csrf(response: Response):
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout():
+async def logout(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    # Signing out ends every session for the account, so a copied cookie stops
+    # working too. An invalid or expired cookie simply gets cleared.
+    payload = verify_access_token(request.cookies.get(settings.SESSION_COOKIE_NAME))
+    if payload is not None:
+        try:
+            admin_id = int(payload.get("sub", ""))
+        except ValueError:
+            admin_id = None
+        if admin_id is not None:
+            await db.execute(
+                update(Admin)
+                .where(Admin.id == admin_id, Admin.session_version == payload.get("sv"))
+                .values(session_version=Admin.session_version + 1)
+            )
+            await db.commit()
+
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     clear_auth_cookies(response)
     return response

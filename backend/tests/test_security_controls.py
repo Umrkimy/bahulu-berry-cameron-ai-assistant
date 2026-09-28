@@ -32,3 +32,23 @@ def test_csrf_rejects_missing_or_mismatched_tokens():
         assert error.status_code == 403
     else:
         raise AssertionError("Mismatched CSRF token should be rejected.")
+
+
+def test_csrf_requires_an_allowed_origin_in_staging(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    monkeypatch.setattr(settings, "ALLOWED_ORIGINS", ["https://demo.example.invalid"])
+    token = create_csrf_token()
+    request = make_request("POST", token, token)
+
+    try:
+        verify_csrf_request(request)
+    except Exception as error:
+        assert error.status_code == 403
+    else:
+        raise AssertionError("A staging request without an allowed Origin should be rejected.")
+
+    allowed = make_request("POST", token, token)
+    allowed.scope["headers"].append((b"origin", b"https://demo.example.invalid"))
+    verify_csrf_request(allowed)

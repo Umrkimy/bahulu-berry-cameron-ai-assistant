@@ -39,5 +39,14 @@ It does not replace an authorised production penetration test.
   limits, monitoring, and tested rollback/restoration.
 - Do not expose PostgreSQL. Restrict API origins and disable FastAPI docs in
   production. Multi-instance deployments need a shared/edge rate limiter.
+- Rate limits key on the visitor address only when `TRUST_CLOUDFLARE_CLIENT_IP`
+  is enabled: nginx and the storefront server then forward Cloudflare's
+  `CF-Connecting-IP` as `X-Client-IP`. Enable it only when every public route
+  passes through Cloudflare, or visitors could forge their address.
+- Session cookies are `Secure` and state-changing requests require an allowed
+  `Origin` in both staging and production. The dashboard sends a strict CSP and
+  frame denial; the storefront currently blocks framing only, and a full script
+  CSP with per-request nonces is outstanding. HSTS is set by the API in
+  production and should be enabled at the Cloudflare edge.
 - Keep endpoint, error-rate, restart, certificate, backup, and authentication
   alerts. Retain security reports only for authorised collaborators.

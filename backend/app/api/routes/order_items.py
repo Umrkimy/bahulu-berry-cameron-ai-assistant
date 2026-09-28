@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,9 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.models.order import Order
 from app.models.order_item import OrderItem
-from app.models.product import Product
 from app.models.admin import Admin
-from app.services.inventory_services import get_inventory_by_product
 from app.auth.dependencies import (
     get_current_admin,
     get_current_superuser,
@@ -114,63 +111,6 @@ async def create_order_item(
         detail="Order items are created only through the order workflow so pricing and stock stay accurate.",
     )
 
-    # Check order
-    order = await db.get(Order, order_id)
-
-    if not order:
-        raise HTTPException(
-            status_code=404,
-            detail="Order not found",
-        )
-
-    # Check product
-    product = await db.get(Product, item_data.product_id)
-
-    if not product:
-        raise HTTPException(
-            status_code=404,
-            detail="Product not found",
-        )
-
-    # Check stock
-    inventory = await get_inventory_by_product(
-        db,
-        product.id,
-    )
-
-    if inventory.quantity < item_data.quantity:
-        raise HTTPException(
-            status_code=400,
-            detail="Not enough stock",
-        )
-
-    unit_price = Decimal(product.price)
-
-    subtotal = unit_price * item_data.quantity
-
-    order_item = OrderItem(
-        order_id=order.id,
-        product_id=product.id,
-        quantity=item_data.quantity,
-        unit_price=unit_price,
-        subtotal=subtotal,
-        discount_amount=Decimal("0.00"),
-        total_amount=subtotal,
-    )
-    db.add(order_item)
-
-    # Update order total
-    order.subtotal += subtotal
-    order.total_amount += subtotal
-
-    # Reduce stock
-    inventory.quantity -= item_data.quantity
-
-    await db.commit()
-    await db.refresh(order_item)
-
-    return order_item
-
 
 # UPDATE ORDER ITEM
 @router.patch(
@@ -195,61 +135,6 @@ async def update_order_item(
         detail="Order item changes are not supported after an order is created.",
     )
 
-    result = await db.execute(
-        select(OrderItem).where(
-            OrderItem.id == item_id,
-            OrderItem.order_id == order_id,
-        )
-    )
-
-    order_item = result.scalar_one_or_none()
-    if not order_item:
-        raise HTTPException(
-            status_code=404,
-            detail="Order item not found",
-        )
-
-    order = await db.get(Order, order_id)
-
-    if item_data.quantity is not None:
-        inventory = await get_inventory_by_product(
-            db,
-            order_item.product_id,
-        )
-
-        old_quantity = order_item.quantity
-        difference = item_data.quantity - old_quantity
-
-        # Adding quantity
-        if difference > 0:
-            if inventory.quantity < difference:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Not enough stock",
-                )
-            inventory.quantity -= difference
-
-        # Removing quantity
-        elif difference < 0:
-            inventory.quantity += abs(difference)
-
-        # Recalculate total
-        order.subtotal -= order_item.subtotal
-        order.discount_amount -= order_item.discount_amount
-        order.total_amount -= order_item.total_amount
-        order_item.quantity = item_data.quantity
-        order_item.subtotal = Decimal(order_item.unit_price) * order_item.quantity
-        order_item.discount_amount = Decimal("0.00")
-        order_item.total_amount = order_item.subtotal
-
-        order.subtotal += order_item.subtotal
-        order.total_amount += order_item.total_amount
-
-    await db.commit()
-    await db.refresh(order_item)
-
-    return order_item
-
 
 # DELETE ORDER ITEM
 @router.delete(
@@ -272,37 +157,3 @@ async def delete_order_item(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
         detail="Order item changes are not supported after an order is created.",
     )
-
-    result = await db.execute(
-        select(OrderItem).where(
-            OrderItem.id == item_id,
-            OrderItem.order_id == order_id,
-        )
-    )
-
-    order_item = result.scalar_one_or_none()
-
-    if not order_item:
-        raise HTTPException(
-            status_code=404,
-            detail="Order item not found",
-        )
-
-    order = await db.get(Order, order_id)
-
-    inventory = await get_inventory_by_product(
-        db,
-        order_item.product_id,
-    )
-
-    # Return stock
-    inventory.quantity += order_item.quantity
-
-    # Remove amount
-    order.subtotal -= order_item.subtotal
-    order.discount_amount -= order_item.discount_amount
-    order.total_amount -= order_item.total_amount
-
-    await db.delete(order_item)
-
-    await db.commit()

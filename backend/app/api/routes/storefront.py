@@ -202,7 +202,8 @@ async def get_storefront_product(
 
 
 @router.get("/featured", response_model=StorefrontProduct | None)
-async def featured_product(db: Annotated[AsyncSession, Depends(get_db)], response: Response):
+async def featured_product(request: Request, db: Annotated[AsyncSession, Depends(get_db)], response: Response):
+    await rate_limiter.check(request, "storefront-featured", STOREFRONT_READ_LIMIT)
     response.headers["Cache-Control"] = "no-store"
     product = await db.scalar(select(Product).join(StorefrontFeature, StorefrontFeature.product_id == Product.id).where(StorefrontFeature.id == 1, *_published_filters()))
     return _serialize_product(product) if product and product.images else None

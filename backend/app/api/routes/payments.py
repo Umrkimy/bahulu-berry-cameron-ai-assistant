@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Annotated
 
 import stripe
@@ -204,10 +205,11 @@ async def stripe_webhook(
             "message": "Invalid webhook metadata.",
         }
 
+    # Row locks serialise duplicate or concurrent deliveries of the same event.
     result = await db.execute(
         select(Payment).where(
             Payment.id == payment_id
-        )
+        ).with_for_update()
     )
 
     payment = result.scalar_one_or_none()
@@ -232,6 +234,13 @@ async def stripe_webhook(
             return {
                 "received": True,
                 "message": "Payment already paid.",
+            }
+
+        if payment.status == "EXPIRED":
+            # Already closed locally, e.g. when the order was cancelled.
+            return {
+                "received": True,
+                "message": "Payment already expired.",
             }
 
         payment.status = "EXPIRED"
@@ -262,10 +271,23 @@ async def stripe_webhook(
                 "message": "Checkout session is not paid.",
             }
 
+        expected_amount = int(Decimal(str(payment.amount)) * 100)
+        if (
+            session.get("amount_total") != expected_amount
+            or str(session.get("currency", "")).upper() != payment.currency.upper()
+        ):
+            await notify_owners_with_email(db, notification_type="PAYMENT", title="Payment needs review", description=f"A Stripe payment for order #{payment.order_id} did not match the expected amount, so it was not marked as paid.", entity_type="payment", entity_id=payment.id, email_type="PAYMENT_FAILED", idempotency_key_prefix=f"payment-mismatch:{payment.id}")
+            await record_activity(db, admin=None, action="flagged", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} did not match the expected amount.")
+            await db.commit()
+            return {
+                "received": True,
+                "message": "Payment amount does not match.",
+            }
+
         result = await db.execute(
             select(Order).where(
                 Order.id == payment.order_id
-            )
+            ).with_for_update()
         )
 
         order = result.scalar_one_or_none()
@@ -280,6 +302,17 @@ async def stripe_webhook(
         payment.paid_at = datetime.now(UTC)
 
         order.payment_status = "PAID"
+
+        if order.status == "CANCELLED":
+            # The customer finished paying after the order was cancelled. Record
+            # the money truthfully and ask an owner to raise the refund.
+            await notify_owners_with_email(db, notification_type="PAYMENT", title="Payment received for a cancelled order", description=f"Order #{payment.order_id} was paid after it was cancelled. Create a refund request for this order.", entity_type="payment", entity_id=payment.id, email_type="PAYMENT_CONFIRMED", idempotency_key_prefix=f"payment-after-cancel:{payment.id}")
+            await record_activity(db, admin=None, action="paid", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for cancelled order #{payment.order_id} was received and needs a refund.")
+            await db.commit()
+            return {
+                "received": True,
+                "message": "Payment received for a cancelled order.",
+            }
 
         await notify_owners_with_email(
             db,

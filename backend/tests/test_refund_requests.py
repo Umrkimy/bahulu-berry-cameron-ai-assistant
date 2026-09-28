@@ -75,6 +75,19 @@ async def test_staff_can_record_before_owner_approves_and_executes_refund(sessio
     assert refunded.refunded_at is not None
 
 
+async def test_order_paid_after_cancellation_can_have_a_refund_request(session):
+    _, owner, order = await setup_paid_order(session, order_status="CANCELLED")
+
+    request = await create_refund_request(
+        RefundRequestCreate(order_id=order.id, reason="Paid after the order was cancelled."),
+        staff_request(),
+        session,
+        owner,
+    )
+
+    assert request.status == "REQUESTED"
+
+
 async def test_paid_pending_order_can_have_a_refund_request(session):
     staff, _, order = await setup_paid_order(session, order_status="PENDING")
 

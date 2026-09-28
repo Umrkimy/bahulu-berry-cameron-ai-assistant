@@ -1,11 +1,21 @@
+import { headers } from "next/headers.js";
 import { cache } from "react";
 
+import { apiBaseUrl, clientIpHeaders } from "./server-api.ts";
 import type { HomepageContent, ProductPage, StorefrontProduct } from "./types";
 
-const apiBaseUrl = (process.env.STOREFRONT_SERVER_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+async function visitorHeaders(): Promise<Record<string, string>> {
+  try {
+    return clientIpHeaders((await headers()).get("cf-connecting-ip"));
+  } catch {
+    // Outside a request (unit tests, build-time rendering) there is no visitor.
+    return {};
+  }
+}
 
 async function storefrontFetch<T>(path: string): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: await visitorHeaders(),
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   });
@@ -35,7 +45,7 @@ export const getCatalogueProducts = cache(async (): Promise<StorefrontProduct[]>
 export const getProduct = cache(async (id: string): Promise<StorefrontProduct | null> => {
   // Invalid URLs should reach the not-found page, not trigger an API error.
   if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) return null;
-  const response = await fetch(`${apiBaseUrl}/storefront/products/${encodeURIComponent(id)}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+  const response = await fetch(`${apiBaseUrl}/storefront/products/${encodeURIComponent(id)}`, { headers: await visitorHeaders(), cache: "no-store", signal: AbortSignal.timeout(8000) });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error("Unable to load this product.");
   return response.json() as Promise<StorefrontProduct>;
