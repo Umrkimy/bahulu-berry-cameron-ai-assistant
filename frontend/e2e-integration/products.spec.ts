@@ -178,9 +178,12 @@ test("Owner product workspace reaches the real storefront", async ({
     )
     .toBe(true);
   await shop.emulateMedia({ reducedMotion: "reduce" });
-  await expect(shop.locator(".product-settle")).toHaveCSS("animation-name", "none");
+  await shop.reload();
+  await expect(shop.locator(".product-float:visible").first()).toHaveCSS("transform", "none");
   await shop.emulateMedia({ reducedMotion: "no-preference" });
-  await hero.click();
+  await shop.reload();
+  // The hero image floats continuously, so open the product from its caption.
+  await shop.locator(".stage-caption a:visible").first().click();
   await expect(
     shop.getByRole("heading", {
       name: "Fictional client walkthrough",
@@ -262,18 +265,18 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(shop.locator(".cart-total dd")).toHaveText("RM 36.00");
   await shop.reload();
   await expect(shop.getByRole("link", { name: "Cart: 2" })).toBeVisible();
-  await shop.getByRole("link", { name: "Private checkout preview" }).click();
+  await shop.getByRole("link", { name: "Checkout preview" }).click();
   await expect(
     shop.getByRole("heading", { name: "Checkout preview" }),
   ).toBeVisible();
   await expect(
     shop.getByText(
-      "No sandbox provider has been selected. Payment is unavailable and test-only.",
+      "No payment provider has been selected. Payment is unavailable and test-only.",
     ),
   ).toBeVisible();
   await expect(shop.locator("input")).toHaveCount(0);
   await expect(
-    shop.getByRole("button", { name: /ordering and payment are disabled/ }),
+    shop.getByRole("button", { name: /ordering and payment are disabled/i }),
   ).toBeDisabled();
 
   await page.getByRole("tab", { name: "Storefront" }).click();
@@ -284,12 +287,12 @@ test("Owner product workspace reaches the real storefront", async ({
     shop.getByText("This product is no longer available."),
   ).toBeVisible();
   await expect(
-    shop.getByRole("link", { name: "Private checkout preview" }),
+    shop.getByRole("link", { name: "Checkout preview" }),
   ).toHaveCount(0);
   await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
   await expect(shop.locator(".shop-state")).toBeVisible();
   await shop.goto("http://127.0.0.1:4100/");
-  await expect(shop.locator(".hero-concept-image:visible")).toHaveCount(1);
+  await expect(shop.locator(".hero-fallback-image:visible")).toHaveCount(1);
 
   await page.getByRole("tab", { name: "Details" }).click();
   await page.getByRole("switch", { name: /Active for operations/ }).uncheck();

@@ -1,6 +1,4 @@
-import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { InformationPage } from "../_components/information-page";
-
-export const metadata: Metadata = { title: "Pickup & delivery" };
-export default function PickupDeliveryPage() { return <InformationPage type="pickup" />; }
+// Hidden until the client approves pickup and delivery details (see docs/storefront.md).
+export default function PickupDeliveryPage() { notFound(); }
