@@ -6,17 +6,18 @@ import { business, copy } from "../_lib/content";
 import { whatsAppNumber } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 import { WhatsAppLink } from "./whatsapp-link";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { PopLines, Reveal } from "./motion";
 
 export function AboutPage() {
   const { locale } = useLocale();
   const text = copy[locale];
   const number = whatsAppNumber();
+  const reduce = useReducedMotion();
   return <div className="info-concept">
     <section className="info-hero"><div className="shell info-hero-grid">
       <div><h1 aria-label={text.aboutTitle}><span aria-hidden="true"><PopLines lines={[text.aboutTitle]} /></span></h1><Reveal delay={0.3} y={16}><p className="info-intro">{text.aboutText}</p></Reveal></div>
-      <motion.div initial={{ opacity: 0, scale: 0.6, rotate: -20 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 120, damping: 12, delay: 0.2 }}><motion.div animate={{ y: [0, -10, 0], rotate: [6, 2, 6] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Image src="/concept/brand-preview.webp" alt="" width={320} height={320} className="info-mascot" priority /></motion.div></motion.div>
+      <motion.div initial={{ opacity: 0, scale: 0.6, rotate: -20 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 120, damping: 12, delay: 0.2 }}><motion.div animate={reduce ? undefined : { y: [0, -10, 0], rotate: [6, 2, 6] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><Image src="/concept/brand-preview.webp" alt="" width={320} height={320} className="info-mascot" priority /></motion.div></motion.div>
     </div></section>
     <section className="shell info-visit" aria-labelledby="visit-title">
       <Reveal className="info-panel">
