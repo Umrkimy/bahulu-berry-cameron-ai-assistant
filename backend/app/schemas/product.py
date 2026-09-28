@@ -14,6 +14,11 @@ class ProductImagePublic(BaseModel):
     position: int
 
 
+class ProductImageAdmin(ProductImagePublic):
+    media_asset_id: int
+    media_reused: bool = False
+
+
 class ProductBase(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=100)

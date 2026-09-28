@@ -9,10 +9,11 @@ Owners manage one product record in the full-page workspace at `/products/new`
 and `/products/:id`. The Details tab is the single source for the operational
 and English storefront name and description. The Storefront tab holds only the
 approved Bahasa Melayu translation, publication readiness, and homepage feature
-selection. The Photos tab uploads up to six validated JPEG/PNG/WebP photos; the
-first ordered image is the explicitly visible cover. Staff can inspect all tabs
-but cannot mutate them. Inventory and Promotions remain specialist pages with
-direct links from each product.
+selection. The Photos tab uploads or selects up to six approved photos from the
+shared Media Library; the first ordered image is the explicitly visible cover.
+Staff can inspect all tabs and `/media`, but only Owners can upload, attach,
+archive, restore, edit, or delete media. Inventory and Promotions remain
+specialist pages with direct links from each product.
 
 `Active for operations` and `Published online` are separate states. Publishing
 requires an active product, an approved Bahasa Melayu name, and a working photo.
@@ -25,6 +26,13 @@ Metadata lives in PostgreSQL and new files in `/app/media/products` on the
 `product_media` volume. Uploads are decoded, orientation-corrected, stripped of
 metadata, bounded to 1800 x 1800 pixels, and stored as WebP. SVG, animation,
 corrupt, oversized, or over-limit uploads are rejected.
+
+One media asset may be reused by multiple product galleries without copying the
+file. Internal media titles and notes are never returned by public storefront
+APIs. Archiving prevents new selections but does not break an existing product;
+permanent deletion is available only after an asset is archived and unused.
+Storefront alt text continues to use the selected English or Bahasa Melayu
+product name.
 
 Back up database and media together. Restore them together into an isolated
 environment and verify authenticated and published image routes. Downgrading a

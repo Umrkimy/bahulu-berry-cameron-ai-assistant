@@ -35,6 +35,15 @@ STATIC_DIRECTORY = Path(__file__).resolve().parent / "static"
 STATIC_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
+def is_image_upload_request(method: str, path: str, content_type: str) -> bool:
+    if method not in {"POST", "PUT"} or not content_type.startswith("multipart/form-data"):
+        return False
+    return bool(re.fullmatch(
+        rf"{re.escape(settings.API_PREFIX)}/(?:media|products/\d+/images(?:/\d+)?)",
+        path,
+    ))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async def message_retention_loop() -> None:
@@ -118,7 +127,7 @@ async def apply_security_controls(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid4())
     started = time.perf_counter()
     content_length = request.headers.get("content-length")
-    image_upload = request.method in {"POST", "PUT"} and re.fullmatch(rf"{re.escape(settings.API_PREFIX)}/products/\d+/images(?:/\d+)?", request.url.path) and request.headers.get("content-type", "").startswith("multipart/form-data")
+    image_upload = is_image_upload_request(request.method, request.url.path, request.headers.get("content-type", ""))
     if image_upload and not content_length:
         return JSONResponse(status_code=411, content={"detail": "Image uploads require Content-Length."})
     if content_length:

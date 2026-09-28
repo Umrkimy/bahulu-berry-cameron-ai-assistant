@@ -8,7 +8,7 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.api.routes import products, product_images, storefront
+from app.api.routes import media, products, product_images, storefront
 from app.auth.dependencies import get_current_admin
 from app.core.config import settings
 from app.core.static_assets import PublicStaticFiles
@@ -33,6 +33,7 @@ async def client(session, tmp_path, monkeypatch):
     await session.commit()
     app = FastAPI()
     app.include_router(product_images.router, prefix="/api/products")
+    app.include_router(media.router, prefix="/api/media")
     app.include_router(products.router, prefix="/api/products")
     app.include_router(storefront.router, prefix="/api/storefront")
     async def database():
@@ -154,7 +155,7 @@ async def test_inactive_product_cannot_be_published(client):
 
 async def test_gallery_limits_invalid_order_and_owner_permissions(client):
     pid = await create(client)
-    images = [await upload(client, pid) for _ in range(6)]
+    images = [await upload(client, pid, photo((index * 30, 20, 180))) for index in range(6)]
     assert (await client.post(f"/api/products/{pid}/images", files={"file": ("extra.png", photo())})).status_code == 422
     assert (await client.put(f"/api/products/{pid}/images", json={"image_ids": [images[0]["id"]] * 6})).status_code == 409
     assert (await client.delete(f"/api/products/{pid + 1}/images/{images[0]['id']}")).status_code == 404
@@ -162,6 +163,49 @@ async def test_gallery_limits_invalid_order_and_owner_permissions(client):
     assert (await client.post(f"/api/products/{pid}/images", files={"file": ("photo.png", photo())})).status_code == 403
     assert (await client.put(f"/api/products/{pid}/feature")).status_code == 403
     assert (await client.delete(f"/api/products/{pid}/images/{images[0]['id']}")).status_code == 403
+
+
+async def test_media_library_reuses_archives_and_guards_deletion(client):
+    first = await client.post("/api/media", files={"file": ("fictional-photo.png", photo("purple"), "image/png")})
+    assert first.status_code == 201
+    asset = first.json()
+    assert asset["title"] == "fictional photo"
+    assert asset["usage_count"] == 0
+    duplicate = await client.post("/api/media", files={"file": ("duplicate.png", photo("purple"), "image/png")})
+    assert duplicate.status_code == 201
+    assert duplicate.json()["id"] == asset["id"]
+    assert duplicate.json()["was_reused"] is True
+
+    pid = await create(client, "Fictional reusable media product")
+    attached = await client.post(f"/api/products/{pid}/images/attach", json={"asset_id": asset["id"]})
+    assert attached.status_code == 201
+    assert attached.json()["media_asset_id"] == asset["id"]
+    assert (await client.post(f"/api/products/{pid}/images/attach", json={"asset_id": asset["id"]})).status_code == 409
+
+    archived = await client.post(f"/api/media/{asset['id']}/archive")
+    assert archived.status_code == 200 and archived.json()["usage_count"] == 1
+    await publish(client, pid)
+    public_image = (await client.get(f"/api/storefront/products/{pid}")).json()["images"][0]
+    assert "media_asset_id" not in public_image and "title" not in public_image and "note" not in public_image
+    assert (await client.get(attached.json()["image_path"])).status_code == 200
+    assert (await client.delete(f"/api/media/{asset['id']}")).status_code == 409
+    second_pid = await create(client, "Fictional second media product")
+    assert (await client.post(f"/api/products/{second_pid}/images/attach", json={"asset_id": asset["id"]})).status_code == 409
+
+    await client.patch(f"/api/products/{pid}", json={"storefront_published": False})
+    await client.delete(f"/api/products/{pid}/images/{attached.json()['id']}")
+    assert (await client.delete(f"/api/media/{asset['id']}")).status_code == 204
+    assert (await client.get(f"/api/media/{asset['id']}/content")).status_code == 404
+
+
+async def test_media_library_staff_can_read_but_not_mutate(client):
+    uploaded = await client.post("/api/media", files={"file": ("staff-visible.png", photo("orange"), "image/png")})
+    asset_id = uploaded.json()["id"]
+    client.owner.role = "STAFF"
+    assert (await client.get("/api/media")).status_code == 200
+    assert (await client.get(f"/api/media/{asset_id}/content")).status_code == 200
+    assert (await client.patch(f"/api/media/{asset_id}", json={"title": "Blocked", "note": None})).status_code == 403
+    assert (await client.post(f"/api/media/{asset_id}/archive")).status_code == 403
 
 
 @pytest.mark.parametrize("data", [b"not an image", b"x" * (MAX_UPLOAD + 1), photo(size=(5000, 4001))], ids=["corrupt", "oversized-file", "oversized-dimensions"])
@@ -216,7 +260,7 @@ async def test_failed_upload_preserves_gallery(client, monkeypatch):
     first = await upload(client, pid)
     def unavailable(_):
         raise HTTPException(503, "Media storage unavailable.")
-    monkeypatch.setattr(product_images, "save_image", unavailable)
+    monkeypatch.setattr("app.services.media_assets.save_media", unavailable)
     response = await client.put(f"/api/products/{pid}/images/{first['id']}", files={"file": ("photo.png", photo())})
     assert response.status_code == 503
     assert (await client.get(first["image_path"])).status_code == 200

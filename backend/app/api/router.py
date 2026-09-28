@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import product_images
+from app.api.routes import media, product_images
 
 from app.api.routes import (
     customers,
@@ -31,6 +31,7 @@ from app.api.routes import (
 
 api_router = APIRouter()
 api_router.include_router(product_images.router, prefix="/products", tags=["product images"])
+api_router.include_router(media.router, prefix="/media", tags=["media"])
 
 api_router.include_router(
     customers.router,
