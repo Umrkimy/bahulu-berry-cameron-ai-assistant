@@ -9,6 +9,8 @@ from app.payments.base import PaymentProvider
 
 
 class StripeProvider(PaymentProvider):
+    name = "stripe"
+
     def __init__(self) -> None:
         self.client = stripe.StripeClient(
             settings.STRIPE_SECRET_KEY.get_secret_value(),
@@ -51,6 +53,7 @@ class StripeProvider(PaymentProvider):
         checkout_session = await asyncio.to_thread(
             self.client.v1.checkout.sessions.create,
             parameters,
+            {"idempotency_key": f"bahulu-payment-create-{payment_id}"},
         )
 
         return {

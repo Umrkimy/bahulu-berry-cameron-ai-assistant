@@ -1,3 +1,4 @@
+import itertools
 import json
 from decimal import Decimal
 
@@ -35,8 +36,13 @@ def webhook_request(signature: str | None = "t=1,v1=fake") -> Request:
 
 
 def use_event(monkeypatch, event_type: str, session_data: dict) -> None:
-    event = {"type": event_type, "data": {"object": FakeSession(session_data)}}
-    monkeypatch.setattr(payment_routes.stripe.Webhook, "construct_event", lambda *args, **kwargs: event)
+    # Each delivery gets a fresh event id, like separate Stripe events.
+    event_ids = itertools.count(1)
+
+    def construct_event(*args, **kwargs):
+        return {"id": f"evt_fictional_{next(event_ids)}", "type": event_type, "data": {"object": FakeSession(session_data)}}
+
+    monkeypatch.setattr(payment_routes.stripe.Webhook, "construct_event", construct_event)
 
 
 def paid_session(payment: Payment, **overrides) -> dict:
@@ -122,7 +128,7 @@ async def test_cancelling_an_order_expires_its_open_payment_link(session, monkey
         async def expire_payment(self, provider_payment_id: str) -> None:
             expired_sessions.append(provider_payment_id)
 
-    monkeypatch.setattr("app.payments.service.StripeProvider", RecordingStripeProvider)
+    monkeypatch.setattr("app.payments.service.get_payment_provider", lambda _name: RecordingStripeProvider())
     order, payment = await create_pending_payment(session)
 
     result = await cancel_order(session, order.id)
@@ -146,7 +152,7 @@ async def test_cancellation_still_succeeds_when_stripe_cannot_expire_the_link(se
         async def expire_payment(self, provider_payment_id: str) -> None:
             raise stripe.InvalidRequestError("Session is already complete.", None)
 
-    monkeypatch.setattr("app.payments.service.StripeProvider", FailingStripeProvider)
+    monkeypatch.setattr("app.payments.service.get_payment_provider", lambda _name: FailingStripeProvider())
     order, payment = await create_pending_payment(session)
 
     result = await cancel_order(session, order.id)

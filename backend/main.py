@@ -26,6 +26,7 @@ from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
 from app.services.messaging import purge_expired_message_content
 from app.services.notification_services import purge_expired_notifications
 from app.services.email_services import purge_expired_email_security_records
+from app.services.storefront_checkout import cancel_stale_storefront_orders
 
 
 logger = logging.getLogger("bahulu.api")
@@ -57,12 +58,26 @@ async def lifespan(app: FastAPI):
                 logger.exception("message_retention_cleanup_failed")
             await asyncio.sleep(3600)
 
-    retention_task = asyncio.create_task(message_retention_loop())
+    async def unpaid_order_loop() -> None:
+        # Returns stock held by website orders nobody paid for.
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    await cancel_stale_storefront_orders(session)
+            except Exception:
+                logger.exception("unpaid_storefront_order_cleanup_failed")
+            await asyncio.sleep(300)
+
+    background_tasks = [
+        asyncio.create_task(message_retention_loop()),
+        asyncio.create_task(unpaid_order_loop()),
+    ]
     try:
         yield
     finally:
-        retention_task.cancel()
-        await asyncio.gather(retention_task, return_exceptions=True)
+        for task in background_tasks:
+            task.cancel()
+        await asyncio.gather(*background_tasks, return_exceptions=True)
         await engine.dispose()
 
 
@@ -76,6 +91,7 @@ app = FastAPI(
 )
 
 settings.validate_runtime_security()
+settings.validate_payment_safety()
 
 
 @app.get("/health", include_in_schema=False)

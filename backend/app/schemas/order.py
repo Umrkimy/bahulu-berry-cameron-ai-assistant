@@ -69,6 +69,7 @@ class OrderPrivate(BaseModel):
 
     status: str
     payment_status: str
+    source: str = "ADMIN"
 
     subtotal: Decimal
     discount_amount: Decimal

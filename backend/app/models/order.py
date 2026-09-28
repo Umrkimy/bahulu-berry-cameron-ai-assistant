@@ -52,6 +52,16 @@ class Order(Base):
         nullable=False,
     )
 
+    # ADMIN orders are entered by staff; STOREFRONT orders come from website
+    # checkout and are auto-cancelled if left unpaid.
+    source: Mapped[str] = mapped_column(
+        String(20),
+        default="ADMIN",
+        server_default="ADMIN",
+        nullable=False,
+        index=True,
+    )
+
     total_amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         default=Decimal("0.00"),
