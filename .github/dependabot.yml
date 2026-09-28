@@ -30,6 +30,11 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # Runtime is Node 24 LTS; keep the types on the same major.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: npm
     directory: /storefront
     schedule:
@@ -46,6 +51,10 @@ updates:
       - dependency-name: eslint
         update-types:
           - version-update:semver-major
+      # Runtime is Node 24 LTS; keep the types on the same major.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: docker
     directory: /backend
     schedule:
@@ -58,12 +67,22 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Stay on the Node 24 LTS base image until we choose to move.
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: docker
     directory: /storefront
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Stay on the Node 24 LTS base image until we choose to move.
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: /
     schedule:
