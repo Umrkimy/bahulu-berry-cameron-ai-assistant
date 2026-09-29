@@ -35,11 +35,10 @@ export function ProductHero() {
 
 
   return (
-    <figure className="product-stage" onPointerMove={track} onPointerLeave={reset}>
-      <motion.div className="product-3d" style={{ rotateX, rotateY, x: shiftX, transformPerspective: 1100 }}
-        initial={{ opacity: 0, scale: 0.86, y: 60 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 70, damping: 14, delay: 0.25 }}>
+    <figure className="product-stage arrive-stage" onPointerMove={track} onPointerLeave={reset}>
+      <motion.div className="product-3d" style={{ rotateX, rotateY, x: shiftX, transformPerspective: 1100 }}>
         <motion.div className="product-float" animate={reduce ? undefined : { y: [0, -18, 0], rotateZ: [-2.5, 2, -2.5], rotateY: [-9, 9, -9] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}>
-          <Image src="/concept/bahulu-bag.webp" alt={text.imageAlt} width={900} height={1350} sizes="(max-width: 760px) 70vw, 420px" loading="eager" className="hero-product-image hero-fallback-image" />
+          <Image src="/concept/bahulu-bag.webp" alt={text.imageAlt} width={900} height={1350} sizes="(max-width: 760px) 70vw, 420px" loading="eager" className="hero-product-image" />
         </motion.div>
       </motion.div>
       <motion.div className="product-shadow" aria-hidden="true" style={{ x: shadowX }} animate={reduce ? undefined : { scaleX: [1, 0.82, 1], opacity: [0.55, 0.32, 0.55] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }} />

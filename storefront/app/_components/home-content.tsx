@@ -2,13 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import type { ReactNode } from "react";
 
 import type { BilingualText, HomepageContent } from "../_lib/types";
 import { GoogleSections } from "./google-sections";
 import { useLocale } from "./locale-provider";
-import { easeOut, PopLines, Reveal } from "./motion";
+import { PopLines, Reveal } from "./motion";
+
+// Follows the story art's reveal: the sticker slaps on just after the mascot fades in.
+const sticker: Variants = {
+  hidden: { scale: 0, rotate: -40, transition: { duration: 0 } },
+  shown: { scale: 1, rotate: -10, transition: { type: "spring", stiffness: 260, damping: 11, delay: 0.45 } },
+};
 
 export function HomeContent({ children, hero, stats, videos, faq, content }: { children: ReactNode; hero: ReactNode; stats: ReactNode; videos: ReactNode; faq: ReactNode; content: HomepageContent }) {
   const { locale } = useLocale();
@@ -22,10 +28,10 @@ export function HomeContent({ children, hero, stats, videos, faq, content }: { c
             <h1 id="home-title" aria-label={`${pick(content.hero.title_primary)} ${pick(content.hero.title_accent)} ${pick(content.hero.title_suffix)}`}>
               <span aria-hidden="true"><PopLines lines={[pick(content.hero.title_primary), <em key="accent">{pick(content.hero.title_accent)}</em>, pick(content.hero.title_suffix)]} /></span>
             </h1>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: easeOut, delay: 0.55 }}>
+            <div className="arrive">
               <p className="home-intro">{pick(content.hero.body)}</p>
               <Link href="/products" className="home-button">{pick(content.hero.cta_label)}</Link>
-            </motion.div>
+            </div>
           </div>
           {hero}
         </div>
@@ -47,12 +53,12 @@ export function HomeContent({ children, hero, stats, videos, faq, content }: { c
       </section>
 
       <section className="shell home-story" aria-labelledby="story-title">
-        <motion.div className="story-art" aria-hidden="true" initial={{ opacity: 0, scale: 0.92 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, margin: "0px 0px -15% 0px" }} transition={{ duration: 0.9, ease: easeOut }}>
+        <Reveal className="story-art" y={0} decorative>
           <motion.div className="story-mascot-wrap" whileHover={{ rotate: -3, scale: 1.04 }} transition={{ type: "spring", stiffness: 200, damping: 12 }}>
             <Image src="/concept/brand-preview.webp" alt="" width={400} height={400} className="story-mascot" />
           </motion.div>
-          <motion.span className="story-sticker" initial={{ scale: 0, rotate: -40 }} whileInView={{ scale: 1, rotate: -10 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 260, damping: 11, delay: 0.45 }}>{locale === "ms" ? "Hai, Cameron!" : "Hello, Cameron!"}</motion.span>
-        </motion.div>
+          <motion.span className="story-sticker" variants={sticker}>{locale === "ms" ? "Hai, Cameron!" : "Hello, Cameron!"}</motion.span>
+        </Reveal>
         <Reveal className="story-copy" delay={0.1}>
           <h2 id="story-title">{pick(content.story.title)}</h2>
           <p>{pick(content.story.body)}</p>
