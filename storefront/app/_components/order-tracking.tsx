@@ -146,7 +146,7 @@ export function FindOrder() {
     </div>;
   };
 
-  return <Shell title={text.findTitle} intro={text.findIntro}>
+  return <Shell title={text.findTitle} intro={text.findIntro} centered>
     <form className="checkout-panel checkout-form tracking-find" onSubmit={submit} noValidate aria-busy={submitting}>
       {errorEntries.length ? <div ref={summaryRef} tabIndex={-1} className="cart-error" role="alert"><p>{text.errorSummary}</p><ul>{errorEntries.map((name) => <li key={name}><a href={`#${formId}-${name}`}>{name === "order_number" ? text.orderNumber : text.phone}: {message(name)}</a></li>)}</ul></div> : null}
       {failure ? <div className="cart-error" role="alert"><p>{failure === "missing" ? text.notFound : failure === "busy" ? text.busy : text.failed}</p></div> : null}
@@ -157,7 +157,9 @@ export function FindOrder() {
   </Shell>;
 }
 
-function Shell({ title, intro, children }: { title: string; intro?: string; children: React.ReactNode }) {
-  return <div className="checkout-concept"><section className="cart-hero"><div className="shell"><h1>{title}</h1>{intro ? <p>{intro}</p> : null}</div></section>
+// `centered` suits the short find-my-order form; the tracking view lines up
+// with its heading like the cart and checkout pages.
+function Shell({ title, intro, centered = false, children }: { title: string; intro?: string; centered?: boolean; children: React.ReactNode }) {
+  return <div className={`checkout-concept${centered ? " tracking-centered" : ""}`}><section className="cart-hero"><div className="shell"><h1>{title}</h1>{intro ? <p>{intro}</p> : null}</div></section>
     <section className="shell checkout-content tracking-content">{children}</section></div>;
 }

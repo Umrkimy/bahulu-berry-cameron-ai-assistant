@@ -92,7 +92,12 @@
 .checkout-back { margin-top: 32px; }
 
 /* Order tracking */
-.tracking-content { display: grid; gap: 22px; max-width: 760px; }
+.tracking-content { display: grid; gap: 22px; }
+.tracking-content > * { max-width: 760px; }
+.tracking-centered .cart-hero .shell { text-align: center; }
+.tracking-centered .cart-hero .shell > p { margin-inline: auto; }
+.tracking-centered .tracking-content { justify-items: center; }
+.tracking-centered .tracking-content > * { width: 100%; }
 .tracking-order { display: grid; gap: 22px; }
 .tracking-head { display: grid; justify-items: start; gap: 14px; }
 .tracking-status { margin: 0; font-family: var(--font-display), Georgia, serif; font-size: clamp(28px, 4vw, 38px); line-height: 1.15; color: var(--ink); }
@@ -118,7 +123,7 @@
 .tracking-missing { display: grid; justify-items: start; gap: 14px; max-width: 640px; }
 .tracking-missing h2 { margin: 0; font-family: var(--font-display), Georgia, serif; font-size: 28px; }
 .tracking-missing p { margin: 0; color: var(--muted); }
-.tracking-find { max-width: 560px; }
+.tracking-content > .tracking-find { max-width: 560px; }
 .tracking-result:focus { outline: none; }
 @media (max-width: 560px) { .tracking-steps li { grid-template-columns: 22px minmax(0, 1fr); } .tracking-step-meta { grid-column: 2; text-align: left; } }
 
