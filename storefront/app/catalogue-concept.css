@@ -2,7 +2,7 @@
 .product-concept, .info-concept { background: var(--cream); color: var(--ink); }
 .catalogue-hero, .detail-topbar, .info-hero { background: var(--yellow); }
 .shop-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; margin-block: 0; padding-block: 14px; color: var(--text-soft); font-size: 14px; }
-.shop-breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); font-weight: 600; }
+.shop-breadcrumb a { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: var(--ink); font-weight: 600; }
 .shop-breadcrumb a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .shop-breadcrumb [aria-current] { overflow-wrap: anywhere; }
 
@@ -39,7 +39,7 @@
 .catalogue-card :is(h2, h3) { margin-top: 6px; font-size: 24px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
 .catalogue-card :is(h2, h3) a:hover { color: var(--red); }
 /* Taller tap area (44px) without moving the layout. */
-.catalogue-card :is(h2, h3) a { display: inline-block; padding-block: 8px; margin-block: -8px; }
+.catalogue-card :is(h2, h3) a, .cart-line-info h2 a { display: inline-block; padding-block: max(0px, (44px - 1lh) / 2); margin-block: min(0px, (1lh - 44px) / 2); }
 .catalogue-card-description { display: -webkit-box; margin: 10px 0 0; overflow: hidden; color: var(--muted); font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .catalogue-card-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
 .catalogue-card > :nth-last-child(2) { margin-bottom: 18px; }
