@@ -43,15 +43,12 @@ export const tiktokVideoIds = ["7646792404988660999", "7560309627712294152", "76
 
 export type Stat = { value: string; label: { en: string; ms: string } };
 
-// Real figures, from the shop's public TikTok profile on 29 September 2026.
+// TikTok figures are real, from the shop's public profile on 29 September 2026.
+// "Packs sold" and "flavours" are placeholders Umar chose to show on 30
+// September 2026; confirm or replace them before the public launch.
 export const stats: Stat[] = [
   { value: "27.5K", label: { en: "followers on TikTok", ms: "pengikut di TikTok" } },
   { value: "576.6K", label: { en: "likes on TikTok", ms: "suka di TikTok" } },
-];
-
-// DRAFT: stand-in figures until the client confirms real ones. Rendered only
-// when the server-only STOREFRONT_DRAFT_CONTENT=true flag is set.
-export const draftStats: Stat[] = [
   { value: "20K+", label: { en: "packs sold", ms: "pek terjual" } },
   { value: "6", label: { en: "flavours", ms: "perisa" } },
 ];

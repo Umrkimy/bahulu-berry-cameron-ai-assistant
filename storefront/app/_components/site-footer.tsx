@@ -9,7 +9,9 @@ import { whatsAppNumber, whatsAppUrl } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 import { SocialIcon } from "./social-icons";
 
-export function SiteFooter({ showPolicies, showTracking }: { showPolicies: boolean; showTracking: boolean }) {
+// Legal links always show; until the client approves the policies, each page
+// says it is being prepared (see app/policies/[slug]/page.tsx).
+export function SiteFooter({ showTracking }: { showTracking: boolean }) {
   const { locale } = useLocale();
   const text = copy[locale];
   const number = whatsAppNumber();
@@ -41,10 +43,10 @@ export function SiteFooter({ showPolicies, showTracking }: { showPolicies: boole
           {showTracking ? <li><Link href="/orders/find">{ms ? "Jejak pesanan" : "Track my order"}</Link></li> : null}
         </ul>
       </nav>
-      {showPolicies ? <nav className="footer-col" aria-labelledby="footer-legal-title">
+      <nav className="footer-col" aria-labelledby="footer-legal-title">
         <h2 id="footer-legal-title">{ms ? "Undang-undang" : "Legal"}</h2>
         <ul>{policies.map((policy) => <li key={policy.slug}><Link href={`/policies/${policy.slug}`}>{policy.title[locale]}</Link></li>)}</ul>
-      </nav> : null}
+      </nav>
     </div>
     <div className="footer-bottom"><div className="shell"><p>© {new Date().getFullYear()} Bahulu Berry Cameron. {ms ? "Hak cipta terpelihara." : "All rights reserved."}</p></div></div>
   </footer>;

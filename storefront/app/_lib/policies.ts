@@ -5,6 +5,12 @@ export type PolicySlug = "terms" | "privacy" | "shipping" | "refunds";
 
 // DRAFT policies written for review. They have not been approved by the client
 // or checked by a lawyer, so they render only when STOREFRONT_DRAFT_CONTENT=true.
+// Shown instead of the draft until the client approves the wording.
+export const policyPending = {
+  en: "We’re preparing this policy. If you have a question in the meantime, message us on WhatsApp.",
+  ms: "Kami sedang menyediakan polisi ini. Jika anda ada soalan buat masa ini, hantar mesej kepada kami di WhatsApp.",
+};
+
 export const policyUpdated = { en: "Last updated: 29 September 2026", ms: "Dikemas kini: 29 September 2026" };
 
 const contact: PolicySection = {
