@@ -97,6 +97,33 @@ describe("DraftReviewQueue", () => {
     expect(await screen.findByText("No drafts are waiting for review.")).toBeInTheDocument();
   });
 
+  it("shows approved and rejected history read-only", async () => {
+    const statuses: (string | null)[] = [];
+    const edited = { ...pendingDraft, id: 6, status: "EDITED_APPROVED", edited_body: "Yes, our team will confirm pickup.", reviewed_at: "2026-09-29T03:00:00Z", reviewed_by_admin_id: 1 };
+    const rejected = { ...pendingDraft, id: 7, status: "REJECTED", reviewed_at: "2026-09-29T04:00:00Z", reviewed_by_admin_id: 1 };
+    server.use(http.get(API, ({ request }) => {
+      const status = new URL(request.url).searchParams.get("status_filter");
+      statuses.push(status);
+      if (status === "APPROVED,EDITED_APPROVED") return HttpResponse.json(page([edited]));
+      if (status === "REJECTED") return HttpResponse.json(page([rejected]));
+      return HttpResponse.json(page([]));
+    }));
+    const user = userEvent.setup();
+    renderQueue();
+    await screen.findByText("No drafts are waiting for review.");
+
+    await user.click(screen.getByText("Approved"));
+    expect(await screen.findByText("Approved after edit")).toBeInTheDocument();
+    expect(screen.getByText("Yes, our team will confirm pickup.")).toBeInTheDocument();
+    expect(screen.getByText("Original suggestion")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve and copy" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Rejected"));
+    expect(await screen.findByText("Suggested reply")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(statuses).toEqual(expect.arrayContaining(["PENDING_REVIEW", "APPROVED,EDITED_APPROVED", "REJECTED"]));
+  });
+
   it("shows an empty state", async () => {
     server.use(http.get(API, () => HttpResponse.json(page([]))));
     renderQueue();
