@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     CSRF_COOKIE_NAME: str = "bbc_csrf_token"
     TRUST_CLOUDFLARE_CLIENT_IP: bool = False
 
+    # Logs are JSON on stdout with personal data and secrets redacted. "text"
+    # is easier to read locally; both formats go through the same redaction.
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"
+    # Optional error reporting. Empty keeps Sentry off; no personal data is sent.
+    SENTRY_DSN: SecretStr = SecretStr("")
+
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_REASONING_EFFORT: str = "none"

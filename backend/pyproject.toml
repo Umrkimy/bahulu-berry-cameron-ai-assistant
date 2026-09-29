@@ -22,6 +22,7 @@ dependencies = [
     "stripe>=15.5.1",
     "tzdata>=2025.2",
     "uvicorn>=0.51.0",
+    "sentry-sdk[fastapi]>=2.64.0",
 ]
 
 [dependency-groups]

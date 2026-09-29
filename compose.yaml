@@ -74,6 +74,9 @@ services:
       STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED: ${STOREFRONT_GOOGLE_INTEGRATIONS_ENABLED:-false}
       GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
       GOOGLE_MAPS_EMBED_API_KEY: ${GOOGLE_MAPS_EMBED_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       db:
         condition: service_healthy
@@ -127,6 +130,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+
+  # Encrypted backup of the database and product photos. Run on a schedule:
+  #   docker compose --profile backup run --rm backup
+  # Restore rehearsal (see docs/operations.md):
+  #   docker compose --profile backup run --rm -v /path/to/age-key.txt:/run/secrets/age-identity:ro \
+  #     --entrypoint restore-test.sh backup /backups/<file>.tar.age
+  backup:
+    build: ./ops/backup
+    profiles: [backup]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      AGE_RECIPIENT: ${AGE_RECIPIENT:-}
+      BACKUP_KIND: ${BACKUP_KIND:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - product_media:/media/products:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    tmpfs:
+      - /work
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.63.0-noble
