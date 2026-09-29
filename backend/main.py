@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 import asyncio
-import json
 import logging
 import re
 from pathlib import Path
@@ -13,12 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.core.static_assets import PublicStaticFiles
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import text
 
 from app.db.database import AsyncSessionLocal, engine
 
 from app.core.config import settings
+from app.core.logging import configure_logging, request_id_var, safe_request_id
+from app.core.observability import init_sentry
 from app.core.security import verify_csrf_request
+from app.database_readiness import check_readiness
 import app.models
 import app.schemas
 from app.api.router import api_router
@@ -28,6 +29,9 @@ from app.services.notification_services import purge_expired_notifications
 from app.services.email_services import purge_expired_email_security_records
 from app.services.storefront_checkout import cancel_stale_storefront_orders
 
+
+configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT)
+init_sentry()
 
 logger = logging.getLogger("bahulu.api")
 STATIC_DIRECTORY = Path(__file__).resolve().parent / "static"
@@ -101,12 +105,11 @@ async def health_check():
 
 @app.get("/ready", include_in_schema=False)
 async def readiness_check():
-    try:
-        async with engine.connect() as connection:
-            await connection.execute(text("SELECT 1"))
-    except Exception:
-        return JSONResponse(status_code=503, content={"status": "unavailable"})
-    return {"status": "ready"}
+    # Ready only when the database answers and is on this build's migration.
+    ready, body = await check_readiness()
+    if not ready:
+        return JSONResponse(status_code=503, content=body)
+    return body
 
 
 @app.exception_handler(IntegrityError)
@@ -140,8 +143,35 @@ app.add_middleware(
 
 @app.middleware("http")
 async def apply_security_controls(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    # A caller's request ID is reused only when it is safe to write to logs.
+    request_id = safe_request_id(request.headers.get("X-Request-ID")) or str(uuid4())
+    token = request_id_var.set(request_id)
     started = time.perf_counter()
+    try:
+        response = await check_request_then_call(request, call_next)
+        logger.info(
+            "request_completed",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round((time.perf_counter() - started) * 1000),
+            },
+        )
+    finally:
+        request_id_var.reset(token)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    if settings.is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+async def check_request_then_call(request: Request, call_next):
     content_length = request.headers.get("content-length")
     image_upload = is_image_upload_request(request.method, request.url.path, request.headers.get("content-type", ""))
     if image_upload and not content_length:
@@ -163,24 +193,7 @@ async def apply_security_controls(request: Request, call_next):
             return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
         raise
 
-    response = await call_next(request)
-    logger.info(json.dumps({
-        "event": "request_completed",
-        "request_id": request_id,
-        "method": request.method,
-        "path": request.url.path,
-        "status_code": response.status_code,
-        "duration_ms": round((time.perf_counter() - started) * 1000),
-    }))
-    response.headers["X-Request-ID"] = request_id
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
-    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-    if settings.is_production:
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    return response
+    return await call_next(request)
 
 
 app.include_router(

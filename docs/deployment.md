@@ -55,11 +55,27 @@ transactional email, and storage above free allowances are excluded.
 
 ## Before production
 
-Confirm approved content and policies, account/recovery owners, on-call and
-rollback contacts, separate staging/production databases and webhooks, secret
-rotation, retention, edge rate limits, monitoring, certificate alerts, backup
-failure alerts, and an isolated restoration rehearsal. A technical pass does
-not approve business claims or policies.
+A technical pass does not approve business claims or policies. Statuses as of
+29 September 2026 (verified / not applicable / awaiting client). The runbook
+is in [operations.md](operations.md#production-runbook).
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Structured, redacted API logs with request IDs | Verified | JSON on stdout; emails, phones, tokens, cookies and message text masked; tests in `backend/tests/test_logging.py` |
+| `/ready` gates on the current migration | Verified | Reports the Alembic revision; 503 when migrations are pending |
+| Encrypted database + photo backups with 7 daily / 4 weekly retention | Verified | `backup` compose profile, rehearsed on fictional data |
+| Isolated restore rehearsal | Verified | `restore-test.sh` checks revision, row counts and photo count, then drops the throwaway DB |
+| Secret rotation procedure | Verified | Table in the runbook |
+| Optional error alerts (Sentry) | Awaiting client | Code ready and scrubbed; needs a client-owned account and `SENTRY_DSN` |
+| Off-site backup storage and schedule | Awaiting client | Client-owned bucket plus daily cron/Coolify task; backup-age alert |
+| Backup private key custody | Awaiting client | Client owner keeps the age private key offline |
+| Uptime and certificate alerts | Awaiting client | `/health` and `/ready` checks; Cloudflare certificate alerts |
+| Account and recovery owners, on-call and rollback contacts | Awaiting client | Name a rollback owner before launch |
+| Separate staging and production databases, webhooks and secrets | Awaiting client | Needs client-owned production accounts |
+| Edge rate limits (Cloudflare) | Awaiting client | App limits exist; edge rules need the client's Cloudflare |
+| Approved content, policies and checkout terms | Awaiting client | See `docs/quality-gate.md` |
+| Live payments | Awaiting client | Provider undecided; `PAYMENTS_LIVE_APPROVED` stays false |
+| Multi-instance shared rate limiter | Not applicable | Single VPS at launch |
 
 Reference current provider documentation again before purchase or integration:
 Cloudflare, Coolify, Hetzner, staff-email providers, OpenAI, and the selected

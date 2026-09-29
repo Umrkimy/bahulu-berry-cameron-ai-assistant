@@ -14,6 +14,14 @@ It does not replace an authorised production penetration test.
   Dependabot.
 - Backend-authoritative pricing, inventory and payments; signed/idempotent
   payment webhooks; audited Owner confirmation for consequential AI actions.
+- JSON logs redact emails, phone numbers, tokens, cookies, `Authorization`
+  values and message text; caller-supplied `X-Request-ID` values are accepted
+  only when short and plain, so they cannot forge log lines.
+- Backups are encrypted with age before they leave the backup container; only
+  the public key is on the server.
+- Optional processor: Sentry (off unless `SENTRY_DSN` is set; client-owned
+  account). Sends error type, message and stack trace only, redacted, with no
+  cookies, headers, bodies, query strings, user details or local variables.
 
 ## Secret and incident handling
 
