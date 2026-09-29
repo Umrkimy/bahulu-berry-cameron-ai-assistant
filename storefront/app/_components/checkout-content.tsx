@@ -5,7 +5,7 @@ import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { cartCopy } from "../_lib/cart-copy";
 import {
-  checkoutFailure, checkoutPayload, emptyContact, idempotencyKeyFor, MALAYSIAN_STATES, PENDING_CHECKOUT_KEY, safePaymentUrl, validateCheckout,
+  checkoutFailure, checkoutPayload, emptyContact, idempotencyKeyFor, MALAYSIAN_STATES, PENDING_CHECKOUT_KEY, safePaymentUrl, serverFieldErrors, validateCheckout,
   type CheckoutContact, type CheckoutErrors, type CheckoutFailure, type CheckoutField, type CheckoutResult, type CheckoutStatus,
 } from "../_lib/checkout";
 import { money } from "../_lib/content";
@@ -104,10 +104,17 @@ function CheckoutForm({ ready, text, locale }: { ready: boolean; text: Copy; loc
         body,
         cache: "no-store",
       });
-      const payload = await response.json().catch(() => ({})) as Partial<CheckoutResult> & { detail?: { code?: string } | string };
+      const payload = await response.json().catch(() => ({})) as Partial<CheckoutResult> & { detail?: { code?: string } | string | unknown[] };
       const paymentUrl = response.ok ? safePaymentUrl(payload.payment_url) : null;
+      const fieldErrors = response.status === 422 ? serverFieldErrors(payload.detail) : {};
+      if (Object.keys(fieldErrors).length) {
+        setErrors(fieldErrors);
+        setSubmitting(false);
+        requestAnimationFrame(() => summaryRef.current?.focus());
+        return;
+      }
       if (!paymentUrl) {
-        const code = typeof payload.detail === "object" ? payload.detail?.code : undefined;
+        const code = payload.detail && typeof payload.detail === "object" && !Array.isArray(payload.detail) ? payload.detail.code : undefined;
         setFailure(checkoutFailure(response.ok ? 500 : response.status, code));
         setSubmitting(false);
         return;

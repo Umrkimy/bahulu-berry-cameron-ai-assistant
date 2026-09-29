@@ -53,8 +53,12 @@ async def send_email(
                     response = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
                 response.raise_for_status()
                 provider_message_id = response.json().get("id")
+            except httpx.HTTPStatusError as error:
+                # The status says why (403 is usually an unverified sender domain); the body may echo addresses, so it is not logged.
+                logger.warning("email_delivery_failed type=%s status=%s", email_type, error.response.status_code)
+                delivery_status = "FAILED"
             except httpx.HTTPError:
-                logger.warning("email_delivery_failed type=%s", email_type)
+                logger.warning("email_delivery_failed type=%s status=network", email_type)
                 delivery_status = "FAILED"
     elif provider != "console":
         logger.warning("email_not_sent_unknown_provider type=%s", email_type)
