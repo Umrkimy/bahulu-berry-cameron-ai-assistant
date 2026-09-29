@@ -9,7 +9,7 @@ import { whatsAppNumber, whatsAppUrl } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 import { SocialIcon } from "./social-icons";
 
-export function SiteFooter({ showPolicies }: { showPolicies: boolean }) {
+export function SiteFooter({ showPolicies, showTracking }: { showPolicies: boolean; showTracking: boolean }) {
   const { locale } = useLocale();
   const text = copy[locale];
   const number = whatsAppNumber();
@@ -38,6 +38,7 @@ export function SiteFooter({ showPolicies }: { showPolicies: boolean }) {
           <li><Link href="/about">{text.navAbout}</Link></li>
           <li><Link href="/#faq">{ms ? "Soalan lazim" : "FAQ"}</Link></li>
           <li><Link href="/cart">{ms ? "Troli" : "Cart"}</Link></li>
+          {showTracking ? <li><Link href="/orders/find">{ms ? "Jejak pesanan" : "Track my order"}</Link></li> : null}
         </ul>
       </nav>
       {showPolicies ? <nav className="footer-col" aria-labelledby="footer-legal-title">

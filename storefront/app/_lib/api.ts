@@ -2,6 +2,7 @@ import { headers } from "next/headers.js";
 import { cache } from "react";
 
 import { apiBaseUrl, clientIpHeaders } from "./server-api.ts";
+import { isTrackingToken, type TrackedOrder } from "./order-tracking.ts";
 import type { HomepageContent, ProductPage, StorefrontProduct } from "./types";
 
 async function visitorHeaders(): Promise<Record<string, string>> {
@@ -50,3 +51,22 @@ export const getProduct = cache(async (id: string): Promise<StorefrontProduct | 
   if (!response.ok) throw new Error("Unable to load this product.");
   return response.json() as Promise<StorefrontProduct>;
 });
+
+export type TrackedOrderResult = { state: "found"; order: TrackedOrder } | { state: "missing" } | { state: "error" };
+
+// A tracking link is private: never cached, and any miss looks the same.
+export async function getTrackedOrder(token: string): Promise<TrackedOrderResult> {
+  if (!isTrackingToken(token)) return { state: "missing" };
+  try {
+    const response = await fetch(`${apiBaseUrl}/storefront/orders/track/${token}`, {
+      headers: await visitorHeaders(),
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (response.status === 404) return { state: "missing" };
+    if (!response.ok) return { state: "error" };
+    return { state: "found", order: await response.json() as TrackedOrder };
+  } catch {
+    return { state: "error" };
+  }
+}

@@ -119,7 +119,7 @@ function CheckoutForm({ ready, text, locale }: { ready: boolean; text: Copy; loc
         setSubmitting(false);
         return;
       }
-      try { sessionStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify({ orderNumber: payload.order_number })); } catch { /* optional */ }
+      try { sessionStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify({ orderNumber: payload.order_number, trackingToken: payload.tracking_token })); } catch { /* optional */ }
       window.location.assign(paymentUrl);
     } catch {
       setFailure("network");
