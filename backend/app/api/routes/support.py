@@ -419,14 +419,16 @@ async def support_drafts(
     page: int = 1,
     page_size: int = 20,
 ):
-    if status_filter is not None and status_filter not in DRAFT_STATUSES:
+    # Comma-separated so the history view can ask for APPROVED,EDITED_APPROVED together.
+    statuses = [status.strip() for status in status_filter.split(",") if status.strip()] if status_filter else []
+    if any(status not in DRAFT_STATUSES for status in statuses):
         raise HTTPException(422, detail="Invalid draft status.")
     if page < 1 or not 1 <= page_size <= 100:
         raise HTTPException(422, detail="Invalid pagination settings.")
     await purge_expired_message_content(db)
     filters = []
-    if status_filter:
-        filters.append(SupportDraft.status == status_filter)
+    if statuses:
+        filters.append(SupportDraft.status.in_(statuses))
     if support_request_id is not None:
         filters.append(SupportDraft.support_request_id == support_request_id)
     total = await db.scalar(select(func.count()).select_from(SupportDraft).where(*filters))
