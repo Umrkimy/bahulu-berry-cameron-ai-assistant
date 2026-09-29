@@ -172,10 +172,9 @@ async def _sync_order_status(
     elif delivery_status == "DELIVERED":
         if order.payment_status != "PAID":
             raise ValueError("Only paid orders can be marked as delivered.")
-        order.status = "COMPLETED"
-
-        if hasattr(order, "completed_at"):
-            order.completed_at = datetime.now(UTC)
+        if order.status != "COMPLETED":
+            order.status = "COMPLETED"
+            order.closed_at = datetime.now(UTC)
 
 
 def _update_delivery_timestamp(

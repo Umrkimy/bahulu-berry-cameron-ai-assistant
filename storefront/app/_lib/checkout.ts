@@ -15,7 +15,7 @@ export type CheckoutField = keyof CheckoutContact | "privacy";
 export type CheckoutErrors = Partial<Record<CheckoutField, "required" | "invalid">>;
 
 export type CheckoutStatus = { enabled: boolean; test_mode: boolean };
-export type CheckoutResult = { order_number: number; total_amount: string; payment_url: string };
+export type CheckoutResult = { order_number: number; total_amount: string; payment_url: string; tracking_token: string };
 
 export const emptyContact: CheckoutContact = { full_name: "", phone_number: "", email: "", address: "", city: "", state: "", postal_code: "" };
 

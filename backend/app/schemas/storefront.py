@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -78,8 +79,53 @@ class StorefrontCheckoutResponse(BaseModel):
     order_number: int
     total_amount: Decimal
     payment_url: str
+    # Private link token for /orders/<token>; shown once, only its hash is kept.
+    tracking_token: str
 
 
 class StorefrontCheckoutStatus(BaseModel):
     enabled: bool
     test_mode: bool
+
+
+class StorefrontOrderLookupRequest(BaseModel):
+    order_number: int = Field(gt=0, lt=2_147_483_647)
+    phone_number: str = Field(min_length=9, max_length=20)
+
+
+class StorefrontTrackedItem(BaseModel):
+    name_en: str
+    name_ms: str
+    quantity: int
+    total_amount: Decimal
+
+
+class StorefrontTrackedDelivery(BaseModel):
+    status: str
+    courier: str | None = None
+    tracking_number: str | None = None
+    shipped_at: datetime | None = None
+    out_for_delivery_at: datetime | None = None
+    delivered_at: datetime | None = None
+    failed_at: datetime | None = None
+
+
+class StorefrontTrackedOrder(BaseModel):
+    """What a customer may see about their own order.
+
+    Deliberately narrow: no address, email, full phone number, customer id,
+    payment link or provider ids.
+    """
+
+    order_number: int
+    created_at: datetime
+    closed_at: datetime | None = None
+    status: str
+    payment_status: str
+    items: list[StorefrontTrackedItem]
+    subtotal: Decimal
+    discount_amount: Decimal
+    total_amount: Decimal
+    delivery: StorefrontTrackedDelivery | None = None
+    recipient_first_name: str | None = None
+    phone_last_digits: str | None = None

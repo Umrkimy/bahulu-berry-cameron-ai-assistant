@@ -65,3 +65,6 @@ PASSWORD_RESET_LIMIT = RateLimit(maximum=5, window_seconds=15 * 60)
 PASSWORD_RESET_CONFIRM_LIMIT = RateLimit(maximum=5, window_seconds=15 * 60)
 STOREFRONT_READ_LIMIT = RateLimit(maximum=120, window_seconds=60)
 STOREFRONT_CHECKOUT_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
+STOREFRONT_TRACKING_LIMIT = RateLimit(maximum=60, window_seconds=60)
+# Order number + phone guesses are the brute-force risk, so keep this tight.
+STOREFRONT_TRACKING_LOOKUP_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)

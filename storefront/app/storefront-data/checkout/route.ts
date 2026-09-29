@@ -1,20 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { isCheckoutPreviewEnabled } from "../../_lib/checkout-preview.ts";
-import { apiBaseUrl, requestClientIpHeaders } from "../../_lib/server-api.ts";
+import { apiBaseUrl, isSameOrigin, requestClientIpHeaders } from "../../_lib/server-api.ts";
 
 const noStore = { "Cache-Control": "no-store" };
-
-// Browsers send Origin on cross-site POSTs; only accept our own pages.
-function isSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  try {
-    return new URL(origin).host === (request.headers.get("x-forwarded-host") ?? request.headers.get("host"));
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: Request) {
   if (!isCheckoutPreviewEnabled()) return NextResponse.json({ detail: "Not found." }, { status: 404, headers: noStore });
