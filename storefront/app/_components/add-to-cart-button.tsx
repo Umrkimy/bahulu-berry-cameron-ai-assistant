@@ -9,7 +9,9 @@ import type { StorefrontProduct } from "../_lib/types";
 import { useCart } from "./cart-provider";
 import { useLocale } from "./locale-provider";
 
-export function AddToCartButton({ product, className = "add-cart-button" }: { product: StorefrontProduct; className?: string }) {
+// `named` puts the product and price in the accessible name; the mobile sticky
+// bar turns it off because the product name sits right beside the button.
+export function AddToCartButton({ product, className = "add-cart-button", quantity = 1, named = true }: { product: StorefrontProduct; className?: string; quantity?: number; named?: boolean }) {
   const { locale } = useLocale();
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
@@ -26,8 +28,8 @@ export function AddToCartButton({ product, className = "add-cart-button" }: { pr
   const label = !product.is_available ? text.unavailable : added ? text.addedShort : text.add;
   return <motion.button type="button" className={className} data-added={added || undefined} disabled={!product.is_available}
     whileTap={product.is_available ? { scale: 0.94 } : undefined}
-    aria-label={product.is_available ? `${text.add}: ${name}, ${money(displayPrice)}` : `${name}: ${text.unavailable}`}
-    onClick={() => { addItem(product.id, displayPrice, `${name}: ${text.added}.`); setAdded(true); }}>
+    aria-label={named ? product.is_available ? `${text.add}: ${name}, ${money(displayPrice)}` : `${name}: ${text.unavailable}` : undefined}
+    onClick={() => { addItem(product.id, displayPrice, quantity > 1 ? `${name} × ${quantity}: ${text.added}.` : `${name}: ${text.added}.`, quantity); setAdded(true); }}>
     <AnimatePresence mode="popLayout" initial={false}>
       <motion.span key={label} className="add-cart-label" initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 26 }}>
         {added ? <svg className="add-cart-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg> : null}{label}

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  checkoutFailure, checkoutPayload, emptyContact, idempotencyKeyFor, isValidPhone, safePaymentUrl, serverFieldErrors, validateCheckout,
+  CHECKOUT_STEP_FIELDS, checkoutFailure, checkoutPayload, emptyContact, errorsForStep, firstStepWithErrors, idempotencyKeyFor, isValidPhone, safePaymentUrl, serverFieldErrors, validateCheckout,
 } from "../app/_lib/checkout.ts";
 
 const contact = {
@@ -71,4 +71,17 @@ test("maps API field rejections onto the checkout fields", () => {
   assert.deepEqual(serverFieldErrors(detail), { email: "invalid" });
   assert.deepEqual(serverFieldErrors({ code: "UNAVAILABLE" }), {});
   assert.deepEqual(serverFieldErrors("Invalid checkout request."), {});
+});
+
+test("checkout steps cover every field once and route errors to the earliest step", () => {
+  const fields = Object.values(CHECKOUT_STEP_FIELDS).flat();
+  assert.deepEqual([...fields].sort(), ["address", "city", "email", "full_name", "phone_number", "postal_code", "privacy", "state"]);
+  assert.equal(new Set(fields).size, fields.length);
+  const all = validateCheckout(emptyContact, false);
+  assert.deepEqual(Object.keys(errorsForStep(all, 1)), ["full_name", "phone_number"]);
+  assert.deepEqual(Object.keys(errorsForStep(all, 2)), ["address", "city", "postal_code", "state"]);
+  assert.equal(firstStepWithErrors(all), 1);
+  assert.equal(firstStepWithErrors(validateCheckout({ ...contact, postal_code: "12" }, true)), 2);
+  assert.equal(firstStepWithErrors(validateCheckout(contact, false)), 3);
+  assert.equal(firstStepWithErrors(validateCheckout(contact, true)), null);
 });

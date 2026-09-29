@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { filterProducts, promotionText } from '../app/_lib/product-view.ts';
+import { filterProducts, promotionText, relatedProducts } from '../app/_lib/product-view.ts';
 
 const products = [
   { id: 1, name_en: 'Fictional Alpha', name_ms: 'Fiksyen Alfa', category: 'ALL', price: '20.00', sale_price: '0.00' },
@@ -30,4 +30,17 @@ test('promotion wording uses approved amounts in both languages', () => {
   assert.equal(promotionText({ discount_type: 'PERCENTAGE', discount_value: '10.00' }, 'ms'), 'Diskaun 10%');
   assert.match(promotionText({ discount_type: 'FIXED_AMOUNT', discount_value: '2.50' }, 'ms'), /^Diskaun RM\s?2\.50$/);
   assert.match(promotionText({ discount_type: 'BUNDLE_PRICE', discount_value: '12.00', bundle_quantity: 3 }, 'en'), /^Buy 3 for RM\s?12\.00$/);
+});
+
+test('related products skip the current and unavailable ones, same category first', () => {
+  const catalogue = [
+    { id: 1, category: 'Box', is_available: true },
+    { id: 2, category: 'Tin', is_available: true },
+    { id: 3, category: 'Box', is_available: false },
+    { id: 4, category: 'Box', is_available: true },
+    { id: 5, category: null, is_available: true },
+  ];
+  assert.deepEqual(relatedProducts(catalogue, catalogue[0]).map(p => p.id), [4, 2, 5]);
+  assert.deepEqual(relatedProducts(catalogue, catalogue[4], 2).map(p => p.id), [1, 2]);
+  assert.deepEqual(relatedProducts([catalogue[0]], catalogue[0]), []);
 });
