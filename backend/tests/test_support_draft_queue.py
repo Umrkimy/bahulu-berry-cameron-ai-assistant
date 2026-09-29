@@ -158,6 +158,29 @@ async def test_edited_approval_and_rejection(session, drafting):
 
 
 @pytest.mark.asyncio
+async def test_history_filters_reviewed_drafts_by_one_or_more_statuses(session, drafting):
+    staff = await _admin(session, "staff")
+    for index in range(4):
+        await process_inbound_message(session, message=_inbound(f"m-{index}", conversation=f"conversation-{index}"), actor=staff)
+    plain, edited, rejected, _pending = await _drafts(session)
+    await approve_support_draft(plain.id, SupportDraftApproveInput(), session, staff)
+    await approve_support_draft(edited.id, SupportDraftApproveInput(edited_body="Our team will confirm pickup."), session, staff)
+    await reject_support_draft(rejected.id, session, staff)
+    session.expunge_all()  # a fresh request; SQLite reloads naive datetimes the purge cannot compare
+
+    approved_page = await support_drafts(session, staff, status_filter="APPROVED, EDITED_APPROVED")
+    rejected_page = await support_drafts(session, staff, status_filter="REJECTED")
+    pending_page = await support_drafts(session, staff)
+
+    assert {item.id for item in approved_page.items} == {plain.id, edited.id}
+    assert [item.id for item in rejected_page.items] == [rejected.id]
+    assert pending_page.total == 1
+    with pytest.raises(HTTPException) as error:
+        await support_drafts(session, staff, status_filter="APPROVED,SENT")
+    assert error.value.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_human_handled_conversation_drafts_belong_to_assignee_or_owner(session, drafting):
     assignee = await _admin(session, "assignee")
     other = await _admin(session, "other")
