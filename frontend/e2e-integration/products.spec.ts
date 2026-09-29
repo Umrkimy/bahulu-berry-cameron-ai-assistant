@@ -153,7 +153,9 @@ test("Owner product workspace reaches the real storefront", async ({
 
   const shop = await context.newPage();
   await shop.goto("http://127.0.0.1:4100/");
-  await expect(shop.getByText(fictionalHomepageCopy)).toBeVisible();
+  // React can briefly keep a hidden copy of streamed content, so match only the
+  // visible hero intro.
+  await expect(shop.locator(".home-intro:visible", { hasText: fictionalHomepageCopy })).toBeVisible();
   const publicImage = published.image_path.match(
     /products\/(\d+)\/images\/(\d+)/,
   );
@@ -304,7 +306,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
   await expect(shop.locator(".shop-state")).toBeVisible();
   await shop.goto("http://127.0.0.1:4100/");
-  await expect(shop.locator(".hero-fallback-image:visible")).toHaveCount(1);
+  await expect(shop.locator(".hero-product-image:visible")).toHaveCount(1);
 
   await page.getByRole("tab", { name: "Details" }).click();
   await page.getByRole("switch", { name: /Active for operations/ }).uncheck();

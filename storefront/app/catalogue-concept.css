@@ -1,8 +1,8 @@
 /* Catalogue, product detail, About, and state pages. */
 .product-concept, .info-concept { background: var(--cream); color: var(--ink); }
 .catalogue-hero, .detail-topbar, .info-hero { background: var(--yellow); }
-.shop-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; margin-block: 0; padding-block: 20px; color: var(--text-soft); font-size: 14px; }
-.shop-breadcrumb a { display: inline-flex; align-items: center; min-height: 32px; color: var(--ink); font-weight: 600; }
+.shop-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; margin-block: 0; padding-block: 14px; color: var(--text-soft); font-size: 14px; }
+.shop-breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); font-weight: 600; }
 .shop-breadcrumb a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .shop-breadcrumb [aria-current] { overflow-wrap: anywhere; }
 
@@ -38,6 +38,8 @@
 .catalogue-card-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 16px; color: var(--muted); font-size: 14px; }
 .catalogue-card h2 { margin-top: 6px; font-size: 24px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
 .catalogue-card h2 a:hover { color: var(--red); }
+/* Taller tap area (44px) without moving the layout. */
+.catalogue-card h2 a { display: inline-block; padding-block: 8px; margin-block: -8px; }
 .catalogue-card-description { display: -webkit-box; margin: 10px 0 0; overflow: hidden; color: var(--muted); font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .catalogue-card-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
 .catalogue-card > :nth-last-child(2) { margin-bottom: 18px; }
@@ -50,7 +52,7 @@
 .catalogue-clear { margin-top: 28px; }
 
 /* Product detail */
-.detail-topbar .shop-breadcrumb { padding-block: 18px 20px; }
+.detail-topbar .shop-breadcrumb { padding-block: 12px 14px; }
 .shop-detail { display: grid; grid-template-columns: 1.05fr 1fr; align-items: start; gap: 72px; padding-block: 56px 96px; }
 .shop-detail-visual, .shop-detail-copy { min-width: 0; }
 .shop-detail-image { position: relative; display: grid; place-items: center; aspect-ratio: .95; overflow: hidden; border-radius: 24px; background: var(--photo-bg); }
@@ -101,7 +103,7 @@
   .shop-detail { gap: 36px; }
 }
 @media (max-width: 760px) {
-  .shop-breadcrumb { padding-block: 14px; }
+  .shop-breadcrumb { padding-block: 8px; }
   .catalogue-hero-copy { padding-bottom: 40px; }
   .catalogue-hero h1 { font-size: clamp(44px, 12vw, 64px); }
   .catalogue-intro { font-size: 17px; }
