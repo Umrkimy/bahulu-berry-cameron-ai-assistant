@@ -68,6 +68,22 @@ export function idempotencyKeyFor(body: string, previous: { body: string; key: s
   return previous && previous.body === body ? previous : { body, key: makeKey() };
 }
 
+const CONTACT_FIELDS = new Set<string>(Object.keys(emptyContact));
+
+// The API can reject a value the browser check let through (for example a
+// reserved email domain). Point at the field it named instead of a vague error.
+export function serverFieldErrors(detail: unknown): CheckoutErrors {
+  if (!Array.isArray(detail)) return {};
+  const errors: CheckoutErrors = {};
+  for (const item of detail) {
+    const loc = (item as { loc?: unknown })?.loc;
+    if (!Array.isArray(loc) || loc.length < 3 || loc[0] !== "body" || loc[1] !== "contact") continue;
+    const field = loc[2];
+    if (typeof field === "string" && CONTACT_FIELDS.has(field)) errors[field as keyof CheckoutContact] = "invalid";
+  }
+  return errors;
+}
+
 export type CheckoutFailure = "unavailable" | "changed" | "closed" | "contact" | "payment" | "invalid" | "busy" | "network";
 
 export function checkoutFailure(status: number, code: string | undefined): CheckoutFailure {

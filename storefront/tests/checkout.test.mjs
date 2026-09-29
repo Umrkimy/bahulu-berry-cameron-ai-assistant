@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  checkoutFailure, checkoutPayload, emptyContact, idempotencyKeyFor, isValidPhone, safePaymentUrl, validateCheckout,
+  checkoutFailure, checkoutPayload, emptyContact, idempotencyKeyFor, isValidPhone, safePaymentUrl, serverFieldErrors, validateCheckout,
 } from "../app/_lib/checkout.ts";
 
 const contact = {
@@ -60,4 +60,15 @@ test("every checkout string ships in English and Bahasa Melayu", async () => {
   const { cartCopy } = await import("../app/_lib/cart-copy.ts");
   assert.deepEqual(Object.keys(cartCopy.ms).sort(), Object.keys(cartCopy.en).sort());
   for (const [key, value] of Object.entries(cartCopy.ms)) assert.ok(value.trim(), `ms.${key} is empty`);
+});
+
+test("maps API field rejections onto the checkout fields", () => {
+  const detail = [
+    { type: "value_error", loc: ["body", "contact", "email"], msg: "value is not a valid email address" },
+    { type: "value_error", loc: ["body", "contact", "not_a_field"], msg: "ignored" },
+    { type: "missing", loc: ["body", "items"], msg: "ignored" },
+  ];
+  assert.deepEqual(serverFieldErrors(detail), { email: "invalid" });
+  assert.deepEqual(serverFieldErrors({ code: "UNAVAILABLE" }), {});
+  assert.deepEqual(serverFieldErrors("Invalid checkout request."), {});
 });
