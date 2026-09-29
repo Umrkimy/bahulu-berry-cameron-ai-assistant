@@ -48,8 +48,8 @@ ingredients, awards) needs the client's approval before it appears anywhere.
   and HitPay is a possibility. Website checkout is built and tested with Stripe
   in test mode only (off by default). Public checkout stays disabled until a provider,
   fulfilment rules, and policies are approved.
-- Owners control product records, photos, the homepage feature, and homepage
-  copy from the dashboard. The storefront reads only published content.
+- Owners control product records, photos, and homepage copy from the
+  dashboard. The storefront reads only published content.
 
 ## Capabilities and Constraints
 
@@ -80,8 +80,10 @@ ingredients, awards) needs the client's approval before it appears anywhere.
 - Product records and photos come from the dashboard. Current descriptions and
   photos are placeholders the Owner will replace. Do not write product
   descriptions.
-- `storefront/public/concept/bahulu-bag.webp` is the approved homepage fallback
-  image when no featured product photo exists.
+- `storefront/public/concept/bahulu-bag.webp` is the fixed homepage hero
+  artwork. Owners no longer pick a featured product for the hero.
+- Homepage stats are confirmed by Umar (29 September 2026): the TikTok
+  follower and like counts, "20K+ packs sold", and "6 flavours".
 - No reviews, testimonials, press, or awards exist. Do not fabricate any.
 
 ## Product Principles
