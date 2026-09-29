@@ -81,6 +81,22 @@ class Order(Base):
         nullable=False,
     )
 
+    # When the order became COMPLETED or CANCELLED; tracking links expire
+    # a fixed time after this.
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # SHA-256 of the customer's private tracking token. The token itself is
+    # returned once at checkout and never stored.
+    tracking_token_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
+
     customer: Mapped["Customer"] = relationship(
         back_populates="orders",
     )

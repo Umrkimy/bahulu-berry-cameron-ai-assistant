@@ -14,3 +14,14 @@ export function clientIpHeaders(cfConnectingIp: string | null | undefined): Reco
 export function requestClientIpHeaders(request: Request): Record<string, string> {
   return clientIpHeaders(request.headers.get("cf-connecting-ip"));
 }
+
+// Browsers send Origin on cross-site POSTs; only accept our own pages.
+export function isSameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  try {
+    return new URL(origin).host === (request.headers.get("x-forwarded-host") ?? request.headers.get("host"));
+  } catch {
+    return false;
+  }
+}

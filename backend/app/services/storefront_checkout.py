@@ -29,6 +29,7 @@ from app.services.contact_normalization import (
     normalize_phone_number,
 )
 from app.services.order_services import cancel_order, create_order
+from app.services.order_tracking import issue_tracking_token
 
 logger = logging.getLogger("bahulu.checkout")
 
@@ -47,11 +48,12 @@ def _request_hash(data: StorefrontCheckoutRequest) -> str:
     return hashlib.sha256(data.model_dump_json().encode()).hexdigest()
 
 
-def _response(order: Order, payment: Payment) -> StorefrontCheckoutResponse:
+def _response(order: Order, payment: Payment, tracking_token: str) -> StorefrontCheckoutResponse:
     return StorefrontCheckoutResponse(
         order_number=order.id,
         total_amount=order.total_amount,
         payment_url=payment.payment_url,
+        tracking_token=tracking_token,
     )
 
 
@@ -62,7 +64,11 @@ async def _replay(db: AsyncSession, existing: CheckoutRequest, request_hash: str
     payment = await db.get(Payment, existing.payment_id) if existing.payment_id else None
     if order is None or payment is None or payment.status != "PENDING" or not payment.payment_url:
         raise CheckoutError(409, "CHECKOUT_CLOSED", "This checkout has finished. Please start again from your cart.")
-    return _response(order, payment)
+    # The first token was never stored, so a retry gets a new one; only the
+    # latest link works.
+    tracking_token = issue_tracking_token(order)
+    await db.commit()
+    return _response(order, payment, tracking_token)
 
 
 async def _customer_for_checkout(db: AsyncSession, data: StorefrontCheckoutRequest, phone: str) -> Customer:
@@ -169,6 +175,7 @@ async def place_storefront_order(
         logger.warning("storefront_payment_create_failed", extra={"error_type": type(error).__name__})
         raise CheckoutError(503, "PAYMENT_UNAVAILABLE", "Online payment is unavailable right now. Please try again shortly.") from error
 
+    tracking_token = issue_tracking_token(order)
     db.add(CheckoutRequest(
         idempotency_key=idempotency_key,
         request_hash=request_hash,
@@ -184,7 +191,7 @@ async def place_storefront_order(
         metadata={"source": "STOREFRONT", "locale": data.locale},
     )
     await db.commit()
-    return _response(order, payment)
+    return _response(order, payment, tracking_token)
 
 
 async def cancel_unpaid_storefront_order(db: AsyncSession, order_id: int) -> bool:

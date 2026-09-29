@@ -670,6 +670,7 @@ async def cancel_order(
         )
 
     order.status = "CANCELLED"
+    order.closed_at = datetime.now(UTC)
     await expire_pending_payments(db, order.id)
 
     refund_request_id = None

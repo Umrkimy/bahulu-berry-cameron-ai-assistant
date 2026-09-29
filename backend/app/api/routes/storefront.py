@@ -6,7 +6,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.rate_limit import STOREFRONT_CHECKOUT_LIMIT, STOREFRONT_READ_LIMIT, rate_limiter
+from app.core.rate_limit import (
+    STOREFRONT_CHECKOUT_LIMIT,
+    STOREFRONT_READ_LIMIT,
+    STOREFRONT_TRACKING_LIMIT,
+    STOREFRONT_TRACKING_LOOKUP_LIMIT,
+    rate_limiter,
+)
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.product import Product
@@ -20,14 +26,17 @@ from app.schemas.storefront import (
     StorefrontCheckoutRequest,
     StorefrontCheckoutResponse,
     StorefrontCheckoutStatus,
+    StorefrontOrderLookupRequest,
     StorefrontQuoteLine,
     StorefrontQuoteRequest,
     StorefrontQuoteResponse,
+    StorefrontTrackedOrder,
 )
 from app.schemas.storefront_homepage import StorefrontHomepageContent
 from app.schemas.storefront_place import StorefrontMap, StorefrontPlace
 from app.services.google_place import GooglePlaceUnavailable, fetch_google_place, google_map_embed_url
 from app.services.pricing_services import calculate_order_pricing
+from app.services.order_tracking import find_order_by_phone, find_order_by_token, tracking_view
 from app.services.storefront_checkout import CheckoutError, place_storefront_order
 from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 
@@ -339,6 +348,46 @@ async def storefront_checkout(
             status_code=error.status_code,
             detail={"code": error.code, "message": error.message},
         ) from error
+
+
+# One answer for every miss, so a guess learns nothing about which part failed.
+_ORDER_NOT_FOUND = "We could not find that order. Check the details, or message us on WhatsApp."
+
+
+@router.get("/orders/track/{token}", response_model=StorefrontTrackedOrder)
+async def track_storefront_order(
+    token: str,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+):
+    """Show a website order to whoever holds its private tracking link."""
+    if not settings.STOREFRONT_CHECKOUT_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
+    await rate_limiter.check(request, "storefront-order-track", STOREFRONT_TRACKING_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    order = await find_order_by_token(db, token)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ORDER_NOT_FOUND)
+    return tracking_view(order)
+
+
+@router.post("/orders/lookup", response_model=StorefrontTrackedOrder)
+async def lookup_storefront_order(
+    lookup: StorefrontOrderLookupRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+):
+    """Find a website order by its number and the phone used at checkout."""
+    if not settings.STOREFRONT_CHECKOUT_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
+    await rate_limiter.check(request, "storefront-order-lookup", STOREFRONT_TRACKING_LOOKUP_LIMIT)
+    response.headers["Cache-Control"] = "no-store"
+    order = await find_order_by_phone(db, lookup.order_number, lookup.phone_number)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ORDER_NOT_FOUND)
+    return tracking_view(order)
 
 
 @router.get("/products/{product_id}/images/{image_id}/content")
