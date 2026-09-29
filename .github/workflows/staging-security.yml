@@ -53,6 +53,11 @@ jobs:
           mkdir -p security-reports
       - name: Build disposable staging stack
         run: docker compose --env-file .env.security-ci up -d --build
+      - name: Show stack state if it failed to start
+        if: failure()
+        run: |
+          docker compose --env-file .env.security-ci ps --all
+          docker compose --env-file .env.security-ci logs --no-color api migrate
       - name: Wait for API readiness
         shell: bash
         run: |

@@ -11,7 +11,9 @@ WORKDIR /app
 COPY --from=uv /uv /uvx /bin/
 
 RUN useradd --create-home --uid 10001 appuser
-RUN mkdir -p /app/media/products && chown -R appuser:appuser /app/media
+# main.py creates /app/static at import; backend/static is gitignored, so a
+# clean checkout has none and appuser cannot create it inside root-owned /app.
+RUN mkdir -p /app/media/products /app/static && chown -R appuser:appuser /app/media /app/static
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
