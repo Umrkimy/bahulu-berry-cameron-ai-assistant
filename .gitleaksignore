@@ -1,3 +1,4 @@
 # Historical CI test-placeholder fingerprints.
 fc4828eb25b6794291223be02654deaba11f8e1c:.github/workflows/security.yml:stripe-access-token:78
 2a871bf119ee139afc83429b21c773da94d81cf5:.github/workflows/security.yml:stripe-access-token:21
+a076969e7b5fe5d356e56b4fe78e53d62daec95e:backend/tests/test_logging.py:stripe-access-token:53
