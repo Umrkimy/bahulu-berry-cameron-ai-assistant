@@ -89,7 +89,7 @@ h1 em, h2 em { color: var(--red); font-weight: 700; }
 .social-icon { width: 20px; height: 20px; fill: currentColor; }
 .footer-col h2 { margin-bottom: 14px; color: var(--yellow); font: 700 15px var(--font-body), sans-serif; letter-spacing: 0; }
 .footer-col ul { margin: 0; padding: 0; list-style: none; }
-.footer-col li a { display: inline-flex; align-items: center; min-height: 36px; }
+.footer-col li a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
 .footer-col p a { display: inline-block; padding-block: 6px; }
 .footer-col address { display: grid; margin: 0 0 10px; font-size: 15px; font-style: normal; line-height: 1.6; }
 .footer-col p { margin: 0 0 6px; font-size: 15px; line-height: 1.6; }
