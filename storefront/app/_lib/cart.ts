@@ -25,11 +25,12 @@ export function parseStoredCart(raw: string | null): CartItem[] {
   catch { return []; }
 }
 
-export function addCartItem(items: CartItem[], productId: number): CartItem[] {
+export function addCartItem(items: CartItem[], productId: number, quantity = 1): CartItem[] {
+  const amount = Math.min(MAX_CART_QUANTITY, Math.max(1, Math.trunc(quantity) || 1));
   const existing = items.find((item) => item.productId === productId);
-  if (!existing) return [...items, { productId, quantity: 1 }];
+  if (!existing) return [...items, { productId, quantity: amount }];
   return items.map((item) => item.productId === productId
-    ? { ...item, quantity: Math.min(MAX_CART_QUANTITY, item.quantity + 1) }
+    ? { ...item, quantity: Math.min(MAX_CART_QUANTITY, item.quantity + amount) }
     : item);
 }
 

@@ -9,7 +9,7 @@ interface CartContextValue {
   count: number;
   hydrated: boolean;
   changedProductIds: ReadonlySet<number>;
-  addItem: (productId: number, displayPrice: string, announcement: string) => void;
+  addItem: (productId: number, displayPrice: string, announcement: string, quantity?: number) => void;
   updateItem: (productId: number, quantity: number, announcement: string) => void;
   removeItem: (productId: number, announcement: string) => void;
   clear: (announcement: string) => void;
@@ -48,9 +48,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event(CART_CHANGE_EVENT));
   }, []);
 
-  const addItem = useCallback((productId: number, displayPrice: string, message: string) => {
+  const addItem = useCallback((productId: number, displayPrice: string, message: string, quantity = 1) => {
     if (!prices.current.has(productId)) prices.current.set(productId, displayPrice);
-    save((current) => addCartItem(current, productId));
+    save((current) => addCartItem(current, productId, quantity));
     setAnnouncement(message);
   }, [save]);
 
