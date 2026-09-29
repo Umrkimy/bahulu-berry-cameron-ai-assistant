@@ -33,7 +33,6 @@ frontend/blob-report/
 **/.env.*
 !.env.example
 !.env.staging.example
-!.env.demo.example
 !**/.env.example
 !**/.env.staging.example
 .envrc

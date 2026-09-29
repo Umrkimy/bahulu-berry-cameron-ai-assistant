@@ -12,10 +12,9 @@ not authorise production deployment or public access.
 4. Stop normally with `docker compose down`. Never add `-v` to an ordinary
    stop because volumes hold local data.
 
-For an approved private demo, use the ignored `.env.demo` file and the staging
-profile documented in `compose.staging.yaml`. Confirm Cloudflare Access blocks
-uninvited visitors, use fictional records only, and stop the tunnel profile
-after review. Never disclose the tunnel token.
+For a client demo, run the local stack and share your screen on a video call
+(for example Google Meet). Nothing is exposed to the internet. Use fictional
+records only and close other tabs, terminals and notifications before sharing.
 
 ## Daily operation
 
@@ -213,7 +212,6 @@ Rotate immediately on suspected exposure, and when staff with access leave.
 | Meta app secret and verify token | Regenerate in Meta, update env | Webhook re-verification |
 | `OPENAI_API_KEY`, `RESEND_API_KEY`, Google keys | Revoke and create in each provider | None beyond restart |
 | age backup key | New key pair; new `AGE_RECIPIENT`; keep the old private key until its backups age out | Old backups still need the old key |
-| Cloudflare tunnel token | Rotate in Cloudflare | Tunnel reconnects |
 
 Never paste secret values into chats, tickets, logs or commits.
 
