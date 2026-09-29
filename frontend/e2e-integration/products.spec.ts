@@ -125,14 +125,8 @@ test("Owner product workspace reaches the real storefront", async ({
   await page.getByRole("switch", { name: /Published online/ }).check();
   await page.getByRole("button", { name: "Save storefront" }).click();
   await expect(page.getByText("Storefront settings saved")).toBeVisible();
-  const featured = page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/feature") &&
-      response.request().method() === "PUT",
-  );
-  await page.getByRole("button", { name: "Feature on homepage" }).click();
-  expect((await featured).status()).toBe(200);
-  await expect(page.getByText("Homepage updated")).toBeVisible();
+  // The homepage hero is fixed brand artwork, so products are never featured.
+  await expect(page.getByRole("button", { name: /Feature/ })).toHaveCount(0);
   await page.screenshot({
     path: "../output/playwright/product-workspace-desktop.png",
     fullPage: true,
@@ -144,10 +138,13 @@ test("Owner product workspace reaches the real storefront", async ({
     fullPage: true,
   });
   await page.setViewportSize({ width: 1280, height: 900 });
-  const published = await (
-    await page.request.get("http://127.0.0.1:8100/api/storefront/featured")
+  const catalogue = await (
+    await page.request.get("http://127.0.0.1:8100/api/storefront/products")
   ).json();
-  expect(published.name_en).toBe("Fictional client walkthrough");
+  const published = catalogue.items.find(
+    (item: { name_en: string }) => item.name_en === "Fictional client walkthrough",
+  );
+  expect(published).toBeTruthy();
   expect(
     (
       await page.request.get(`http://127.0.0.1:8100${published.image_path}`)
@@ -169,7 +166,7 @@ test("Owner product workspace reaches the real storefront", async ({
     ).status(),
   ).toBe(200);
   const hero = shop.locator(".hero-product-image");
-  await expect(hero).toHaveAttribute("alt", "Fictional client walkthrough");
+  await expect(hero).toHaveAttribute("src", /bahulu-bag\.webp/);
   await expect
     .poll(() =>
       hero.evaluate(
@@ -182,15 +179,14 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(shop.locator(".product-float:visible").first()).toHaveCSS("transform", "none");
   await shop.emulateMedia({ reducedMotion: "no-preference" });
   await shop.reload();
-  // The hero image floats continuously, so open the product from its caption.
-  await shop.locator(".stage-caption a:visible").first().click();
+  await shop.goto(`http://127.0.0.1:4100/products/${published.id}`);
   await expect(
     shop.getByRole("heading", {
       name: "Fictional client walkthrough",
       exact: true,
     }),
   ).toBeVisible();
-  await expect(shop.locator(".shop-detail-price strong")).toContainText(
+  await expect(shop.locator(".shop-detail-price strong").first()).toContainText(
     "12.00",
   );
   await shop.getByRole("button", { name: "View photo 2" }).focus();
