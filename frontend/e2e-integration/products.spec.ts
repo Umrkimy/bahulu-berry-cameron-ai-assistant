@@ -266,15 +266,20 @@ test("Owner product workspace reaches the real storefront", async ({
   await shop.getByRole("link", { name: "Pay online" }).click();
   await expect(shop.getByRole("heading", { name: "Checkout" })).toBeVisible();
   await expect(shop.getByText("Test mode")).toBeVisible();
-  await shop.getByRole("button", { name: "Continue to payment" }).click();
+  // Step 1 checks only its own fields before moving on.
+  await shop.getByRole("button", { name: "Continue to delivery address" }).click();
   await expect(shop.locator(".checkout-form [role=alert][tabindex='-1']")).toBeFocused();
   await expect(shop.getByLabel("Full name")).toHaveAttribute("aria-invalid", "true");
   await shop.getByLabel("Full name").fill("Fictional Walkthrough Buyer");
   await shop.getByLabel("Phone number").fill("012-000 0001");
+  await shop.getByRole("button", { name: "Continue to delivery address" }).click();
   await shop.getByLabel("Street address").fill("1 Jalan Rekaan");
   await shop.getByLabel("Town or city").fill("Tanah Rata");
   await shop.getByLabel("Postcode").fill("39000");
   await shop.getByLabel("State").selectOption("Pahang");
+  await shop.getByRole("button", { name: "Continue to review" }).click();
+  await expect(shop.getByRole("button", { name: "Edit: Your details" })).toBeVisible();
+  await expect(shop.getByText("1 Jalan Rekaan, Tanah Rata 39000, Pahang")).toBeVisible();
   await shop.getByLabel(/may use these details/).check();
   // The fictional provider's hosted page is intercepted and sent back to the
   // storefront's return page, as Stripe would after payment.

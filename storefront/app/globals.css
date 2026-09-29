@@ -2,7 +2,7 @@
   --yellow: #ffdc24; --red: #b92032; --red-dark: #981a29; --red-pale: #f5dfe0;
   --ink: #302618; --muted: #665a46; --cream: #fffaf0; --paper: #fffdf8; --surface: #f6efdf; --sage: #315c3b;
   --line: #30261826; --line-strong: #30261855; --focus: #263f31;
-  --error: #8a2737; --text-soft: #594b2e; --photo-bg: #f0e5cc; --panel: #f3e9d4; --footer-text: #eadfca; --whatsapp: #25d366;
+  --error: #8a2737; --text-soft: #594b2e; --photo-bg: #f0e5cc; --panel: #f3e9d4; --footer-text: #eadfca; --whatsapp: #25d366; --notice: #fff4ce;
   --shadow-rest: 0 1px 2px #3026180d, 0 14px 30px -22px #30261873;
   --shadow-lift: 0 2px 4px #3026180f, 0 22px 40px -24px #30261880;
   /* Legacy names still read by a few rules. */

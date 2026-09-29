@@ -36,6 +36,9 @@ export const cartCopy = {
     fulfilment: "Fulfilment", fulfilmentBody: "Pickup, delivery coverage and charges are awaiting client approval.",
     payment: "Payment", paymentBody: "No payment provider has been selected. Payment is unavailable and test-only.",
     noSubmission: "Review complete. Ordering and payment are disabled.", backCart: "Back to cart",
+    item: "item", items: "items", itemColumn: "Item", each: "each", removeItem: "Remove",
+    reviewPay: "Review and pay", continueToAddress: "Continue to delivery address", continueToReview: "Continue to review",
+    edit: "Edit", step: "Step", stepDone: "completed", contactFor: "Contact", deliverTo: "Deliver to", noEmail: "No email given",
   },
   ms: {
     cart: "Troli", add: "Tambah ke troli", added: "Ditambah ke troli", addedShort: "Ditambah", unavailable: "Tidak tersedia buat masa ini",
@@ -74,5 +77,8 @@ export const cartCopy = {
     fulfilment: "Pemenuhan", fulfilmentBody: "Ambil sendiri, liputan penghantaran dan caj masih menunggu kelulusan pelanggan.",
     payment: "Pembayaran", paymentBody: "Tiada penyedia pembayaran dipilih. Pembayaran tidak tersedia dan untuk ujian sahaja.",
     noSubmission: "Semakan selesai. Pesanan dan pembayaran dinyahaktifkan.", backCart: "Kembali ke troli",
+    item: "item", items: "item", itemColumn: "Produk", each: "seunit", removeItem: "Buang",
+    reviewPay: "Semak dan bayar", continueToAddress: "Teruskan ke alamat penghantaran", continueToReview: "Teruskan ke semakan",
+    edit: "Ubah", step: "Langkah", stepDone: "selesai", contactFor: "Butiran hubungan", deliverTo: "Hantar ke", noEmail: "Tiada e-mel diberi",
   },
 } as const;

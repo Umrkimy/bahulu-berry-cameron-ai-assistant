@@ -9,7 +9,8 @@ import { ProductArtwork } from "./product-artwork";
 import { AddToCartButton } from "./add-to-cart-button";
 import { StaggerItem } from "./motion";
 
-export function ProductCard({ product }: { product: StorefrontProduct }) {
+export function ProductCard({ product, headingLevel = "h2" }: { product: StorefrontProduct; headingLevel?: "h2" | "h3" }) {
+  const Heading = headingLevel;
   const { locale } = useLocale();
   const text = productCopy[locale];
   const name = locale === "ms" ? product.name_ms : product.name_en;
@@ -20,7 +21,7 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
       <ProductArtwork imagePath={product.image_path} name={name} />
     </Link>
     <div className="catalogue-card-meta">{product.category ? <span>{product.category}</span> : null}<span className={`stock-label${product.is_available ? "" : " stock-unavailable"}`}><i aria-hidden="true" />{product.is_available ? text.available : text.unavailable}</span></div>
-    <h2><Link href={`/products/${product.id}`}>{name}</Link></h2>
+    <Heading><Link href={`/products/${product.id}`}>{name}</Link></Heading>
     {description ? <p className="catalogue-card-description">{description}</p> : null}
     {product.promotions.length > 0 ? <ul className="catalogue-promotions" aria-label={text.offers}>{product.promotions.map((promotion, i) => <li key={i}>{promotionText(promotion, locale)}</li>)}</ul> : null}
     <div className="catalogue-card-bottom"><div><strong>{money(product.sale_price ?? product.price)}</strong>{discounted ? <s aria-label={`${text.regular}: ${money(product.price)}`}>{money(product.price)}</s> : null}</div><AddToCartButton product={product} /></div>

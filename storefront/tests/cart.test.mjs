@@ -30,6 +30,14 @@ test("cart updates remain immutable and enforce the quantity boundary", () => {
   assert.equal(cartCount([{ productId: 1, quantity: 2 }, { productId: 2, quantity: 3 }]), 5);
 });
 
+test("adding several at once merges into the line and stays within the cap", () => {
+  assert.deepEqual(addCartItem([], 5, 3), [{ productId: 5, quantity: 3 }]);
+  assert.deepEqual(addCartItem([{ productId: 5, quantity: 3 }], 5, 4), [{ productId: 5, quantity: 7 }]);
+  assert.deepEqual(addCartItem([{ productId: 5, quantity: 97 }], 5, 10), [{ productId: 5, quantity: 99 }]);
+  assert.deepEqual(addCartItem([], 5, 0), [{ productId: 5, quantity: 1 }]);
+  assert.deepEqual(addCartItem([], 5, 500), [{ productId: 5, quantity: 99 }]);
+});
+
 test("cart and checkout controls have English and Bahasa Melayu copy", () => {
   assert.equal(cartCopy.en.add, "Add to cart");
   assert.equal(cartCopy.ms.add, "Tambah ke troli");

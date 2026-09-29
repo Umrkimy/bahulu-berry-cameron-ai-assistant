@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ProductDetail } from "../../_components/product-detail";
-import { getProduct } from "../../_lib/api";
+import { getCatalogueProducts, getProduct } from "../../_lib/api";
+import { relatedProducts } from "../../_lib/product-view";
 
 type Props = { params: Promise<{ id: string }> };
 export const dynamic = "force-dynamic";
@@ -16,5 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const product = await getProduct((await params).id);
   if (!product) notFound();
-  return <ProductDetail product={product} />;
+  // The suggestions row is optional: if the catalogue can't load, skip it.
+  const related = await getCatalogueProducts().then((all) => relatedProducts(all, product)).catch(() => []);
+  return <ProductDetail product={product} related={related} />;
 }

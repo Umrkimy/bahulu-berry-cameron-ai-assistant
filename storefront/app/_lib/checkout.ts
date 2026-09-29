@@ -48,6 +48,24 @@ export function validateCheckout(contact: CheckoutContact, privacyAccepted: bool
   return Object.fromEntries(order.filter((field) => errors[field]).map((field) => [field, errors[field]])) as CheckoutErrors;
 }
 
+// The checkout form is split into three steps; each field belongs to one.
+export type CheckoutStep = 1 | 2 | 3;
+export const CHECKOUT_STEP_FIELDS: Record<CheckoutStep, CheckoutField[]> = {
+  1: ["full_name", "phone_number", "email"],
+  2: ["address", "city", "postal_code", "state"],
+  3: ["privacy"],
+};
+
+export function errorsForStep(errors: CheckoutErrors, step: CheckoutStep): CheckoutErrors {
+  return Object.fromEntries(CHECKOUT_STEP_FIELDS[step].filter((field) => errors[field]).map((field) => [field, errors[field]])) as CheckoutErrors;
+}
+
+// The earliest step with a problem, so the customer is sent back to fix it.
+export function firstStepWithErrors(errors: CheckoutErrors): CheckoutStep | null {
+  for (const step of [1, 2, 3] as const) if (Object.keys(errorsForStep(errors, step)).length) return step;
+  return null;
+}
+
 export function checkoutPayload(
   items: { productId: number; quantity: number }[],
   contact: CheckoutContact,
