@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test, mock, afterEach } from "node:test";
 import { productMediaUrl } from "../app/_lib/product-media.ts";
 import { GET } from "../app/product-media/[productId]/[imageId]/route.ts";
-import { getFeaturedProduct, getCatalogueProducts, getProduct } from "../app/_lib/api.ts";
+import { getCatalogueProducts, getProduct } from "../app/_lib/api.ts";
 
 afterEach(() => mock.restoreAll());
 test("media URLs only address product image records", () => {
@@ -22,8 +22,8 @@ test("media proxy rejects non-image content and does not cache failures", async 
   assert.equal(await response.text(), "");
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
-test("all product data reads are fresh, including featured and detail", async () => {
+test("all product data reads are fresh, including detail", async () => {
   const fetch = mock.method(globalThis, "fetch", async () => Response.json({ items: [], pages: 0 }));
-  await getFeaturedProduct(); await getCatalogueProducts(); await getProduct("1");
+  await getCatalogueProducts(); await getProduct("1");
   assert.ok(fetch.mock.calls.every(call => call.arguments[1].cache === "no-store"));
 });

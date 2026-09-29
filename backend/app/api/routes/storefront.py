@@ -16,7 +16,7 @@ from app.core.rate_limit import (
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.product import Product
-from app.models.product_image import ProductImage, StorefrontFeature
+from app.models.product_image import ProductImage
 from app.api.routes.product_images import image_response
 from app.services.product_services import product_sale_price
 from app.schemas.product import ProductImagePublic
@@ -212,14 +212,6 @@ async def get_storefront_product(
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product is not available.")
     return _serialize_product(product)
-
-
-@router.get("/featured", response_model=StorefrontProduct | None)
-async def featured_product(request: Request, db: Annotated[AsyncSession, Depends(get_db)], response: Response):
-    await rate_limiter.check(request, "storefront-featured", STOREFRONT_READ_LIMIT)
-    response.headers["Cache-Control"] = "no-store"
-    product = await db.scalar(select(Product).join(StorefrontFeature, StorefrontFeature.product_id == Product.id).where(StorefrontFeature.id == 1, *_published_filters()))
-    return _serialize_product(product) if product and product.images else None
 
 
 @router.post("/quote", response_model=StorefrontQuoteResponse)

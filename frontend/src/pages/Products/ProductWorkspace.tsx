@@ -1,12 +1,10 @@
 import { Alert, Anchor, Badge, Button, Card, Divider, Group, Loader, NumberInput, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconCheck, IconExternalLink, IconLanguage, IconPhoto, IconSettings, IconStar } from "@tabler/icons-react";
+import { IconArrowLeft, IconCheck, IconExternalLink, IconLanguage, IconPhoto, IconSettings } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import api from "../../api/axios";
 import { getApiError } from "../../api/errors";
 import useAuth from "../../auth/useAuth";
 import ProductPhotos from "../../components/product/ProductPhotos";
@@ -161,14 +159,9 @@ function ProductDetailsForm({ product, canEdit, onDirtyChange }: { product: Prod
 }
 
 function StorefrontForm({ product, canEdit, onDirtyChange }: { product: Product; canEdit: boolean; onDirtyChange: (dirty: boolean) => void }) {
-  const queryClient = useQueryClient();
+  // The homepage hero is the fixed brand artwork, so products are no longer
+  // featured from here.
   const update = useUpdateProduct();
-  const featured = useQuery({ queryKey: ["storefront-featured-selection"], queryFn: async () => (await api.get<{ id: number } | null>("/storefront/featured")).data });
-  const feature = useMutation({
-    mutationFn: () => api.put(`/products/${product.id}/feature`),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["storefront-featured-selection"] }); notifications.show({ color: "green", title: "Homepage updated", message: "This product is now featured." }); },
-    onError: (error) => notifications.show({ color: "red", title: "Homepage could not be updated", message: getApiError(error).message }),
-  });
   const form = useForm({
     initialValues: { name_ms: product.name_ms ?? "", description_ms: product.description_ms ?? "", storefront_published: product.storefront_published },
     onValuesChange: () => onDirtyChange(true),
@@ -198,7 +191,7 @@ function StorefrontForm({ product, canEdit, onDirtyChange }: { product: Product;
     <Card withBorder><Stack gap="xs"><Text fw={700}>Publishing checklist</Text>{readiness.map((item) => <Group key={item.label} gap="xs"><Badge color={item.ready ? "green" : "gray"} circle>{item.ready ? <IconCheck size={12} /> : "–"}</Badge><Text size="sm" c={item.ready ? undefined : "dimmed"}>{item.label}</Text></Group>)}</Stack></Card>
     <Switch label="Published online" description={form.values.storefront_published ? "Visible in the public catalogue while active and available according to stock." : "Saved as a private storefront draft."} checked={form.values.storefront_published} disabled={!canEdit || update.isPending || (!readyToPublish && !form.values.storefront_published)} onChange={(event) => form.setFieldValue("storefront_published", event.currentTarget.checked)} />
     <Group justify="space-between" wrap="wrap">
-      <Group><Button type="button" variant="light" leftSection={<IconStar size={16} />} loading={feature.isPending} disabled={!canEdit || !product.storefront_published || featured.data?.id === product.id} onClick={() => feature.mutate()}>{featured.data?.id === product.id ? "Featured on homepage" : "Feature on homepage"}</Button>{product.storefront_published ? <Button component="a" href={`${storefrontBase}/products/${product.id}`} target="_blank" rel="noreferrer" variant="default" rightSection={<IconExternalLink size={14} />}>Preview product</Button> : null}</Group>
+      {product.storefront_published ? <Group><Button component="a" href={`${storefrontBase}/products/${product.id}`} target="_blank" rel="noreferrer" variant="default" rightSection={<IconExternalLink size={14} />}>Preview product</Button></Group> : null}
       {canEdit ? <Button type="submit" loading={update.isPending}>Save storefront</Button> : null}
     </Group>
   </Stack></form>;

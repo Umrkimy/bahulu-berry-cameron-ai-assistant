@@ -24,7 +24,7 @@ os.environ.update({
 })
 
 from app.db.database import Base, engine, AsyncSessionLocal
-from app.models import Admin, StorefrontFeature
+from app.models import Admin
 from app.auth.password import hash_password
 from main import app
 import app.payments.service as payment_service
@@ -54,7 +54,6 @@ async def seed():
         await connection.run_sync(Base.metadata.create_all)
     async with AsyncSessionLocal() as session:
         session.add(Admin(username="fictional-owner", email="owner@example.com", password_hash=hash_password("Fictional-E2E-Only-123!"), role="OWNER", is_active=True))
-        session.add(StorefrontFeature(id=1))
         await session.commit()
     await engine.dispose()
 

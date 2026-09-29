@@ -10,7 +10,7 @@ from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.product import Product
-from app.models.product_image import MediaAsset, ProductImage, StorefrontFeature
+from app.models.product_image import MediaAsset, ProductImage
 from app.schemas.media import MediaAttachment
 from app.schemas.product import ProductImageAdmin
 from app.services.activity_services import record_activity
@@ -184,20 +184,3 @@ async def remove_image(product_id: int, image_id: int, db: DB, owner: Owner):
         item.position = index
     await log_change(db, owner, product_id, "Removed product photo.")
     await db.commit()
-
-
-@router.put("/{product_id}/feature")
-async def feature_product(product_id: int, db: DB, owner: Owner):
-    # Singleton row is seeded by the migration. Its lock serialises selections.
-    feature = await db.scalar(select(StorefrontFeature).where(StorefrontFeature.id == 1).with_for_update())
-    if feature is None:
-        raise HTTPException(503, "Apply the product gallery migration first.")
-    product = await locked_product(db, product_id)
-    if not (product.is_active and product.storefront_published and product.name and product.name_ms and product.images):
-        raise HTTPException(422, "Publish an active product with bilingual names and a cover photo first.")
-    if not media_path(product.images[0].asset.storage_key, product.images[0].asset.legacy).is_file():
-        raise HTTPException(422, "Upload a working cover photo first.")
-    feature.product_id = product_id
-    await log_change(db, owner, product_id, "Selected product for homepage.")
-    await db.commit()
-    return {"product_id": product_id}

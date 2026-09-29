@@ -11,7 +11,6 @@ from app.schemas.pagination import PaginatedResponse
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.models.admin import Admin
 from app.models.product import Product
-from app.models.product_image import StorefrontFeature
 from app.models.inventory import Inventory
 from app.models.order_item import OrderItem
 from app.models.stock_movement import StockMovement
@@ -463,13 +462,6 @@ async def update_product(
         Depends(get_current_superuser),
     ],
 ):
-    feature = None
-    if product_data.is_active is False or product_data.storefront_published is False:
-        # Keep the same lock order as homepage feature selection to avoid a
-        # product/feature deadlock during concurrent unpublish operations.
-        feature = await db.scalar(
-            select(StorefrontFeature).where(StorefrontFeature.id == 1).with_for_update()
-        )
     result = await db.execute(
         select(Product)
         .options(selectinload(Product.images))
@@ -535,10 +527,6 @@ async def update_product(
 
     for field, value in update_data.items():
         setattr(product, field, value)
-
-    if not product.storefront_published:
-        if feature is not None and feature.product_id == product.id:
-            feature.product_id = None
 
     await record_activity(db, admin=current_admin, action="updated", entity_type="product", entity_id=product.id, description=f"Updated product {product.name}.")
     await db.commit()
