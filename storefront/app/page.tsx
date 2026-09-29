@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { HomeContent } from "./_components/home-content";
 import { HomeCollection } from "./_components/home-collection";
-import { getProducts, getFeaturedProduct, getHomepage } from "./_lib/api";
+import { getProducts, getHomepage } from "./_lib/api";
 import { ProductHero } from "./_components/product-hero";
 import type { StorefrontProduct } from "./_lib/types";
 import { defaultHomepage } from "./_lib/content";
@@ -37,8 +37,8 @@ export default async function HomePage() {
   try { content = await getHomepage(); }
   catch { /* Keep the bundled fallback if the content API is unavailable. */ }
   return (
-    <HomeContent content={content} hero={<Suspense fallback={<ProductHero product={null} />}><FeaturedHero /></Suspense>}
-      stats={<HomeStats showDraft={showDraftContent()} />}
+    <HomeContent content={content} hero={<ProductHero />}
+      stats={<HomeStats />}
       videos={<Suspense fallback={null}><FeaturedVideos /></Suspense>}
       faq={<FaqSection showDraft={showDraftContent()} />}>
       <Suspense fallback={<HomeCollection products={[]} state="loading" />}>
@@ -46,13 +46,6 @@ export default async function HomePage() {
       </Suspense>
     </HomeContent>
   );
-}
-
-async function FeaturedHero() {
-  let product: StorefrontProduct | null = null;
-  try { product = await getFeaturedProduct(); }
-  catch { /* Keep the branded hero available when the API is unavailable. */ }
-  return <ProductHero key={product?.image_path ?? "empty"} product={product} />;
 }
 
 async function FeaturedVideos() {

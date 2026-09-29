@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.static_assets import PublicStaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.db.database import get_db
-from app.models import Admin, Inventory, Product, StorefrontFeature
+from app.models import Admin, Inventory, Product
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.services.product_media import MAX_UPLOAD, media_path, save_image
 
@@ -29,7 +29,7 @@ def photo(color="red", format="PNG", size=(60, 90)):
 async def client(session, tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PRODUCT_MEDIA_DIRECTORY", str(tmp_path))
     owner = Admin(username="gallery-owner", email="gallery@example.test", password_hash="unused", role="OWNER")
-    session.add_all([owner, StorefrontFeature(id=1)])
+    session.add(owner)
     await session.commit()
     app = FastAPI()
     app.include_router(product_images.router, prefix="/api/products")
@@ -62,18 +62,13 @@ async def upload(client, product_id, data=None):
     return response.json()
 
 
-async def test_full_gallery_publish_feature_and_reload_workflow(client, session):
+async def test_full_gallery_publish_and_reload_workflow(client, session):
     pid = await create(client)
     first = await upload(client, pid)
     second = await upload(client, pid, photo("blue"))
     public_first = f"/api/storefront/products/{pid}/images/{first['id']}/content"
     assert (await client.get(public_first)).status_code == 404
-    assert (await client.put(f"/api/products/{pid}/feature")).status_code == 422
     await publish(client, pid)
-    assert (await client.put(f"/api/products/{pid}/feature")).status_code == 200
-    result = await client.get("/api/storefront/featured")
-    assert result.json()["id"] == pid
-    assert result.headers["cache-control"] == "no-store"
     image_response = await client.get(public_first)
     assert image_response.headers["content-type"] == "image/webp"
     original = image_response.content
@@ -91,14 +86,12 @@ async def test_full_gallery_publish_feature_and_reload_workflow(client, session)
     assert product["description_en"] == "Fictional updated description"
     await client.patch(f"/api/products/{pid}", json={"storefront_published": False})
     assert (await client.get(public_first)).status_code == 404
-    assert (await client.get("/api/storefront/featured")).json() is None
     await publish(client, pid)
     await client.patch(f"/api/products/{pid}", json={"is_active": False})
     assert (await client.get(public_first)).status_code == 404
     await client.patch(f"/api/products/{pid}", json={"is_active": True})
     for image in [first, second]:
         assert (await client.delete(f"/api/products/{pid}/images/{image['id']}")).status_code == 204
-    assert (await client.get("/api/storefront/featured")).json() is None
 
 
 async def test_publication_lifecycle_enforces_readiness_and_protects_final_photo(client):
@@ -124,7 +117,6 @@ async def test_publication_lifecycle_enforces_readiness_and_protects_final_photo
     )
     assert published.status_code == 200
     assert published.json()["storefront_published"] is True
-    assert (await client.put(f"/api/products/{pid}/feature")).status_code == 200
 
     final_photo = await client.delete(f"/api/products/{pid}/images/{image['id']}")
     assert final_photo.status_code == 409
@@ -134,7 +126,6 @@ async def test_publication_lifecycle_enforces_readiness_and_protects_final_photo
     assert deactivated.status_code == 200
     assert deactivated.json()["is_active"] is False
     assert deactivated.json()["storefront_published"] is False
-    assert (await client.get("/api/storefront/featured")).json() is None
     assert (await client.delete(f"/api/products/{pid}/images/{image['id']}")).status_code == 204
 
 
@@ -161,7 +152,6 @@ async def test_gallery_limits_invalid_order_and_owner_permissions(client):
     assert (await client.delete(f"/api/products/{pid + 1}/images/{images[0]['id']}")).status_code == 404
     client.owner.role = "STAFF"
     assert (await client.post(f"/api/products/{pid}/images", files={"file": ("photo.png", photo())})).status_code == 403
-    assert (await client.put(f"/api/products/{pid}/feature")).status_code == 403
     assert (await client.delete(f"/api/products/{pid}/images/{images[0]['id']}")).status_code == 403
 
 
@@ -300,23 +290,6 @@ async def test_concurrent_uploads_cannot_exceed_gallery_limit(client, session):
             except HTTPException as error:
                 return error.status_code
     assert sorted(await asyncio.gather(attempt("orange"), attempt("cyan"))) == [201, 422]
-
-
-async def test_concurrent_feature_selection_has_one_winner(client, session):
-    if session.bind.dialect.name != "postgresql":
-        pytest.skip("Requires PostgreSQL row locks")
-    ids = [await create(client, f"Fictional selection {i}") for i in range(2)]
-    for pid in ids:
-        await upload(client, pid)
-        await publish(client, pid)
-    factory = async_sessionmaker(session.bind, expire_on_commit=False)
-    async def choose(pid):
-        async with factory() as db:
-            await product_images.feature_product(pid, db, client.owner)
-    await asyncio.gather(*(choose(pid) for pid in ids))
-    async with factory() as db:
-        rows = (await db.scalars(select(StorefrontFeature))).all()
-        assert len(rows) == 1 and rows[0].product_id in ids
 
 
 async def test_legacy_static_url_cannot_bypass_publication(tmp_path):

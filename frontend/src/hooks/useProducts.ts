@@ -52,10 +52,7 @@ export function useUpdateProduct() {
 
     onSuccess(product) {
       queryClient.setQueryData(["products", product.id], product);
-      void Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["products"] }),
-        queryClient.invalidateQueries({ queryKey: ["storefront-featured-selection"] }),
-      ]);
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 }

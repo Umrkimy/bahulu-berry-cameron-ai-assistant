@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const policy = findPolicy((await params).slug);
-  // Draft policies stay hidden until the client approves them.
-  if (!policy || !showDraftContent()) notFound();
-  return <PolicyPage slug={policy.slug} />;
+  if (!policy) notFound();
+  // Draft wording stays hidden until the client approves it; the page then
+  // only says the policy is being prepared.
+  return <PolicyPage slug={policy.slug} showDraft={showDraftContent()} />;
 }

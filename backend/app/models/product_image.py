@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -44,11 +44,3 @@ class ProductImage(Base):
     @property
     def image_path(self) -> str:
         return f"/api/products/{self.product_id}/images/{self.id}/content"
-
-
-class StorefrontFeature(Base):
-    __tablename__ = "storefront_feature"
-    __table_args__ = (CheckConstraint("id = 1", name="single_storefront_feature"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True)

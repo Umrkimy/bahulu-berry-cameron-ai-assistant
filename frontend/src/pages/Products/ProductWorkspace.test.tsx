@@ -60,7 +60,6 @@ function installHandlers(onPatch?: (body: Record<string, unknown>) => void) {
   server.use(
     http.get("http://localhost:8000/api/products/7", () => HttpResponse.json(product)),
     http.get("http://localhost:8000/api/discounts", () => HttpResponse.json([])),
-    http.get("http://localhost:8000/api/storefront/featured", () => HttpResponse.json(null)),
     http.patch("http://localhost:8000/api/products/7", async ({ request }) => {
       const body = await request.json() as Record<string, unknown>;
       onPatch?.(body);
@@ -111,6 +110,6 @@ describe("ProductWorkspace", () => {
     expect(await screen.findByText("Read-only access")).toBeVisible();
     expect(await screen.findByLabelText(/Product name.*Bahasa Melayu/)).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Save storefront" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Feature on homepage" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Feature/ })).not.toBeInTheDocument();
   });
 });

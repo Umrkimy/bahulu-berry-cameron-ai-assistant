@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { showDraftContent } from "../app/_lib/draft-content.ts";
 import { faqItems } from "../app/_lib/faq.ts";
-import { findPolicy, policies } from "../app/_lib/policies.ts";
+import { findPolicy, policies, policyPending } from "../app/_lib/policies.ts";
 
 const bilingual = (text) => Boolean(text?.en?.trim() && text?.ms?.trim());
 
@@ -39,4 +39,9 @@ test("the four policies exist and every section is bilingual", () => {
     }
   }
   assert.equal(findPolicy("../secrets"), undefined);
+});
+
+test("unapproved policies show a bilingual placeholder instead of draft wording", () => {
+  assert.ok(policyPending.en && policyPending.ms);
+  for (const policy of policies) assert.ok(!policyPending.en.includes(policy.intro.en));
 });
