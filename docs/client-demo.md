@@ -1,12 +1,14 @@
 # Private client demo
 
-Use this 5-10 minute walkthrough only behind approved access with fictional
-records. It demonstrates workflow and safeguards, not real products, prices,
+Run this 5-10 minute walkthrough on the local stack over a screen share
+(for example Google Meet), with fictional records. It demonstrates workflow and safeguards, not real products, prices,
 policies, delivery, payments, or WhatsApp commitments.
 
 ## Before the call
 
-- Follow the private-demo start and verification steps in `operations.md`.
+- Start the local stack and check it as in `operations.md` ("Start and stop").
+- Share only the browser window, and close terminals, `.env` files and
+  notifications first.
 - Confirm the catalogue uses the real test backend and fictional approved-for-
   demo photos, not historical mock servers.
 - Confirm no live WhatsApp sending or public checkout is enabled.
