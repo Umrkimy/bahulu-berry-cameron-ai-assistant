@@ -88,12 +88,16 @@ class Order(Base):
         nullable=True,
     )
 
-    # SHA-256 of the customer's private tracking token. The token itself is
-    # returned once at checkout and never stored.
-    tracking_token_hash: Mapped[str | None] = mapped_column(
-        String(64),
-        unique=True,
-        index=True,
+    # Website checkout details used for status emails: the email typed at
+    # checkout (kept even when the customer record already has another) and
+    # the storefront language.
+    contact_email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    locale: Mapped[str | None] = mapped_column(
+        String(2),
         nullable=True,
     )
 

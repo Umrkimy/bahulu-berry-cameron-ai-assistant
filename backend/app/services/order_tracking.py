@@ -1,7 +1,8 @@
 """Private order tracking for website customers, without an account.
 
-Each website order gets a random tracking token at checkout. Only its SHA-256
-hash is stored, so a database leak does not reveal working links. Customers can
+Each website order gets a random tracking token at checkout, and each status
+email carries a fresh one. Only their SHA-256 hashes are stored (one row per
+link), so a database leak does not reveal working links. Customers can
 also find an order with its number and the phone number used at checkout.
 Tracking stops ``TRACKING_RETENTION_DAYS`` after the order closes.
 """
@@ -17,6 +18,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.order_tracking_token import OrderTrackingToken
 from app.schemas.storefront import (
     StorefrontTrackedDelivery,
     StorefrontTrackedItem,
@@ -37,10 +39,10 @@ def hash_tracking_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def issue_tracking_token(order: Order) -> str:
-    """Give the order a fresh token, replacing any earlier one."""
+def issue_tracking_token(db: AsyncSession, order: Order) -> str:
+    """Add a fresh tracking link for the order; earlier links keep working."""
     token = new_tracking_token()
-    order.tracking_token_hash = hash_tracking_token(token)
+    db.add(OrderTrackingToken(order_id=order.id, token_hash=hash_tracking_token(token)))
     return token
 
 
@@ -73,7 +75,9 @@ def _tracked_order_query():
 async def find_order_by_token(db: AsyncSession, token: str) -> Order | None:
     if not TOKEN_PATTERN.fullmatch(token):
         return None
-    order = await db.scalar(_tracked_order_query().where(Order.tracking_token_hash == hash_tracking_token(token)))
+    order = await db.scalar(_tracked_order_query().join(OrderTrackingToken, OrderTrackingToken.order_id == Order.id).where(
+        OrderTrackingToken.token_hash == hash_tracking_token(token)
+    ))
     return order if order is not None and is_trackable(order) else None
 
 

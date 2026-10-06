@@ -30,6 +30,7 @@ from app.services.order_services import (
 )
 from app.services.pricing_services import calculate_order_pricing
 from app.services.activity_services import record_activity
+from app.services.customer_status_emails import ORDER_SHIPPED, queue_status_email
 from app.services.fulfillment_services import get_fulfillment_queue
 from datetime import UTC, datetime
 
@@ -150,6 +151,7 @@ async def dispatch_order(
     delivery.shipped_at = datetime.now(UTC)
     order.status = "SHIPPED"
     await db.flush()
+    await queue_status_email(db, order, ORDER_SHIPPED)
     await record_activity(db, admin=current_admin, action="confirmed", entity_type="order", entity_id=order.id, description=f"Confirmed packing for {len(order.items)} item line{'s' if len(order.items) != 1 else ''} and dispatched order #{order.id}.")
     await record_activity(db, admin=current_admin, action="updated", entity_type="delivery", entity_id=delivery.id, description=f"Marked delivery for order #{order.id} as shipped.")
     await record_activity(db, admin=current_admin, action="updated", entity_type="order", entity_id=order.id, description=f"Marked order #{order.id} as shipped.")

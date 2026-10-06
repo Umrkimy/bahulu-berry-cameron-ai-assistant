@@ -64,9 +64,9 @@ async def _replay(db: AsyncSession, existing: CheckoutRequest, request_hash: str
     payment = await db.get(Payment, existing.payment_id) if existing.payment_id else None
     if order is None or payment is None or payment.status != "PENDING" or not payment.payment_url:
         raise CheckoutError(409, "CHECKOUT_CLOSED", "This checkout has finished. Please start again from your cart.")
-    # The first token was never stored, so a retry gets a new one; only the
-    # latest link works.
-    tracking_token = issue_tracking_token(order)
+    # The first token was never stored, so a retry gets a new link; the
+    # earlier one keeps working too.
+    tracking_token = issue_tracking_token(db, order)
     await db.commit()
     return _response(order, payment, tracking_token)
 
@@ -175,7 +175,9 @@ async def place_storefront_order(
         logger.warning("storefront_payment_create_failed", extra={"error_type": type(error).__name__})
         raise CheckoutError(503, "PAYMENT_UNAVAILABLE", "Online payment is unavailable right now. Please try again shortly.") from error
 
-    tracking_token = issue_tracking_token(order)
+    order.contact_email = normalize_email(contact.email)
+    order.locale = data.locale
+    tracking_token = issue_tracking_token(db, order)
     db.add(CheckoutRequest(
         idempotency_key=idempotency_key,
         request_hash=request_hash,

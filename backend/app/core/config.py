@@ -81,6 +81,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: SecretStr = SecretStr("")
     APP_BASE_URL: str = "http://localhost:5173"
     PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+    # Emails website customers when their order is paid, shipped, delivered,
+    # not delivered, or cancelled. Off until Umar and the client approve
+    # customer emails. Links in them point at the public storefront.
+    CUSTOMER_STATUS_EMAILS_ENABLED: bool = False
+    STOREFRONT_PUBLIC_URL: str = "http://localhost:3000"
 
     # Public Google content remains unavailable unless this server-only gate is
     # explicitly enabled after the listing, policies, and restricted keys are
@@ -151,6 +156,8 @@ class Settings(BaseSettings):
             raise RuntimeError("Staging and production require explicit TRUSTED_HOSTS.")
         if len(self.SECRET_KEY.get_secret_value()) < 32:
             raise RuntimeError("SECRET_KEY must be at least 32 characters outside local development.")
+        if self.CUSTOMER_STATUS_EMAILS_ENABLED and not self.STOREFRONT_PUBLIC_URL.startswith("https://"):
+            raise RuntimeError("Customer status emails need an https:// STOREFRONT_PUBLIC_URL outside local development.")
 
 
 settings = Settings()

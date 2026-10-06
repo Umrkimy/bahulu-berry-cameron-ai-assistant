@@ -24,6 +24,7 @@ from app.models.payment import Payment
 from app.payments.service import create_payment
 from app.schemas.payment import PaymentResponse
 from app.services.activity_services import record_activity
+from app.services.customer_status_emails import ORDER_RECEIVED, queue_status_email
 from app.services.notification_services import notify_owners_with_email
 from app.services.storefront_checkout import cancel_unpaid_storefront_order
 
@@ -357,6 +358,7 @@ async def stripe_webhook(
             idempotency_key_prefix=f"payment-confirmed:{payment.id}",
         )
 
+        await queue_status_email(db, order, ORDER_RECEIVED)
         await record_activity(db, admin=None, action="paid", entity_type="payment", entity_id=payment.id, description=f"Stripe payment for order #{payment.order_id} was confirmed.")
 
         await db.commit()

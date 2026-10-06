@@ -18,6 +18,7 @@ from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.refund_request import RefundRequest
 from app.payments.service import expire_pending_payments
+from app.services.customer_status_emails import ORDER_CANCELLED, queue_status_email
 from app.services.inventory_services import adjust_inventory
 from app.services.pricing_services import calculate_order_pricing
 from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
@@ -672,6 +673,9 @@ async def cancel_order(
     order.status = "CANCELLED"
     order.closed_at = datetime.now(UTC)
     await expire_pending_payments(db, order.id)
+    if order.payment_status == "PAID":
+        # Unpaid website orders that time out are cancelled quietly.
+        await queue_status_email(db, order, ORDER_CANCELLED)
 
     refund_request_id = None
     refund_request_auto_approved = False
