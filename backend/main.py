@@ -11,7 +11,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.core.static_assets import PublicStaticFiles
-from sqlalchemy.exc import IntegrityError
+from asyncpg.exceptions import DataError as AsyncpgDataError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 
 from app.db.database import AsyncSessionLocal, engine
 
@@ -120,6 +121,20 @@ async def handle_integrity_error(_, __):
             "detail": "A record with those details already exists. Please review your entries and try again.",
         },
     )
+
+
+def _is_invalid_value_error(error: DBAPIError) -> bool:
+    # asyncpg rejects values the column cannot hold (such as an ID beyond the
+    # integer range) with DataError, which SQLAlchemy wraps in DBAPIError.
+    return isinstance(error, DataError) or isinstance(getattr(error.orig, "__cause__", None), AsyncpgDataError)
+
+
+@app.exception_handler(DBAPIError)
+async def handle_invalid_value_error(request: Request, error: DBAPIError):
+    if not _is_invalid_value_error(error):
+        raise error
+    logger.warning("invalid_database_value", extra={"path": request.url.path})
+    return JSONResponse(status_code=422, content={"detail": "One of the values in this request is invalid."})
 
 app.mount(
     "/static",
