@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.constants.delivery import DELIVERY_STATUS
 from app.models.delivery import Delivery
 from app.models.order import Order
+from app.services.customer_status_emails import DELIVERY_FAILED, ORDER_DELIVERED, queue_status_email
 
 
 async def get_delivery_by_order(
@@ -59,6 +60,7 @@ async def update_delivery(
         return delivery
 
     new_status = None
+    status_changed = False
 
     if "status" in update_data:
         new_status = update_data["status"]
@@ -87,6 +89,7 @@ async def update_delivery(
                 raise ValueError("Dispatch the order before updating delivery progress.")
 
         if new_status != delivery.status:
+            status_changed = True
             _update_delivery_timestamp(
                 delivery=delivery,
                 new_status=new_status,
@@ -105,6 +108,11 @@ async def update_delivery(
             order_id=order_id,
             delivery_status=new_status,
         )
+        if status_changed and new_status == "DELIVERED":
+            await queue_status_email(db, order, ORDER_DELIVERED)
+        elif status_changed and new_status == "FAILED":
+            # A delivery can fail again after a retry; each failure is its own email.
+            await queue_status_email(db, order, DELIVERY_FAILED, occurrence=delivery.failed_at.isoformat())
 
     await db.flush()
 

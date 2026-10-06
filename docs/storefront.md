@@ -83,6 +83,32 @@ migration is not a substitute for restoring matching data/media backups.
   use its `whsec_...` as `STRIPE_WEBHOOK_SECRET`, and pay with card
   `4242 4242 4242 4242`.
 
+## Order tracking and status emails
+
+- Each website order can have several private tracking links
+  (`/orders/<token>`): one on the checkout success page and one in each status
+  email. Only SHA-256 hashes are stored (`order_tracking_tokens`), and every
+  link stops working `TRACKING_RETENTION_DAYS` (90) after the order closes.
+  Customers who lose their link use `/orders/find` with the order number and
+  phone.
+- With `CUSTOMER_STATUS_EMAILS_ENABLED=true`, website orders that gave an email
+  at checkout get one email, in the checkout language, when the order is paid,
+  shipped (with courier and tracking number), delivered, not delivered (each
+  failure), or cancelled after payment. Unpaid orders that time out, being
+  prepared, in transit and out for delivery send nothing. WhatsApp and
+  admin-entered orders are never emailed.
+- A status change queues an `email_deliveries` row in the same transaction; the
+  API sends queued rows every minute and retries a failed send up to five
+  times. A tracking link only works once its email has been sent.
+- The wording (`backend/app/services/customer_status_emails.py`) is a draft
+  for Umar's review, ideally with a native BM reader. It states facts only.
+- Before switching it on anywhere real: Umar's and the client's approval; the
+  bakery's domain verified in Resend with `EMAIL_FROM` set (until then Resend
+  only delivers to the account owner); an `https://` `STOREFRONT_PUBLIC_URL`
+  (staging and production refuse to start without one); the privacy policy
+  approved; and the checkout email hint updated to mention order updates. Test
+  locally with `EMAIL_PROVIDER=console`.
+
 ## Homepage workflow
 
 Owners manage the fixed landing-page content at `/storefront/homepage` in the

@@ -24,9 +24,48 @@ def _reset_url(token: str) -> str:
     return f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={token}"
 
 
-def _html(title: str, body: str, action_url: str | None = None, action_label: str | None = None) -> str:
+ADMIN_FOOTER = "Bahulu Berry Cameron Admin · English / Bahasa Melayu"
+
+
+def email_html(title: str, body: str, action_url: str | None = None, action_label: str | None = None, footer: str = ADMIN_FOOTER) -> str:
+    paragraphs = "".join(f"<p>{escape(line)}</p>" for line in body.splitlines() if line.strip())
     button = f'<p><a href="{escape(action_url or "", quote=True)}">{escape(action_label or "Open dashboard")}</a></p>' if action_url else ""
-    return f"<html><body><h2>{escape(title)}</h2><p>{escape(body)}</p>{button}<hr><p><small>Bahulu Berry Cameron Admin · English / Bahasa Melayu</small></p></body></html>"
+    return f"<html><body><h2>{escape(title)}</h2>{paragraphs}{button}<hr><p><small>{escape(footer)}</small></p></body></html>"
+
+
+async def deliver_email(*, to_address: str, email_type: str, subject: str, html: str, idempotency_key: str | None) -> tuple[str, str | None]:
+    """Hand one email to the configured provider.
+
+    Returns the delivery status (SENT, FAILED or SKIPPED) and the provider's
+    message id. Never raises for provider or network errors, and never logs
+    the address.
+    """
+    provider = settings.EMAIL_PROVIDER.lower().strip()
+    if provider == "console":
+        logger.info("email_console_delivery type=%s", email_type)
+        return "SENT", None
+    if provider != "resend":
+        logger.warning("email_not_sent_unknown_provider type=%s", email_type)
+        return "SKIPPED", None
+    key = settings.RESEND_API_KEY.get_secret_value()
+    if not key:
+        logger.warning("email_not_sent_provider_not_configured type=%s", email_type)
+        return "SKIPPED", None
+    payload = {"from": settings.EMAIL_FROM, "to": [to_address], "subject": subject, "html": html}
+    headers = {"Authorization": f"Bearer {key}"}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
+        response.raise_for_status()
+        return "SENT", response.json().get("id")
+    except httpx.HTTPStatusError as error:
+        # The status says why (403 is usually an unverified sender domain); the body may echo addresses, so it is not logged.
+        logger.warning("email_delivery_failed type=%s status=%s", email_type, error.response.status_code)
+    except httpx.HTTPError:
+        logger.warning("email_delivery_failed type=%s status=network", email_type)
+    return "FAILED", None
 
 
 async def send_email(
@@ -35,37 +74,10 @@ async def send_email(
 ) -> EmailDelivery | None:
     if idempotency_key and await db.scalar(select(EmailDelivery.id).where(EmailDelivery.idempotency_key == idempotency_key)):
         return None
-    provider = settings.EMAIL_PROVIDER.lower().strip()
-    provider_message_id: str | None = None
-    delivery_status = "SENT"
-    if provider == "resend":
-        key = settings.RESEND_API_KEY.get_secret_value()
-        if not key:
-            logger.warning("email_not_sent_provider_not_configured type=%s", email_type)
-            delivery_status = "SKIPPED"
-        else:
-            payload = {"from": settings.EMAIL_FROM, "to": [recipient.email], "subject": subject, "html": _html(subject, body, action_url, action_label)}
-            headers = {"Authorization": f"Bearer {key}"}
-            if idempotency_key:
-                headers["Idempotency-Key"] = idempotency_key
-            try:
-                async with httpx.AsyncClient(timeout=10) as client:
-                    response = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
-                response.raise_for_status()
-                provider_message_id = response.json().get("id")
-            except httpx.HTTPStatusError as error:
-                # The status says why (403 is usually an unverified sender domain); the body may echo addresses, so it is not logged.
-                logger.warning("email_delivery_failed type=%s status=%s", email_type, error.response.status_code)
-                delivery_status = "FAILED"
-            except httpx.HTTPError:
-                logger.warning("email_delivery_failed type=%s status=network", email_type)
-                delivery_status = "FAILED"
-    elif provider != "console":
-        logger.warning("email_not_sent_unknown_provider type=%s", email_type)
-        delivery_status = "SKIPPED"
-    else:
-        logger.info("email_console_delivery type=%s recipient_admin_id=%s", email_type, recipient.id)
-
+    delivery_status, provider_message_id = await deliver_email(
+        to_address=recipient.email, email_type=email_type, subject=subject,
+        html=email_html(subject, body, action_url, action_label), idempotency_key=idempotency_key,
+    )
     record = EmailDelivery(recipient_admin_id=recipient.id, email_type=email_type, idempotency_key=idempotency_key, status=delivery_status, provider_message_id=provider_message_id, sent_at=datetime.now(UTC) if delivery_status == "SENT" else None)
     db.add(record)
     return record

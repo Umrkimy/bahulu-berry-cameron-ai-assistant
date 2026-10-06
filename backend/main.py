@@ -29,6 +29,7 @@ from app.services.messaging import purge_expired_message_content
 from app.services.notification_services import purge_expired_notifications
 from app.services.email_services import purge_expired_email_security_records
 from app.services.storefront_checkout import cancel_stale_storefront_orders
+from app.services.customer_status_emails import send_queued_status_emails
 
 
 configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT)
@@ -73,9 +74,20 @@ async def lifespan(app: FastAPI):
                 logger.exception("unpaid_storefront_order_cleanup_failed")
             await asyncio.sleep(300)
 
+    async def customer_status_email_loop() -> None:
+        # Sends queued order status emails; does nothing while they are disabled.
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    await send_queued_status_emails(session)
+            except Exception:
+                logger.exception("customer_status_email_send_failed")
+            await asyncio.sleep(60)
+
     background_tasks = [
         asyncio.create_task(message_retention_loop()),
         asyncio.create_task(unpaid_order_loop()),
+        asyncio.create_task(customer_status_email_loop()),
     ]
     try:
         yield

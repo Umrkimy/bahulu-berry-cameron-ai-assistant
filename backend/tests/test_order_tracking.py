@@ -20,6 +20,7 @@ from app.models.customer import Customer
 from app.models.delivery import Delivery
 from app.models.inventory import Inventory
 from app.models.order import Order
+from app.models.order_tracking_token import OrderTrackingToken
 from app.models.product import Product
 from app.schemas.storefront import StorefrontCheckoutRequest, StorefrontOrderLookupRequest
 from app.services.delivery_services import update_delivery_status
@@ -97,8 +98,9 @@ async def test_checkout_returns_a_token_and_stores_only_its_hash(session):
 
     order = await session.get(Order, result.order_number)
     assert result.tracking_token
-    assert order.tracking_token_hash == hash_tracking_token(result.tracking_token)
-    assert result.tracking_token not in order.tracking_token_hash
+    stored = (await session.scalars(select(OrderTrackingToken.token_hash).where(OrderTrackingToken.order_id == order.id))).all()
+    assert stored == [hash_tracking_token(result.tracking_token)]
+    assert result.tracking_token not in stored[0]
 
     view = await track(session, result.tracking_token)
     assert view.order_number == order.id
@@ -124,14 +126,14 @@ async def test_view_exposes_no_address_email_or_full_phone(session):
         assert private not in dumped
 
 
-async def test_retry_rotates_the_token(session):
+async def test_retry_adds_a_new_link_and_keeps_the_first(session):
     first = await place_order(session)
     product_id = (await session.scalar(select(Product.id)))
     again = await storefront_checkout(checkout_body(product_id), request(), session, Response(), "fictional-track-0001")
 
     assert again.order_number == first.order_number
     assert again.tracking_token != first.tracking_token
-    await assert_not_found(track(session, first.tracking_token))
+    assert (await track(session, first.tracking_token)).order_number == first.order_number
     assert (await track(session, again.tracking_token)).order_number == first.order_number
 
 
