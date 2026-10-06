@@ -50,7 +50,10 @@ jobs:
           APP_BASE_URL=http://localhost:15173
           PASSWORD_RESET_EXPIRE_MINUTES=30
           EOF
+          # ZAP runs as a non-root user inside its image and must be able to
+          # write its config and reports into this mounted folder.
           mkdir -p security-reports
+          chmod a+rwx security-reports
       - name: Build disposable staging stack
         run: docker compose --env-file .env.security-ci up -d --build
       - name: Show stack state if it failed to start
@@ -91,6 +94,19 @@ jobs:
           path: security-reports/
           if-no-files-found: warn
           retention-days: 30
+      # Scan steps continue on error so every report is uploaded; fail here if
+      # any scan did not run to completion.
+      - name: Check every scan produced a report
+        shell: bash
+        run: |
+          missing=0
+          for report in dashboard-baseline storefront-baseline api-scan; do
+            if [ ! -s "security-reports/$report.json" ]; then
+              echo "::error::$report did not produce a report"
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Remove disposable staging stack
         if: always()
         run: docker compose --env-file .env.security-ci down --volumes --remove-orphans
