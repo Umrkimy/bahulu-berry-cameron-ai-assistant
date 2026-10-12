@@ -7,13 +7,17 @@ import stripe
 from app.core.config import settings
 from app.payments.base import PaymentProvider
 
+STRIPE_API_VERSION = "2026-09-30.endive"
+
 
 class StripeProvider(PaymentProvider):
     name = "stripe"
 
     def __init__(self) -> None:
+        # Pinned so an SDK upgrade never silently changes response shapes.
         self.client = stripe.StripeClient(
             settings.STRIPE_SECRET_KEY.get_secret_value(),
+            stripe_version=STRIPE_API_VERSION,
         )
 
     async def create_payment(
