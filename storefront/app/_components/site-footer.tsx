@@ -11,7 +11,7 @@ import { SocialIcon } from "./social-icons";
 
 // Legal links always show; until the client approves the policies, each page
 // says it is being prepared (see app/policies/[slug]/page.tsx).
-export function SiteFooter({ showTracking }: { showTracking: boolean }) {
+export function SiteFooter({ showTracking, showAccount = false }: { showTracking: boolean; showAccount?: boolean }) {
   const { locale } = useLocale();
   const text = copy[locale];
   const number = whatsAppNumber();
@@ -40,6 +40,7 @@ export function SiteFooter({ showTracking }: { showTracking: boolean }) {
           <li><Link href="/about">{text.navAbout}</Link></li>
           <li><Link href="/#faq">{ms ? "Soalan lazim" : "FAQ"}</Link></li>
           <li><Link href="/cart">{ms ? "Troli" : "Cart"}</Link></li>
+          {showAccount ? <li><Link href="/account">{ms ? "Akaun saya" : "My account"}</Link></li> : null}
           {showTracking ? <li><Link href="/orders/find">{ms ? "Jejak pesanan" : "Track my order"}</Link></li> : null}
         </ul>
       </nav>

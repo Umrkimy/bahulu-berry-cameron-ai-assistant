@@ -18,10 +18,12 @@ function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, viewport);
   const [belowFold, setBelowFold] = useState(false);
+  // Visitors who ask for less motion get every section shown straight away.
+  const reduce = useReducedMotion();
   useEffect(() => {
     const top = ref.current?.getBoundingClientRect().top ?? 0;
-    if (top > window.innerHeight) setBelowFold(true);
-  }, []);
+    if (top > window.innerHeight && !reduce) setBelowFold(true);
+  }, [reduce]);
   return { ref, state: belowFold && !inView ? "hidden" : "shown" } as const;
 }
 
