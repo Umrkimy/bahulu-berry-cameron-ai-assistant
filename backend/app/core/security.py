@@ -38,10 +38,15 @@ def clear_auth_cookies(response: Response) -> None:
 WEBHOOK_PATHS = {"/api/payments/webhook", "/webhooks/meta/whatsapp"}
 
 
+# Customer account routes authenticate with a bearer header from the
+# storefront server, which browsers never attach on their own.
+CSRF_EXEMPT_PREFIXES = ("/api/storefront/account/",)
+
+
 def verify_csrf_request(request: Request) -> None:
     if request.method in SAFE_METHODS:
         return
-    if request.url.path in CSRF_EXEMPT_PATHS:
+    if request.url.path in CSRF_EXEMPT_PATHS or request.url.path.startswith(CSRF_EXEMPT_PREFIXES):
         # Token-less browser forms (sign-in, reset) still must not be posted
         # from another site. Server-to-server callers send no Origin at all.
         origin = request.headers.get("origin")

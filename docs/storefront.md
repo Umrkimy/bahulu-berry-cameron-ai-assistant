@@ -109,6 +109,42 @@ migration is not a substitute for restoring matching data/media backups.
   approved; and the checkout email hint updated to mention order updates. Test
   locally with `EMAIL_PROVIDER=console`.
 
+## Customer accounts
+
+Off unless `STOREFRONT_ACCOUNTS_ENABLED=true` (read by both the API and the
+storefront). Customer accounts need Umar's and the client's approval before
+they go public, plus the same Resend domain verification as status emails.
+
+- **Sign-in:** `/account` emails a six-digit code (10 minutes, 5 guesses,
+  only the newest code works, stored as an HMAC). The account is created when
+  a code is first verified, so asking for a code never reveals whether an
+  account exists. A password is optional (hashed like admin passwords).
+  Changing it needs the current password or a fresh code sign-in, which is
+  also how a forgotten password is reset. Setting it signs out other devices.
+- **Session:** a JWT with audience `bahulu-customer` that admin routes never
+  accept (admin tokens use `bahulu-admin`). The storefront keeps it in the
+  HttpOnly, Secure, SameSite=Lax `bbc_customer_session` cookie on its own
+  origin, and `storefront-data/account/[...path]` forwards an allowlisted
+  set of calls to `/api/storefront/account/*` with it as a bearer header.
+  Browsers never attach that header themselves, so the API routes need no
+  CSRF token, and the storefront handler rejects cross-site POSTs.
+- **My orders:** website orders whose checkout email (or customer record)
+  matches the verified account email, shown with the tracking view. Guest
+  orders therefore appear only after the customer proves the address. Phone
+  matching is not used (no SMS codes, as decided on 29 September).
+- **PDPA:** "Download my data" (JSON of the account and its orders) and
+  "Delete my account" (type the email to confirm). Deleting removes the
+  account and codes; order records stay with the bakery for receipts and
+  refunds.
+- **Local demo:** with `ENVIRONMENT=development` and `EMAIL_PROVIDER=console`
+  the code is shown on the page ("Demo mode"). It is never returned in any
+  other setup (tests cover staging, production and Resend).
+- Limits: 10 code requests and 10 sign-in attempts per address per 15
+  minutes, 3 codes per email per 15 minutes, 20 password attempts per account.
+- Copy: `storefront/app/_lib/account-copy.ts` (draft EN/BM, needs review). The
+  draft privacy policy describes accounts, the cookie, retention and the
+  download/delete rights.
+
 ## Homepage workflow
 
 Owners manage the fixed landing-page content at `/storefront/homepage` in the

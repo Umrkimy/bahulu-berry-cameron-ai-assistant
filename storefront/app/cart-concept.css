@@ -217,3 +217,36 @@
 }
 @media (max-width: 520px) { .checkout-row { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .cart-empty-mascot, .checkout-step-body { animation: none; } .cart-line-image:hover img { transform: none; } }
+
+/* Customer account */
+.account-content { display: grid; gap: 22px; }
+.account-sign-in { display: grid; gap: 18px; justify-items: center; }
+.account-sign-in > * { width: 100%; max-width: 560px; }
+.account-panel h2 { margin-bottom: 6px; }
+.account-panel .checkout-form { margin-top: 18px; }
+.account-panel .home-text-link { justify-self: start; min-height: 44px; }
+.account-panel[data-tone="danger"] { border: 1px solid var(--error); background: var(--paper); }
+.account-danger { border-color: var(--error); background: var(--error); }
+.account-danger:hover { border-color: var(--red-dark); background: var(--red-dark); }
+.account-notice { margin: 0; padding: 12px 16px; border-radius: 12px; background: var(--notice); color: var(--ink); font-size: 15px; }
+.account-demo { display: inline-block; margin-top: 6px; color: var(--muted); }
+.account-demo strong { color: var(--ink); font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+.account-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.account-loading { color: var(--muted); }
+.account-dashboard { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.account-side { display: grid; gap: 22px; }
+.account-empty { display: grid; justify-items: start; gap: 4px; }
+.account-empty .home-button { width: auto; }
+.account-orders { display: grid; gap: 12px; margin: 18px 0 0; padding: 0; list-style: none; }
+.account-orders details { border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+.account-orders details[open] { border-color: var(--line-strong); }
+.account-orders summary { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: baseline; min-height: 44px; padding: 16px 20px; cursor: pointer; list-style: none; }
+.account-orders summary::-webkit-details-marker { display: none; }
+.account-order-number { font-weight: 700; }
+.account-order-total { justify-self: end; font-variant-numeric: tabular-nums; }
+.account-order-date, .account-order-status { color: var(--muted); font-size: 14px; }
+.account-order-toggle { grid-column: 1 / -1; color: var(--red); font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.account-orders details[open] .account-order-toggle { display: none; }
+.account-orders .tracking-order { display: grid; gap: 16px; padding: 0 20px 20px; }
+.account-sign-out { display: grid; gap: 6px; margin-top: 8px; }
+@media (max-width: 900px) { .account-dashboard { grid-template-columns: 1fr; } }

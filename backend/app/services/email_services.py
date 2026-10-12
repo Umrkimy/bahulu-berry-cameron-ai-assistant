@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.admin import Admin
 from app.models.email_delivery import EmailDelivery
+from app.models.customer_account import CustomerSignInCode
 from app.models.password_reset_token import PasswordResetToken
 
 logger = logging.getLogger("bahulu.email")
@@ -109,4 +110,5 @@ async def email_owners(db: AsyncSession, *, email_type: str, subject: str, body:
 async def purge_expired_email_security_records(db: AsyncSession) -> None:
     now = datetime.now(UTC)
     await db.execute(delete(PasswordResetToken).where(PasswordResetToken.expires_at < now))
+    await db.execute(delete(CustomerSignInCode).where(CustomerSignInCode.expires_at < now))
     await db.commit()
