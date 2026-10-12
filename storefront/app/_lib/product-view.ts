@@ -39,14 +39,14 @@ export const productCopy = {
     title: "Our", titleAccent: "bahulu.", intro: "Current products and prices.",
     search: "Search products", categories: "Product categories", all: "All products", sort: "Sort by", nameSort: "Name: A–Z", lowSort: "Price: low to high", highSort: "Price: high to low",
     clear: "Clear filters", noMatches: "No products match your search.", noMatchesBody: "Try another name or clear the filters.", empty: "No products to show yet.", emptyBody: "",
-    view: "View product", photo: "No photo yet", unavailable: "Currently unavailable", available: "Available", details: "Description", price: "Price", regular: "Regular price", offers: "Current offers", back: "Back to products", breadcrumb: "Breadcrumb", home: "Home", products: "Products", imageLabel: "Product photograph", related: "You may also like",
+    view: "View product", photo: "No photo yet", unavailable: "Currently unavailable", available: "Available", details: "Description", price: "Price", regular: "Regular price", offers: "Current offers", back: "Back to products", breadcrumb: "Breadcrumb", home: "Home", products: "Products", imageLabel: "Product photograph", related: "You may also like", pickupTitle: "Collect from our shop", pickupBody: "Pick up your order at our shop in Tanah Rata, Cameron Highlands.", directions: "Get directions",
     loading: "Loading…", loadingBody: "", error: "Something went wrong.", errorBody: "We couldn’t load this page. Please try again.", retry: "Try again", missing: "We couldn’t find that page.", missingBody: "It may have moved or is no longer available. See our current products instead.",
   },
   ms: {
     title: "Bahulu", titleAccent: "kami.", intro: "Produk dan harga semasa.",
     search: "Cari produk", categories: "Kategori produk", all: "Semua produk", sort: "Susun mengikut", nameSort: "Nama: A–Z", lowSort: "Harga: rendah ke tinggi", highSort: "Harga: tinggi ke rendah",
     clear: "Kosongkan penapis", noMatches: "Tiada produk yang sepadan.", noMatchesBody: "Cuba nama lain atau kosongkan penapis.", empty: "Belum ada produk untuk dipaparkan.", emptyBody: "",
-    view: "Lihat produk", photo: "Belum ada foto", unavailable: "Tidak tersedia buat masa ini", available: "Tersedia", details: "Penerangan", price: "Harga", regular: "Harga biasa", offers: "Promosi semasa", back: "Kembali ke produk", breadcrumb: "Jejak navigasi", home: "Laman utama", products: "Produk", imageLabel: "Foto produk", related: "Anda mungkin juga suka",
+    view: "Lihat produk", photo: "Belum ada foto", unavailable: "Tidak tersedia buat masa ini", available: "Tersedia", details: "Penerangan", price: "Harga", regular: "Harga biasa", offers: "Promosi semasa", back: "Kembali ke produk", breadcrumb: "Jejak navigasi", home: "Laman utama", products: "Produk", imageLabel: "Foto produk", related: "Anda mungkin juga suka", pickupTitle: "Ambil di kedai kami", pickupBody: "Ambil pesanan anda di kedai kami di Tanah Rata, Cameron Highlands.", directions: "Dapatkan arah",
     loading: "Memuatkan…", loadingBody: "", error: "Ada masalah.", errorBody: "Kami tidak dapat memuatkan halaman ini. Sila cuba lagi.", retry: "Cuba lagi", missing: "Halaman itu tidak dijumpai.", missingBody: "Halaman ini mungkin telah dipindahkan atau tidak lagi tersedia. Lihat produk semasa kami.",
   },
 } as const;

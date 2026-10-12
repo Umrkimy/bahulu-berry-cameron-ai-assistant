@@ -24,5 +24,5 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 // Every page renders per request so it carries that request's CSP nonce.
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await connection();
-  return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><MotionProvider><CartProvider><SiteHeader showAccount={isAccountsEnabled()} /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter showTracking={isCheckoutPreviewEnabled()} /><WhatsAppBubble /></CartProvider></MotionProvider></LocaleProvider></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><MotionProvider><CartProvider><SiteHeader showAccount={isAccountsEnabled()} /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter showTracking={isCheckoutPreviewEnabled()} showAccount={isAccountsEnabled()} /><WhatsAppBubble /></CartProvider></MotionProvider></LocaleProvider></body></html>;
 }

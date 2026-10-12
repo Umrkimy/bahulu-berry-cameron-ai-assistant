@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { money } from "../_lib/content";
+import { business, money } from "../_lib/content";
 import { productCopy, promotionText } from "../_lib/product-view";
 import type { StorefrontProduct } from "../_lib/types";
 import { AddToCartButton } from "./add-to-cart-button";
@@ -44,6 +44,13 @@ export function ProductDetail({ product, related = [] }: { product: StorefrontPr
           <summary><h2>{text.details}</h2><svg className="detail-accordion-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" /></svg></summary>
           <p>{description}</p>
         </details> : null}
+        {/* Address and hours were approved by Umar on 29 September 2026. */}
+        <details className="detail-accordion">
+          <summary><h2>{text.pickupTitle}</h2><svg className="detail-accordion-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" /></svg></summary>
+          <p>{text.pickupBody}</p>
+          <p>{business.addressLines.join(", ")}<br />{business.hours[locale]}</p>
+          <p><a className="home-text-link" href={business.mapsUrl} target="_blank" rel="noreferrer">{text.directions} <span aria-hidden="true">↗</span></a></p>
+        </details>
       </Reveal>
     </section>
     {related.length ? <section className="shell detail-related" aria-labelledby="detail-related-title">
