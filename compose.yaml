@@ -142,6 +142,22 @@ services:
       timeout: 5s
       retries: 6
 
+  # Local demos only: forwards Stripe TEST-mode events to the API so test
+  # payments are marked paid without running `stripe listen` by hand.
+  #   docker compose --profile stripe-test up -d
+  # Refuses anything but an sk_test_ key. STRIPE_WEBHOOK_SECRET must be the
+  # CLI's secret for that key (`stripe listen --print-secret`).
+  stripe-listen:
+    image: stripe/stripe-cli:v1.53.1
+    profiles: [stripe-test]
+    security_opt: ["no-new-privileges:true"]
+    entrypoint: ["sh", "-c", "case \"$$STRIPE_API_KEY\" in sk_test_*) exec stripe listen --skip-update --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired --forward-to http://api:8000/api/payments/webhook ;; *) echo 'Refusing to forward: not a Stripe test key.' >&2; exit 1 ;; esac"]
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
+    depends_on:
+      api:
+        condition: service_healthy
+
   # Encrypted backup of the database and product photos. Run on a schedule:
   #   docker compose --profile backup run --rm backup
   # Restore rehearsal (see docs/operations.md):

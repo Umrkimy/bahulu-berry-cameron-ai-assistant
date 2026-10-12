@@ -1,12 +1,14 @@
 # Deployment and budget reference
 
 Planning only. This does not authorise purchases, public access, production
-data, checkout, payments, tracking, or live WhatsApp.
+data, checkout, payments, tracking, or live WhatsApp. The step-by-step server
+and Coolify guide, with the current hosting recommendation, is in
+[hosting-coolify.md](hosting-coolify.md).
 
 ## Intended first-production shape
 
 ```text
-Users -> Cloudflare DNS/TLS/CDN/Access -> Hetzner Singapore CPX22
+Users -> Cloudflare DNS/TLS/CDN/Access -> VPS (see hosting-coolify.md)
                                       -> Coolify
                                          - storefront
                                          - protected dashboard
