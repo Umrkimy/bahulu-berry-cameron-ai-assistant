@@ -10,7 +10,14 @@ from app.auth.dependencies import get_current_admin
 from app.auth.jwt import create_access_token, verify_access_token
 from app.auth.password import hash_password, verify_password
 from app.core.config import settings
-from app.core.rate_limit import LOGIN_LIMIT, PASSWORD_RESET_CONFIRM_LIMIT, PASSWORD_RESET_LIMIT, rate_limiter
+from app.core.rate_limit import (
+    EMAIL_RECIPIENT_LIMIT,
+    LOGIN_ACCOUNT_LIMIT,
+    LOGIN_LIMIT,
+    PASSWORD_RESET_CONFIRM_LIMIT,
+    PASSWORD_RESET_LIMIT,
+    rate_limiter,
+)
 from app.core.security import clear_auth_cookies, create_csrf_token, set_csrf_cookie, set_session_cookie
 from app.db.database import get_db
 from app.models.admin import Admin
@@ -47,6 +54,7 @@ async def login(
     ],
 ):
     await rate_limiter.check(request, "login", LOGIN_LIMIT)
+    await rate_limiter.check_key(f"login-account:{form_data.username.strip().lower()}", LOGIN_ACCOUNT_LIMIT)
     result = await db.execute(
         select(Admin).where(func.lower(Admin.email) == form_data.username.lower())
     )
@@ -130,6 +138,7 @@ async def me(
 @router.post("/password-reset/request", response_model=PasswordResetResponse)
 async def request_password_reset(data: PasswordResetRequest, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     await rate_limiter.check(request, "password-reset-request", PASSWORD_RESET_LIMIT)
+    await rate_limiter.check_key(f"password-reset-recipient:{data.email.strip().lower()}", EMAIL_RECIPIENT_LIMIT)
     admin = await db.scalar(select(Admin).where(func.lower(Admin.email) == data.email.lower(), Admin.is_active.is_(True)))
     # The response must remain identical whether the address belongs to an account or not.
     if admin is not None:
