@@ -34,6 +34,7 @@ h1 em, h2 em { color: var(--red); font-weight: 700; }
 .site-header nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 7px; }
 .header-cart { position: relative; display: grid; place-items: center; width: 48px; height: 48px; margin-left: 8px; border-radius: 50%; color: var(--ink); transition: background .16s ease; }
 .header-cart:hover, .header-cart[aria-current="page"] { background: #ffffff59; }
+.header-account + .header-cart { margin-left: 0; }
 .cart-icon { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .cart-badge { position: absolute; top: 2px; right: 0; display: grid; place-items: center; min-width: 24px; height: 24px; padding-inline: 6px; border: 2px solid var(--yellow); border-radius: 999px; background: var(--red); color: var(--cream); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
 

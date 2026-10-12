@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     # customer emails. Links in them point at the public storefront.
     CUSTOMER_STATUS_EMAILS_ENABLED: bool = False
     STOREFRONT_PUBLIC_URL: str = "http://localhost:3000"
+    # Customer accounts (email code sign-in, optional password, My orders).
+    # Off until Umar and the client approve customer accounts.
+    STOREFRONT_ACCOUNTS_ENABLED: bool = False
+    CUSTOMER_SESSION_EXPIRE_DAYS: int = 30
 
     # Public Google content remains unavailable unless this server-only gate is
     # explicitly enabled after the listing, policies, and restricted keys are

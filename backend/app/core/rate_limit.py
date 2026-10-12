@@ -92,3 +92,8 @@ STOREFRONT_CHECKOUT_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
 STOREFRONT_TRACKING_LIMIT = RateLimit(maximum=60, window_seconds=60)
 # Order number + phone guesses are the brute-force risk, so keep this tight.
 STOREFRONT_TRACKING_LOOKUP_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
+# Customer accounts: code requests and sign-in guesses per address, and a
+# generous ceiling on signed-in account calls.
+CUSTOMER_CODE_REQUEST_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
+CUSTOMER_SIGN_IN_LIMIT = RateLimit(maximum=10, window_seconds=15 * 60)
+CUSTOMER_ACCOUNT_LIMIT = RateLimit(maximum=120, window_seconds=60)
