@@ -2,6 +2,10 @@ import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from './server';
+import api from '../api/axios';
+
+// msw 3 intercepts fetch but not jsdom's XMLHttpRequest, which axios uses by default.
+api.defaults.adapter = 'fetch';
 
 // jsdom lacks the Font Loading API used by Mantine's autosizing textareas.
 Object.defineProperty(document, 'fonts', { configurable: true, value: new EventTarget() });
@@ -29,7 +33,7 @@ class ResizeObserverMock {
 Object.defineProperty(window, 'ResizeObserver', { writable: true, value: ResizeObserverMock });
 Object.defineProperty(globalThis, 'ResizeObserver', { writable: true, value: ResizeObserverMock });
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
