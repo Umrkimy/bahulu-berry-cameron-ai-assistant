@@ -8,19 +8,33 @@ approval (see `quality-gate.md` and `deployment.md`). Prices were checked on
 ## Which server
 
 The stack (PostgreSQL + pgvector, FastAPI, Next.js storefront, nginx admin)
-plus Coolify itself fits comfortably in **2 vCPU and 8 GB RAM**. Coolify alone
-needs at least 2 CPUs, 2 GB RAM and about 30 GB of disk for images.
+plus Coolify itself runs in **2 vCPU and 4 GB RAM** with 2 GB of swap, as long
+as images are not built on the server (see step 4). Coolify alone needs at
+least 2 CPUs, 2 GB RAM and about 30 GB of disk for images. Umar's budget is
+under about US$5 a month.
 
-| Option | Location | Spec | Approx. price (USD/month) | Notes |
+| Option | Location | Spec | Approx. price / month | Notes |
 | --- | --- | --- | --- | --- |
-| **Hostinger KVM 2 (recommended)** | Kuala Lumpur, Malaysia | 2 vCPU, 8 GB, 100 GB NVMe, 8 TB traffic | ~$9 promo (2-year term), ~$15 renewal | Data stays in Malaysia, low latency for local customers, best value. Has a Coolify template. |
-| Contabo Cloud VPS | Singapore | 4 vCPU, 8 GB, 75–100 GB NVMe | ~$8.40 (includes ~$3 Singapore fee) | Cheapest per spec; slower support and noisier performance. |
-| Vultr / DigitalOcean | Singapore | 2 vCPU, 4 GB | ~$24 | Reliable, hourly billing, easy snapshots; costs 2–3× more. |
-| Hetzner | Singapore | — | ~RM136 for CPX22 | Previous plan; dropped because it is expensive in Asia. |
+| **Hetzner CX23 (recommended)** | Germany (Falkenstein/Nuremberg) or Finland | 2 vCPU (x86), 4 GB, 40 GB, 20 TB traffic | €3.99 + €0.50 IPv4 = **€4.49** (~US$5.20, ~RM23) | Cheapest reliable option. Hourly billing, snapshots, simple firewall. Prices after Hetzner's April 2026 increase. |
+| Hetzner CAX11 | Germany or Finland | 2 vCPU (ARM), 4 GB, 40 GB | €4.99 incl. IPv4 | Works, but every image must support ARM; no reason to pick it over CX23. |
+| Hostinger KVM 2 | Kuala Lumpur, Malaysia | 2 vCPU, 8 GB, 100 GB NVMe | ~US$9 promo (2-year), ~$15 renewal | Upgrade path if Asia latency or RAM ever matter. |
+| Contabo Cloud VPS | Singapore | 4 vCPU, 8 GB | ~US$8.40 incl. Singapore fee | Cheap per spec; slower support. |
+| Hetzner | Singapore | — | ~RM136 for CPX22 | Too expensive in Asia. |
 
-**Recommendation:** Hostinger KVM 2 in Kuala Lumpur, billed to the client's
-own account. Ubuntu 24.04 LTS. Pay for the 2-year term if the client is sure;
-otherwise compare the renewal price, which is what counts long term.
+**Recommendation:** Hetzner **CX23 in Germany**, billed to the client's own
+account, Ubuntu 24.04 LTS. Keep the IPv4 address: GitHub has no IPv6, so
+Coolify could not pull the code from an IPv6-only server.
+
+**What Germany means for Malaysian customers**
+
+- Photos, scripts and styles are cached by Cloudflare in Kuala Lumpur, so
+  they load as fast as from a local server.
+- Pages and actions (add to cart, checkout, sign-in, dashboard clicks) go to
+  Germany and back: about 0.2 s per round trip, so roughly 0.2–0.4 s more per
+  page. Fine for a small shop; move to Hostinger KL if it ever matters.
+- PDPA: storing personal data in the EU is allowed (comparable protection
+  under GDPR). Add a line to the privacy policy saying the website's data is
+  hosted in Germany before launch.
 
 ## Shape
 
@@ -51,6 +65,12 @@ Visitors ──► Cloudflare (DNS, TLS, WAF, rate rules)
    systemctl restart ssh
    apt update && apt -y upgrade && apt -y install unattended-upgrades fail2ban ufw
    dpkg-reconfigure -plow unattended-upgrades
+   ```
+   Add 2 GB of swap so a busy moment cannot run the 4 GB server out of memory:
+   ```bash
+   fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+   echo '/swapfile none swap sw 0 0' >> /etc/fstab
+   sysctl vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf
    ```
 3. Firewall: allow SSH, HTTP and HTTPS only, and the Coolify dashboard only
    while you set it up (close 8000 afterwards and use a Coolify domain):
@@ -128,6 +148,11 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    latest revision, then sign in to the dashboard.
 6. Turn on **automatic deploys on push to `master`** only after a successful
    manual deploy. CI must be green before anything merges to `master`.
+7. **Builds on a 4 GB server:** building the Next.js and admin images on the
+   server can exhaust memory. Deploy one service at a time the first time,
+   and if builds fail with "killed" or out-of-memory, build the images in
+   GitHub Actions, push them to GitHub Container Registry, and point Coolify
+   at those images instead of building.
 
 ## 5. Backups and monitoring
 
