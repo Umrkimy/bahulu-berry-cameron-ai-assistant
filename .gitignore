@@ -117,3 +117,6 @@ backend/scripts/
 .claude/settings.local.json
 .agents/
 .impeccable/
+
+# Local session handoffs (see the bahulu-resume skill); never committed.
+docs/handoffs/

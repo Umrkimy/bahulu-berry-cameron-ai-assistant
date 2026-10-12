@@ -23,18 +23,18 @@ services or add Redis only when measured load, job processing, shared rate
 limits, or reliability needs justify it. Never cache payment state, customer
 records, confirmations, or complete AI replies by default.
 
-## Planning budget (reviewed 13 September 2026)
+## Planning budget (reviewed 12 October 2026)
 
 | Item | Planning amount |
 | --- | ---: |
-| Hetzner Singapore CPX22, before tax/IPv4 | about RM136/month |
+| Hetzner CX23 Germany, incl. IPv4 (see hosting-coolify.md) | about €4.49 (~RM23)/month |
 | Malaysian cPanel staff email, annual equivalent | about RM9/month |
 | Cloudflare Free, self-hosted Coolify, R2 free allowance | RM0 initially |
 | Operations Copilot + WhatsApp RAG hard caps | maximum about RM110/month |
-| Total if both AI caps are fully used | about RM255/month |
+| Total if both AI caps are fully used | about RM142/month |
 
 Recheck all prices, taxes, renewal terms, capacity, and provider availability
-before purchase. Domain renewal, payment/Meta fees, staging time, IPv4,
+before purchase. Domain renewal, payment/Meta fees, staging time,
 transactional email, and storage above free allowances are excluded.
 
 ## Ownership and release sequence
