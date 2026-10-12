@@ -1,5 +1,6 @@
 services:
   db:
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
     image: pgvector/pgvector:pg16
     environment:
@@ -15,6 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   migrate:
+    security_opt: ["no-new-privileges:true"]
     build: ./backend
     env_file:
       - ${APP_ENV_FILE:-.env}
@@ -26,6 +28,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "uv run --no-sync alembic upgrade head"]
 
   api:
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
     build: ./backend
     volumes:
@@ -93,6 +96,7 @@ services:
       - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
 
   frontend:
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
     build:
       context: ./frontend
@@ -111,6 +115,7 @@ services:
       retries: 6
 
   storefront:
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
     build:
       context: ./storefront
@@ -139,6 +144,7 @@ services:
   #   docker compose --profile backup run --rm -v /path/to/age-key.txt:/run/secrets/age-identity:ro \
   #     --entrypoint restore-test.sh backup /backups/<file>.tar.age
   backup:
+    security_opt: ["no-new-privileges:true"]
     build: ./ops/backup
     profiles: [backup]
     environment:

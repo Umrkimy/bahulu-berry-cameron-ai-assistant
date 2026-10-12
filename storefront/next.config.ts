@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
-// A full script CSP needs per-request nonces for Next's inline scripts; until
-// that is added, block framing, plugins, <base> rewriting, and off-site form
-// posts. Checkout leaves for the payment page with location.assign, which
+// The Content-Security-Policy (with a per-request script nonce) is set in
+// proxy.ts. Checkout leaves for the payment page with location.assign, which
 // form-action does not cover.
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 
 import "./globals.css";
@@ -19,6 +20,8 @@ const body = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body" });
 export const metadata: Metadata = { title: { default: "Bahulu Berry Cameron", template: "%s | Bahulu Berry Cameron" }, description: "Browse Bahulu Berry Cameron products and current prices.", icons: { icon: "/concept/brand-preview.webp" }, metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffdc24" };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+// Every page renders per request so it carries that request's CSP nonce.
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  await connection();
   return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><MotionProvider><CartProvider><SiteHeader /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter showTracking={isCheckoutPreviewEnabled()} /><WhatsAppBubble /></CartProvider></MotionProvider></LocaleProvider></body></html>;
 }

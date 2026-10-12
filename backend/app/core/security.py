@@ -35,8 +35,23 @@ def clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(settings.CSRF_COOKIE_NAME, path="/")
 
 
+WEBHOOK_PATHS = {"/api/payments/webhook", "/webhooks/meta/whatsapp"}
+
+
 def verify_csrf_request(request: Request) -> None:
-    if request.method in SAFE_METHODS or request.url.path in CSRF_EXEMPT_PATHS:
+    if request.method in SAFE_METHODS:
+        return
+    if request.url.path in CSRF_EXEMPT_PATHS:
+        # Token-less browser forms (sign-in, reset) still must not be posted
+        # from another site. Server-to-server callers send no Origin at all.
+        origin = request.headers.get("origin")
+        if (
+            origin
+            and request.url.path not in WEBHOOK_PATHS
+            and settings.requires_strict_runtime_security
+            and origin.rstrip("/") not in settings.ALLOWED_ORIGINS
+        ):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This request was blocked for security reasons.")
         return
     cookie_token = request.cookies.get(settings.CSRF_COOKIE_NAME)
     header_token = request.headers.get("X-CSRF-Token")
