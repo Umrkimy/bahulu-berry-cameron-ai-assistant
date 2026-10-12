@@ -33,7 +33,7 @@ class ResizeObserverMock {
 Object.defineProperty(window, 'ResizeObserver', { writable: true, value: ResizeObserverMock });
 Object.defineProperty(globalThis, 'ResizeObserver', { writable: true, value: ResizeObserverMock });
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
