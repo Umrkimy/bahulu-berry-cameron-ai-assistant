@@ -188,6 +188,18 @@ also verifies the listing without saving the returned content. See Google's
 [Maps Embed documentation](https://developers.google.com/maps/documentation/embed/embedding-map),
 and [API key security guidance](https://developers.google.com/maps/api-security-best-practices).
 
+## Coming-soon mode
+
+`STOREFRONT_COMING_SOON=true` puts the whole shop behind a holding page for
+a private preview on the real domain. `proxy.ts` decides per request
+(`app/_lib/coming-soon.ts`): visitors without the preview cookie are
+rewritten to `/coming-soon`, cart/checkout/account data routes and the
+sitemap return 404, and every response carries `X-Robots-Tag: noindex`.
+`/preview?key=<STOREFRONT_PREVIEW_KEY>` sets a 30-day HttpOnly cookie
+holding a SHA-256 hash of the key; changing the key revokes every cookie. A
+key shorter than 24 characters is ignored, so nobody gets in. Setup and
+sharing are in [hosting-coolify.md](hosting-coolify.md#4a-private-preview-coming-soon).
+
 ## Design and asset provenance
 
 The approved direction is yellow/cream with strawberry-red controls, dynamic

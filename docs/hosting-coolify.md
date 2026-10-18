@@ -5,6 +5,11 @@ server, pointing DNS and going live still need Umar's and the client's
 approval (see `quality-gate.md` and `deployment.md`). Prices were checked on
 12 October 2026 and change often; recheck before buying.
 
+The domain is `bahuluberrycameron.com` (Umar's). Below, `<domain>` means that.
+Until launch is approved the shop runs in **coming-soon mode** (section 4a):
+the public sees a holding page and only people with the preview link see the
+site.
+
 ## Which server
 
 The stack (PostgreSQL + pgvector, FastAPI, Next.js storefront, nginx admin)
@@ -40,7 +45,8 @@ Coolify could not pull the code from an IPv6-only server.
 
 ```text
 Visitors ──► Cloudflare (DNS, TLS, WAF, rate rules)
-               ├─ shop.<domain>  ─► Coolify proxy ─► storefront:3000
+               ├─ <domain>       ─► Coolify proxy ─► storefront:3000
+               ├─ www.<domain>   ─► redirect to <domain> (Cloudflare rule)
                └─ admin.<domain> ─► Coolify proxy ─► frontend:80 (nginx)
                                                     └─ /api ─► api:8000
                (api and db have no public address)
@@ -95,7 +101,9 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
 ## 3. Cloudflare in front
 
 1. Move the domain's DNS to Cloudflare (free plan). Add proxied (orange cloud)
-   `A` records for `shop`, `admin` and `coolify` pointing at the server IP.
+   `A` records for `@` (the bare domain), `www`, `admin` and `coolify`
+   pointing at the server IP. Add a redirect rule from `www.<domain>` to
+   `https://<domain>`.
 2. SSL/TLS mode **Full (strict)**; "Always Use HTTPS" on; HSTS on once stable.
 3. Lock the origin so nobody can bypass Cloudflare (and fake visitor IPs):
    either allow 80/443 only from [Cloudflare's IP ranges](https://www.cloudflare.com/ips/)
@@ -104,8 +112,20 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
 4. Add a rate-limiting rule for `/api/auth/token`,
    `/storefront-data/account/*` and `/storefront-data/checkout` as an extra
    layer over the app's own limits.
-5. Protect `admin.<domain>` with Cloudflare Access (email one-time PIN for the
-   Owner and Staff) so the dashboard login is not even reachable to others.
+5. Hide the dashboard with **Cloudflare Access** (Zero Trust, free up to 50
+   users), so strangers and bots never reach the sign-in page:
+   - Zero Trust → Access → Applications → Self-hosted, domain
+     `admin.<domain>`; a second application for `coolify.<domain>`.
+   - Policy **Allow** → Include → *Emails*: list each person by exact
+     address (Umar, the client, staff). Do not use "everyone" or a whole
+     email domain such as gmail.com.
+   - Login method: One-time PIN. Session duration: 24 hours.
+   - Anyone not on the list gets Cloudflare's code screen and nothing else;
+     the dashboard's own email and password sign-in still applies after it.
+   - Before live Stripe or WhatsApp webhooks, add a **Bypass** policy for
+     only those webhook paths (they are signature-checked by the API).
+6. Turn on **Bot Fight Mode** and the free managed WAF rules. Leave the shop
+   itself without Access: visitors must reach the coming-soon page.
 
 ## 4. Deploy the app in Coolify
 
@@ -116,7 +136,7 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    the API's local binding. Set `API_PORT=18000`, and leave the
    `127.0.0.1` bind addresses as they are. Routing goes through Coolify's
    proxy by domain, not through these ports.
-3. **Domains:** assign `https://shop.<domain>` to the `storefront` service
+3. **Domains:** assign `https://<domain>` to the `storefront` service
    (port 3000) and `https://admin.<domain>` to `frontend` (port 80). No domain
    for `api` or `db`.
 4. **Environment variables** (Coolify → Environment, marked as secrets where
@@ -127,10 +147,12 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    | `APP_ENVIRONMENT` | `production` |
    | `SECRET_KEY` | 64+ random characters (`openssl rand -hex 32`) |
    | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | new, random password |
-   | `ALLOWED_ORIGINS` | `https://shop.<domain>,https://admin.<domain>` |
-   | `TRUSTED_HOSTS` | `admin.<domain>,shop.<domain>,api` |
+   | `ALLOWED_ORIGINS` | `https://<domain>,https://admin.<domain>` |
+   | `TRUSTED_HOSTS` | `admin.<domain>,<domain>,api` |
    | `VITE_API_BASE_URL` | `https://admin.<domain>/api` |
-   | `VITE_STOREFRONT_BASE_URL` / `STOREFRONT_PUBLIC_URL` | `https://shop.<domain>` |
+   | `VITE_STOREFRONT_BASE_URL` / `STOREFRONT_PUBLIC_URL` | `https://<domain>` |
+   | `STOREFRONT_COMING_SOON` | `true` until launch is approved |
+   | `STOREFRONT_PREVIEW_KEY` | `openssl rand -hex 24` (secret) |
    | `STOREFRONT_SERVER_API_BASE_URL` | `http://api:8000/api` |
    | `STOREFRONT_WHATSAPP_NUMBER` | approved number, digits only |
    | `TRUST_CLOUDFLARE_CLIENT_IP` | `true` only after step 3.3 |
@@ -154,6 +176,24 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    GitHub Actions, push them to GitHub Container Registry, and point Coolify
    at those images instead of building.
 
+## 4a. Private preview (coming soon)
+
+With `STOREFRONT_COMING_SOON=true`:
+
+- Every page shows a holding page (mascot, "coming soon" in English and
+  Bahasa Melayu, and the WhatsApp button when the number is set). Search
+  engines are told not to index anything and `robots.txt` disallows all.
+- `https://<domain>/preview?key=<STOREFRONT_PREVIEW_KEY>` lets that browser
+  in for 30 days (an HttpOnly cookie holding a hash, not the key). Send the
+  link privately (WhatsApp to the client), not in a group or on social media.
+- To revoke everyone, change `STOREFRONT_PREVIEW_KEY` and redeploy.
+- Cart, checkout and account data routes return 404 to anyone without the
+  cookie. Product photos stay reachable by direct address.
+- `STOREFRONT_DRAFT_CONTENT=true` is acceptable only while coming-soon mode
+  is on. Keep checkout, accounts and emails off for the preview.
+- To launch: set `STOREFRONT_COMING_SOON=false` and redeploy, after the
+  quality gate (section 6).
+
 ## 5. Backups and monitoring
 
 - Backups: the `backup` compose profile writes age-encrypted dumps (see
@@ -162,8 +202,9 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
   the client's account). The age private key stays offline with the client.
 - Rehearse a restore with `ops/backup/restore-test.sh` before launch.
 - Uptime: a free monitor (UptimeRobot or Better Stack) on
-  `https://shop.<domain>/` and `https://admin.<domain>/api/health`, alerting
-  the client and Umar.
+  `https://<domain>/` and `https://admin.<domain>/api/health`, alerting
+  the client and Umar. Cloudflare Access blocks the monitor on `admin.`, so
+  give it an Access service token or a Bypass policy for `/api/health` only.
 - Optional Sentry: set `SENTRY_DSN` (client-owned account).
 - Coolify: enable its server disk-usage alerts and Docker cleanup schedule.
 
