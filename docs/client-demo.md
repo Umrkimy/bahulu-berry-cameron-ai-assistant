@@ -15,6 +15,8 @@ internet. Draft wording is listed in [draft-content.md](draft-content.md).
    orders turn "Paid" by themselves. It refuses anything but a test key.
 2. Check: storefront `http://localhost:3000`, dashboard
    `http://localhost:5173`, and `http://localhost:8000/ready` shows `ready`.
+   Use `localhost`, not `127.0.0.1`: the API only accepts the dashboard from
+   `localhost`, and the other address shows "Can't reach the dashboard server".
 3. Local `.env` must have these demo switches (already set on Umar's laptop):
    `STOREFRONT_CHECKOUT_ENABLED=true`, `STOREFRONT_CHECKOUT_PREVIEW_ENABLED=true`,
    `STOREFRONT_ACCOUNTS_ENABLED=true`, `STOREFRONT_DRAFT_CONTENT=true`,

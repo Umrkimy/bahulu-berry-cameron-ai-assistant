@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { connection } from "next/server";
+import { headers } from "next/headers";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 
 import "./globals.css";
@@ -13,6 +13,7 @@ import { CartProvider } from "./_components/cart-provider";
 import { WhatsAppBubble } from "./_components/whatsapp-bubble";
 import { isAccountsEnabled } from "./_lib/accounts";
 import { isCheckoutPreviewEnabled } from "./_lib/checkout-preview";
+import { comingSoonHeader } from "./_lib/coming-soon";
 import { MotionProvider } from "./_components/motion";
 
 const display = Fraunces({ subsets: ["latin"], variable: "--font-display" });
@@ -23,6 +24,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 // Every page renders per request so it carries that request's CSP nonce.
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  await connection();
+  const comingSoon = (await headers()).get(comingSoonHeader) === "1";
+  if (comingSoon) return <html lang="en"><body className={`${display.variable} ${body.variable}`}><main id="main-content" tabIndex={-1}>{children}</main></body></html>;
   return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${body.variable}`}><LocaleProvider><MotionProvider><CartProvider><SiteHeader showAccount={isAccountsEnabled()} /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter showTracking={isCheckoutPreviewEnabled()} showAccount={isAccountsEnabled()} /><WhatsAppBubble /></CartProvider></MotionProvider></LocaleProvider></body></html>;
 }

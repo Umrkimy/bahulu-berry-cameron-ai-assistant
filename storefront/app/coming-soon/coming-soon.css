@@ -1,0 +1,47 @@
+.coming-soon {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.coming-soon-mascot {
+  width: min(220px, 55vw);
+  height: auto;
+}
+
+.coming-soon h1 {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  line-height: 1.05;
+}
+
+.coming-soon-lead {
+  margin: 0;
+  max-width: 32rem;
+  font-size: 1.125rem;
+}
+
+.coming-soon-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 1rem;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.coming-soon-whatsapp:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
