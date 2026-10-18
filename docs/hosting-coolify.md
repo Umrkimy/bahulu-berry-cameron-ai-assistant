@@ -180,8 +180,8 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
 
 With `STOREFRONT_COMING_SOON=true`:
 
-- Every page shows a holding page (mascot, "coming soon" in English and
-  Bahasa Melayu, and the WhatsApp button when the number is set). Search
+- Every page shows a holding page (mascot, "coming soon" in English, and
+  the WhatsApp button when the number is set). Search
   engines are told not to index anything and `robots.txt` disallows all.
 - `https://<domain>/preview?key=<STOREFRONT_PREVIEW_KEY>` lets that browser
   in for 30 days (an HttpOnly cookie holding a hash, not the key). Send the
