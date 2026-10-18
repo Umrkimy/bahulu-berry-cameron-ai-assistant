@@ -78,15 +78,13 @@ Visitors ──► Cloudflare (DNS, TLS, WAF, rate rules)
    echo '/swapfile none swap sw 0 0' >> /etc/fstab
    sysctl vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf
    ```
-3. Firewall: allow SSH, HTTP and HTTPS only, and the Coolify dashboard only
-   while you set it up (close 8000 afterwards and use a Coolify domain):
-   ```bash
-   ufw default deny incoming && ufw default allow outgoing
-   ufw allow OpenSSH && ufw allow 80,443/tcp && ufw allow 8000/tcp
-   ufw enable
-   ```
-   Docker can bypass ufw for ports it publishes. That is why `compose.yaml`
-   binds app ports to `127.0.0.1` only. Never change those to `0.0.0.0`.
+3. Firewall: use a **Hetzner Cloud Firewall** applied to the server (Docker
+   cannot bypass it, unlike ufw). Inbound: ICMP, TCP 22, 80 and 443 from
+   anywhere, plus TCP 8000 from your own IP only while setting up Coolify
+   (delete it once Coolify has its domain). Leave outbound empty. Check that
+   the firewall is listed under the server, then confirm from outside that
+   8000, 6001 and 6002 are closed. `compose.yaml` still binds app ports to
+   `127.0.0.1` only; never change those to `0.0.0.0`.
 
 ## 2. Install Coolify
 
@@ -124,8 +122,12 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
      the dashboard's own email and password sign-in still applies after it.
    - Before live Stripe or WhatsApp webhooks, add a **Bypass** policy for
      only those webhook paths (they are signature-checked by the API).
-6. Turn on **Bot Fight Mode** and the free managed WAF rules. Leave the shop
-   itself without Access: visitors must reach the coming-soon page.
+6. Leave **Bot Fight Mode off**: on the free plan it cannot exempt Stripe's
+   webhook calls. Leave the shop itself without Access: visitors must reach
+   the coming-soon page.
+7. Stripe webhooks: a separate Access application for
+   `admin.<domain>` path `api/payments/webhook` with a **Bypass / Everyone**
+   policy. The API verifies Stripe's signature on every call.
 
 ## 4. Deploy the app in Coolify
 
@@ -136,9 +138,12 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    the API's local binding. Set `API_PORT=18000`, and leave the
    `127.0.0.1` bind addresses as they are. Routing goes through Coolify's
    proxy by domain, not through these ports.
-3. **Domains:** assign `https://<domain>` to the `storefront` service
-   (port 3000) and `https://admin.<domain>` to `frontend` (port 80). No domain
-   for `api` or `db`.
+3. **Domains:** if the Domains page says "No services", reload the compose
+   file in General first. Assign `https://<domain>` to `storefront` (port
+   3000) and `https://admin.<domain>` to `frontend` (port 80). Delete the
+   `www.admin.<domain>` entry Coolify adds (no DNS record; failed certificate
+   requests can rate-limit Let's Encrypt) and set `www.<domain>` to redirect
+   to `<domain>`. No domain for `api`, `db` or `migrate`.
 4. **Environment variables** (Coolify → Environment, marked as secrets where
    sensitive). Start from `.env.example` and set at least:
 
@@ -148,7 +153,7 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    | `SECRET_KEY` | 64+ random characters (`openssl rand -hex 32`) |
    | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | new, random password |
    | `ALLOWED_ORIGINS` | `https://<domain>,https://admin.<domain>` |
-   | `TRUSTED_HOSTS` | `admin.<domain>,<domain>,api` |
+   | `TRUSTED_HOSTS` | `admin.<domain>,<domain>,api,localhost` (the API healthcheck uses `localhost`) |
    | `VITE_API_BASE_URL` | `https://admin.<domain>/api` |
    | `VITE_STOREFRONT_BASE_URL` / `STOREFRONT_PUBLIC_URL` | `https://<domain>` |
    | `STOREFRONT_COMING_SOON` | `true` until launch is approved |
@@ -167,7 +172,23 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
    secrets, wildcard origins or live keys without approval.
 5. **Deploy.** The `migrate` service runs Alembic first; `api` waits for it.
    Check `https://admin.<domain>/api/ready` returns `"status":"ready"` with the
-   latest revision, then sign in to the dashboard.
+   latest revision. The database starts empty, so create the first Owner
+   once from the server (`backend/scripts/` is not in the image):
+   ```bash
+   sudo docker exec -it $(sudo docker ps -qf name=api-) uv run --no-sync python -c "
+   import asyncio, getpass
+   from app.auth.password import hash_password
+   from app.db.database import AsyncSessionLocal
+   from app.models.admin import Admin
+   async def main():
+       email = input('Email: ').strip(); pw = getpass.getpass('Password (12+): ')
+       assert len(pw) >= 12, 'too short'
+       async with AsyncSessionLocal() as db:
+           db.add(Admin(username='owner', email=email, password_hash=hash_password(pw), is_superuser=True, role='OWNER')); await db.commit()
+       print('Owner created')
+   asyncio.run(main())"
+   ```
+   Then sign in and add the other Owners and Staff from the dashboard.
 6. Turn on **automatic deploys on push to `master`** only after a successful
    manual deploy. CI must be green before anything merges to `master`.
 7. **Builds on a 4 GB server:** building the Next.js and admin images on the
