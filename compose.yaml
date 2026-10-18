@@ -17,6 +17,7 @@ services:
 
   migrate:
     security_opt: ["no-new-privileges:true"]
+    restart: "no"
     build: ./backend
     env_file:
       - ${APP_ENV_FILE:-.env}
