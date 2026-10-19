@@ -197,7 +197,6 @@ a.list-row:hover, button.list-row:hover { background: var(--ui-subtle); }
 .bell-attention-dot[data-with-count] { top: auto; right: auto; bottom: 4px; left: 4px; }
 @media (max-width: 37.5em) {
   .ai-assistant-page { height: calc(100dvh - 84px); }
-  .ai-assistant-page .app-page-header .mantine-Text-root { display: none; }
 }
 .data-table-th[data-align="right"], .data-table-td[data-align="right"] { text-align: right; }
 .data-table-th[data-align="right"] .data-table-sort, .data-table-th[data-align="right"] .data-table-head { flex-direction: row-reverse; }
