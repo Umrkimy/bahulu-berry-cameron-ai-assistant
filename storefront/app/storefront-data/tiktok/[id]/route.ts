@@ -1,10 +1,10 @@
-import { fetchOEmbed, isFeaturedVideo, isTikTokImageHost } from "../../../_lib/tiktok.ts";
+import { fetchVideoMeta, isFeaturedVideo, isTikTokImageHost } from "../../../_lib/tiktok.ts";
 
 // Proxies the preview image so visitors do not contact TikTok until they press play.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isFeaturedVideo(id)) return new Response("Not found", { status: 404 });
-  const meta = await fetchOEmbed(id);
+  const meta = await fetchVideoMeta(id);
   let source: URL;
   try { source = new URL(meta?.thumbnail_url ?? ""); } catch { return unavailable(); }
   if (!isTikTokImageHost(source)) return unavailable();
