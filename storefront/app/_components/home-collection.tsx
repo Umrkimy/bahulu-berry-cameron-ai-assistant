@@ -1,18 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-import { homeCopy } from "../_lib/content";
+import { homeCopy, money } from "../_lib/content";
 import type { StorefrontProduct } from "../_lib/types";
 import { useLocale } from "./locale-provider";
 
-import { ProductCard } from "./product-card";
-import { Stagger } from "./motion";
+import { ProductArtwork } from "./product-artwork";
+import { AddToCartButton } from "./add-to-cart-button";
+import { secondPhoto } from "./product-card";
+import { productCopy } from "../_lib/product-view";
+import { Stagger, StaggerItem } from "./motion";
 
 export function HomeCollection({ products, state }: { products: StorefrontProduct[]; state: "ready" | "loading" | "error" }) {
   const { locale } = useLocale();
   const text = homeCopy[locale];
+  const stock = productCopy[locale];
   const router = useRouter();
   const [retrying, startTransition] = useTransition();
 
@@ -24,5 +29,17 @@ export function HomeCollection({ products, state }: { products: StorefrontProduc
     </div>;
   }
 
-  return <Stagger className="home-product-grid">{products.map((product) => <ProductCard key={product.id} product={product} headingLevel="h3" />)}</Stagger>;
+  return <Stagger className="home-product-grid">{products.map((product) => {
+    const name = locale === "ms" ? product.name_ms : product.name_en;
+    const altPhoto = secondPhoto(product);
+    return <StaggerItem as="article" className={altPhoto ? "home-product-card has-alt-photo" : "home-product-card"} key={product.id}>
+      <Link href={`/products/${product.id}`} className="home-product-photo" tabIndex={-1} aria-hidden="true">
+        <ProductArtwork imagePath={product.image_path} name={name} />
+        {altPhoto ? <span className="card-alt-photo"><ProductArtwork imagePath={altPhoto} name={name} decorative /></span> : null}
+      </Link>
+      <span className={`stock-label home-card-stock${product.is_available ? "" : " stock-unavailable"}`}><i aria-hidden="true" />{product.is_available ? stock.available : stock.unavailable}</span>
+      <h3><Link href={`/products/${product.id}`}>{name}</Link></h3>
+      <div className="home-card-action"><p>{money(product.sale_price ?? product.price)}</p><AddToCartButton product={product} /></div>
+    </StaggerItem>;
+  })}</Stagger>;
 }
