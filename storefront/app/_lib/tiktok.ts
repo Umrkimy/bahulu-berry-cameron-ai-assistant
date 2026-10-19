@@ -1,6 +1,9 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { social, tiktokVideoIds } from "./content.ts";
 
-export type TikTokVideo = { id: string; caption: string };
+export type TikTokVideo = { id: string; caption: string; poster?: string };
 type OEmbed = { title?: string; thumbnail_url?: string };
 
 export function isFeaturedVideo(id: string): boolean {
@@ -29,7 +32,15 @@ export async function fetchOEmbed(id: string): Promise<OEmbed | null> {
 
 export async function getFeaturedVideos(): Promise<TikTokVideo[]> {
   const results = await Promise.all(tiktokVideoIds.map(async (id) => ({ id, meta: await fetchOEmbed(id) })));
-  return results.map(({ id, meta }) => ({ id, caption: meta?.title ? cleanCaption(meta.title) : "" }));
+  return results.map(({ id, meta }) => ({ id, caption: meta?.title ? cleanCaption(meta.title) : "", poster: localPoster(id) }));
+}
+
+// Cover images saved as public/tiktok/<video id>.webp (or .jpg) take precedence over TikTok's preview.
+function localPoster(id: string): string | undefined {
+  for (const extension of ["webp", "jpg"]) {
+    if (existsSync(path.join(process.cwd(), "public", "tiktok", `${id}.${extension}`))) return `/tiktok/${id}.${extension}`;
+  }
+  return undefined;
 }
 
 export function isTikTokImageHost(url: URL): boolean {
