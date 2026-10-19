@@ -28,9 +28,9 @@ export default function ReportSalesChart({ points }: { points: DailySalesPoint[]
     animationDuration: 420,
     grid: { top: 12, right: 12, bottom: 28, left: 8, containLabel: true },
     tooltip: { trigger: "axis", valueFormatter: (value: unknown) => `RM ${Number(value ?? 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-    xAxis: { type: "category", boundaryGap: false, data: data.map((item) => item.date), axisTick: { show: false }, axisLine: { lineStyle: { color: "#e9e2dc" } }, axisLabel: { color: "#85746c", fontSize: 11, hideOverlap: true } },
-    yAxis: { type: "value", splitNumber: 3, axisLabel: { color: "#85746c", fontSize: 11, formatter: (value: string | number) => `RM ${Number(value).toLocaleString("en-MY")}` }, splitLine: { lineStyle: { color: "#f0e9e4", type: "dashed" } } },
-    series: [{ type: "line", data: data.map((item) => item.revenue), smooth: 0.24, showSymbol: false, lineStyle: { color: "#b8171c", width: 3 }, itemStyle: { color: "#b8171c" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(184, 23, 28, 0.28)" }, { offset: 1, color: "rgba(184, 23, 28, 0.02)" }] } } }],
+    xAxis: { type: "category", boundaryGap: false, data: data.map((item) => item.date), axisTick: { show: false }, axisLine: { lineStyle: { color: "#e4e4e7" } }, axisLabel: { color: "#71717a", fontSize: 11, hideOverlap: true } },
+    yAxis: { type: "value", splitNumber: 3, axisLabel: { color: "#71717a", fontSize: 11, formatter: (value: string | number) => `RM ${Number(value).toLocaleString("en-MY")}` }, splitLine: { lineStyle: { color: "#efeff1", type: "dashed" } } },
+    series: [{ type: "line", data: data.map((item) => item.revenue), smooth: false, showSymbol: false, lineStyle: { color: "#3f3f46", width: 2 }, itemStyle: { color: "#3f3f46" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(24, 24, 27, 0.08)" }, { offset: 1, color: "rgba(24, 24, 27, 0)" }] } } }],
   }), [data]);
 
   return <EChart option={option} height={260} label={`Paid sales trend with ${data.length} ${points.length > 90 ? "monthly" : "daily"} points`} />;

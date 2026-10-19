@@ -1,4 +1,4 @@
-import { Button, Card, Group, SimpleGrid, Stack, Text } from "@mantine/core";
+import { SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconBox, IconClipboardList, IconFilePlus, IconTruck, IconUserPlus } from "@tabler/icons-react";
 
 const prompts = [
@@ -48,33 +48,20 @@ export default function OwnerQuickPrompts({
   return (
     <Stack gap="md" w="100%" maw={760}>
       <Stack gap={2} ta="center">
-        <Text fw={700}>Owner operations copilot</Text>
+        <Text fw={600} size="lg">Owner operations copilot</Text>
         <Text size="sm" c="dimmed">
           Use live data for daily work. Proposed changes stay in preview until you confirm them.
         </Text>
       </Stack>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
         {prompts.map(({ label, description, message, icon: Icon }) => (
-          <Card key={label} withBorder p="md">
-            <Stack gap="xs">
-              <Group gap="xs">
-                <Icon size={18} />
-                <Text fw={700} size="sm">
-                  {label}
-                </Text>
-              </Group>
-              <Text size="xs" c="dimmed">
-                {description}
-              </Text>
-              <Button
-                size="xs"
-                variant="light"
-                onClick={() => onSelect(message)}
-              >
-                Ask Copilot
-              </Button>
-            </Stack>
-          </Card>
+          <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message)} aria-label={`Ask Copilot: ${label}`}>
+            <span className="list-row-icon"><Icon size={16} stroke={1.75} /></span>
+            <span>
+              <Text fw={500} size="sm">{label}</Text>
+              <Text size="sm" c="dimmed">{description}</Text>
+            </span>
+          </UnstyledButton>
         ))}
       </SimpleGrid>
     </Stack>

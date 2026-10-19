@@ -18,7 +18,7 @@ export default function InventoryCard() {
 
   if (isLoading) {
     return (
-      <Card withBorder radius="md" p="lg">
+      <Card withBorder>
         Loading inventory...
       </Card>
     );
@@ -26,7 +26,7 @@ export default function InventoryCard() {
 
   if (error || !data) {
     return (
-      <Card withBorder radius="md" p="lg">
+      <Card withBorder>
         <Text>Failed to load inventory</Text>
       </Card>
     );
@@ -48,9 +48,9 @@ export default function InventoryCard() {
   });
 
   return (
-    <Card withBorder radius="md" p="lg">
+    <Card withBorder>
       <Group justify="space-between" mb="md">
-        <Text fw={700}>Inventory Status</Text>
+        <Text fw={600}>Inventory Status</Text>
 
         <Badge variant="light"><AnimatedNumber value={data.length} /> Products</Badge>
       </Group>
@@ -76,11 +76,11 @@ export default function InventoryCard() {
             flex: 1,
           }}
         >
-          <Text size="xs" c="dimmed">
+          <Text size="sm" c="dimmed">
             Low Stock
           </Text>
 
-          <Text fw={700}><AnimatedNumber value={lowStockItems.length} /></Text>
+          <Text fw={600}><AnimatedNumber value={lowStockItems.length} /></Text>
         </Card>
 
         <Card
@@ -91,11 +91,11 @@ export default function InventoryCard() {
             flex: 1,
           }}
         >
-          <Text size="xs" c="dimmed">
+          <Text size="sm" c="dimmed">
             Out Of Stock
           </Text>
 
-          <Text fw={700}><AnimatedNumber value={outOfStockItems.length} /></Text>
+          <Text fw={600}><AnimatedNumber value={outOfStockItems.length} /></Text>
         </Card>
       </Group>
 
@@ -142,7 +142,7 @@ export default function InventoryCard() {
                             : "red"
                       }
                     >
-                      {item.status}
+                      {item.status === "GOOD" ? "In stock" : item.status === "LOW" ? "Low stock" : "Out of stock"}
                     </Badge>
                   </Table.Td>
                 </Table.Tr>

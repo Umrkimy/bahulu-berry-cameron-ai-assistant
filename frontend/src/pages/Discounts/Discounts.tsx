@@ -162,7 +162,7 @@ export default function Discounts() {
       { id: "start", accessorKey: "start_at", header: "Starts", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.start_at)}</Text> },
       { id: "end", accessorKey: "end_at", header: "Ends", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.end_at)}</Text> },
       { id: "status", accessorFn: (row) => getStatus(row).label, header: "Status", cell: ({ row }) => { const status = getStatus(row.original); return <Badge color={status.color} variant="light">{status.label}</Badge>; } },
-      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="light" color="orange" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="light" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> : <Text c="dimmed">-</Text> },
+      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="subtle" color="gray" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="subtle" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> : <Text c="dimmed">-</Text> },
     ],
     [deleteMutation.isPending, isOwner, openEdit, productNames, removeDiscount],
   );
@@ -176,7 +176,7 @@ export default function Discounts() {
         description="Schedule product promotions and sale prices."
         action={isOwner ? <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Create Discount</Button> : undefined}
       />
-      {filteredProductId ? <Alert mb="md" color="blue" title={`Promotions for ${productNames.get(filteredProductId) ?? `product #${filteredProductId}`}`}>
+      {filteredProductId ? <Alert mb="md" color="gray" title={`Promotions for ${productNames.get(filteredProductId) ?? `product #${filteredProductId}`}`}>
         <Button variant="subtle" size="compact-sm" onClick={() => setSearchParams({})}>Show all promotions</Button>
       </Alert> : null}
       <DataTable data={visibleDiscounts} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage={filteredProductId ? "No promotions exist for this product yet." : "No promotions created yet."} />

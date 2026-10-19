@@ -15,6 +15,7 @@ import { useCreateRefundRequest, useExecuteRefundRequest, useRefundRequests, use
 import type { RefundRequest, RefundRequestStatus } from "../../types/refundRequest";
 import { getApiError } from "../../api/errors";
 import type { DashboardRouteState } from "../../types/navigation";
+import { formatCode } from "../../utils/format";
 
 const statusColor: Record<RefundRequestStatus, string> = { REQUESTED: "yellow", UNDER_REVIEW: "blue", APPROVED: "violet", REJECTED: "red", REFUNDED: "green" };
 const nextStatuses: Record<RefundRequestStatus, RefundRequestStatus[]> = { REQUESTED: ["UNDER_REVIEW", "APPROVED", "REJECTED"], UNDER_REVIEW: ["APPROVED", "REJECTED"], APPROVED: ["REJECTED"], REJECTED: [], REFUNDED: [] };
@@ -92,9 +93,9 @@ export default function RefundRequests() {
     { id: "customer", accessorKey: "customer_name", header: "Customer" },
     { id: "reason", accessorKey: "reason", header: "Customer reason", cell: ({ row }) => <Text lineClamp={2}>{row.original.reason}</Text> },
     { id: "amount", accessorFn: (row) => Number(row.order_total), header: "Amount", cell: ({ row }) => <Text fw={600}>RM {Number(row.original.order_total).toFixed(2)}</Text> },
-    { id: "status", accessorKey: "status", header: "Status", cell: ({ row }) => <Badge color={statusColor[row.original.status]} variant="light">{row.original.status.replaceAll("_", " ")}</Badge> },
+    { id: "status", accessorKey: "status", header: "Status", cell: ({ row }) => <Badge color={statusColor[row.original.status]} variant="light">{formatCode(row.original.status)}</Badge> },
     { id: "requested", accessorKey: "created_at", header: "Requested", cell: ({ row }) => <Text size="sm">{new Date(row.original.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}</Text> },
-    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs">{admin?.role === "OWNER" && nextStatuses[row.original.status].length > 0 && <Tooltip label="Review request"><ActionIcon variant="light" color="blue" onClick={() => openReview(row.original)} aria-label="Review refund request"><IconChecklist size={18} /></ActionIcon></Tooltip>}{admin?.role === "OWNER" && row.original.status === "APPROVED" && <Tooltip label="Refund payment"><ActionIcon variant="light" color="red" onClick={() => confirmRefund(row.original)} aria-label="Refund payment" loading={refundMutation.isPending}><IconCash size={18} /></ActionIcon></Tooltip>}</Group> },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs">{admin?.role === "OWNER" && nextStatuses[row.original.status].length > 0 && <Tooltip label="Review request"><ActionIcon variant="subtle" color="gray" onClick={() => openReview(row.original)} aria-label="Review refund request"><IconChecklist size={18} /></ActionIcon></Tooltip>}{admin?.role === "OWNER" && row.original.status === "APPROVED" && <Tooltip label="Refund payment"><ActionIcon variant="subtle" color="red" onClick={() => confirmRefund(row.original)} aria-label="Refund payment" loading={refundMutation.isPending}><IconCash size={18} /></ActionIcon></Tooltip>}</Group> },
   ], [admin?.role, confirmRefund, openReview, refundMutation.isPending]);
 
   return <>

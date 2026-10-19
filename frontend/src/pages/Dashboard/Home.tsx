@@ -1,11 +1,6 @@
-import { Alert, Button, Group, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Alert, Button, Group, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 
-import {
-  IconCurrencyDollar,
-  IconShoppingCart,
-  IconPackage,
-  IconCalendarMonth,
-} from "@tabler/icons-react";
+import { IconPackage, IconShoppingCart } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 
@@ -43,52 +38,39 @@ export default function Home() {
       value: Number(data.sales.today_revenue),
       format: "currency" as const,
       description: "Paid, non-cancelled orders today",
-      icon: <IconCurrencyDollar />,
-      color: "red",
     },
     {
       title: "This month",
       value: Number(data.sales.monthly_revenue),
       format: "currency" as const,
       description: "Month-to-date paid revenue",
-      icon: <IconCalendarMonth />,
-      color: "red",
     },
     {
-      title: "Pending Orders",
+      title: "Pending orders",
       value: data.orders.pending,
       description: `${data.orders.total} total orders`,
-      icon: <IconShoppingCart />,
-      color: "orange",
     },
   ];
 
   return (
-    <Stack gap="lg">
+    <Stack gap="md">
       <PageHeader
         title={`Good day, ${admin?.username || "there"}`}
-        description="A clear view of today’s work, orders, and business performance. Open the bell for live updates."
-        action={<Group><Button component={Link} to="/orders" leftSection={<IconShoppingCart size={16} />}>Manage Orders</Button><Button component={Link} to="/inventory" variant="default" leftSection={<IconPackage size={16} />}>View Inventory</Button></Group>}
+        description="Today’s work, orders and sales at a glance."
+        action={<Group gap="xs"><Button component={Link} to="/inventory" variant="default" leftSection={<IconPackage size={16} />}>Inventory</Button><Button component={Link} to="/orders" leftSection={<IconShoppingCart size={16} />}>Orders</Button></Group>}
       />
+
+      <Paper withBorder className="kpi-strip">
+        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing={0}>
+          {stats.map((item) => (
+            <DashboardCard key={item.title} {...item} />
+          ))}
+        </SimpleGrid>
+      </Paper>
 
       <TodayWorkPanel dashboard={data} role={admin?.role} />
 
-      <SimpleGrid
-        cols={{
-          base: 1,
-          sm: 2,
-          lg: 3,
-        }}
-      >
-        {stats.map((item) => (
-          <DashboardCard key={item.title} {...item} />
-        ))}
-      </SimpleGrid>
-
-      <Stack gap={2} mt="sm">
-        <Text fw={750} fz="lg">Business snapshot</Text>
-        <Text size="sm" c="dimmed">Sales and order performance after today’s operational work.</Text>
-      </Stack>
+      <Text fw={600} mt="xs">Business snapshot</Text>
 
       <SimpleGrid
         cols={{

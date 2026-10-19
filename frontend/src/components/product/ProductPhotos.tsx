@@ -97,25 +97,25 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
 
   return <Stack gap="lg">
     <div>
-      <Text fw={700} fz="lg">Product photos</Text>
+      <Text fw={600} fz="lg">Product photos</Text>
       <Text size="sm" c="dimmed">Upload up to six approved JPEG, PNG, or WebP photos. The cover appears first on product cards.</Text>
     </div>
-    {query.isError ? <Alert color="red" title="Photos could not be loaded"><Button size="compact-sm" variant="light" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
+    {query.isError ? <Alert color="red" title="Photos could not be loaded"><Button size="compact-sm" variant="default" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
     {query.isLoading ? <Text c="dimmed" role="status">Loading product photos…</Text> : null}
     {!query.isLoading && !query.isError && images.length === 0 ? <Alert icon={<IconPhoto size={18} />} title="No photos yet">Upload at least one approved photo before publishing this product.</Alert> : null}
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
       {images.map((image, index) => <Card key={image.id} withBorder radius="lg" p="sm">
         <Card.Section>
-          <Image src={`${origin}${image.image_path}?v=${query.dataUpdatedAt}`} alt={`${index === 0 ? "Cover" : `Gallery ${index + 1}`} photo for this product`} h={220} fit="contain" bg="#fffaf1" />
+          <Image src={`${origin}${image.image_path}?v=${query.dataUpdatedAt}`} alt={`${index === 0 ? "Cover" : `Gallery ${index + 1}`} photo for this product`} h={220} fit="contain" bg="#fafafa" />
         </Card.Section>
         <Stack gap="xs" mt="sm">
-          <Group justify="space-between"><Text fw={700}>{index === 0 ? "Cover photo" : `Photo ${index + 1}`}</Text>{index === 0 ? <Badge color="bahulu" leftSection={<IconStar size={12} />}>Cover</Badge> : null}</Group>
+          <Group justify="space-between"><Text fw={600}>{index === 0 ? "Cover photo" : `Photo ${index + 1}`}</Text>{index === 0 ? <Badge color="bahulu" leftSection={<IconStar size={12} />}>Cover</Badge> : null}</Group>
           {canEdit ? <Group gap="xs" wrap="wrap">
-            {index > 0 ? <Button size="compact-xs" variant="light" leftSection={<IconStar size={14} />} disabled={mutation.isPending} onClick={() => makeCover(image.id)}>Make cover</Button> : null}
+            {index > 0 ? <Button size="compact-xs" variant="default" leftSection={<IconStar size={14} />} disabled={mutation.isPending} onClick={() => makeCover(image.id)}>Make cover</Button> : null}
             <ActionIcon variant="default" disabled={mutation.isPending || index === 0} onClick={() => reorder(index, index - 1)} aria-label={`Move photo ${index + 1} earlier`}><IconArrowLeft size={16} /></ActionIcon>
             <ActionIcon variant="default" disabled={mutation.isPending || index === images.length - 1} onClick={() => reorder(index, index + 1)} aria-label={`Move photo ${index + 1} later`}><IconArrowRight size={16} /></ActionIcon>
             <FileButton accept="image/jpeg,image/png,image/webp" onChange={(file) => file && mutation.mutate({ type: "replace", imageId: image.id, file })}>{(props) => <Button {...props} size="compact-xs" variant="default" disabled={mutation.isPending}>Replace</Button>}</FileButton>
-            <ActionIcon color="red" variant="light" disabled={mutation.isPending} onClick={() => confirmRemove(image, index)} aria-label={`Remove photo ${index + 1}`}><IconTrash size={16} /></ActionIcon>
+            <ActionIcon color="red" variant="subtle" disabled={mutation.isPending} onClick={() => confirmRemove(image, index)} aria-label={`Remove photo ${index + 1}`}><IconTrash size={16} /></ActionIcon>
           </Group> : <Text size="xs" c="dimmed">Owner access is required to change photos.</Text>}
         </Stack>
       </Card>)}

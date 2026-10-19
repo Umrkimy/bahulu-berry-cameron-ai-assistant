@@ -168,6 +168,7 @@
 .chat-bubble-mascot img { width: 54px; height: 54px; object-fit: contain; }
 .chat-bubble:hover .chat-bubble-mascot { transform: scale(1.06); }
 .chat-bubble:hover .chat-bubble-label { color: var(--red); }
+.chat-bubble[data-compact]:not(:hover, :focus-visible) .chat-bubble-label { display: none; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 1023px) { .video-row { grid-template-columns: repeat(4, 62%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; } .video-card { scroll-snap-align: start; } }

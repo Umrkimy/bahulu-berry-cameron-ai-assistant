@@ -38,34 +38,20 @@ export default function AppLayout() {
       <NavigationProgress color="bahulu" />
       <CommandPalette />
       <AppShell
-      header={{
-        height: 72,
-      }}
+      layout="alt"
+      header={{ height: 52 }}
       navbar={{
-        width: 260,
+        width: 232,
         breakpoint: "sm",
         collapsed: { mobile: !mobileOpened },
       }}
       padding={{ base: "md", sm: "xl" }}
-      styles={{
-        header: {
-          background: "rgba(255, 253, 250, 0.94)",
-          borderBottom: "1px solid #f1dedb",
-        },
-        navbar: {
-          background: "#fffdf8",
-          borderRight: "1px solid #e9e2dc",
-        },
-        main: {
-          background: "transparent",
-        },
-      }}
     >
       <AppShell.Header>
         <AppNavbar mobileOpened={mobileOpened} onToggleNavigation={() => setMobileOpened((value) => !value)} />
       </AppShell.Header>
 
-      <AppShell.Navbar component="nav" aria-label="Primary navigation" className="berry-sidebar" style={{ overflowY: "auto" }}>
+      <AppShell.Navbar component="nav" aria-label="Primary navigation" className="berry-sidebar">
         <AppSidebar onNavigate={() => setMobileOpened(false)} />
       </AppShell.Navbar>
 

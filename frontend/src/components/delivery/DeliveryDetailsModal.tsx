@@ -121,7 +121,7 @@ export default function DeliveryDetailsModal({
       padding="xl"
       title={
         <Stack gap={2}>
-          <Text fw={700} size="lg">
+          <Text fw={600} size="lg">
             Delivery Details
           </Text>
 
@@ -141,7 +141,7 @@ export default function DeliveryDetailsModal({
                 Delivery Status
               </Text>
 
-              <Text fw={700} size="lg" mt={4}>
+              <Text fw={600} size="lg" mt={4}>
                 {formatStatus(currentDelivery.status)}
               </Text>
             </div>
@@ -228,7 +228,7 @@ export default function DeliveryDetailsModal({
               {currentDelivery.tracking_number && (
                 <Button
                   size="xs"
-                  variant="light"
+                  variant="default"
                   onClick={handleCopyTrackingNumber}
                 >
                   Copy

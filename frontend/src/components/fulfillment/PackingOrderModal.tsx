@@ -74,15 +74,15 @@ function PackingOrderContent({ opened, order, mode, onClose }: PackingOrderConte
     });
   }
 
-  return <Modal opened={opened} onClose={() => !pending && onClose()} centered size="lg" radius="md" padding="xl" title={<Stack gap={2}><Text fw={750} size="lg">{mode === "prepare" ? "Prepare order" : "Pack and dispatch"}</Text><Text size="sm" c="dimmed">Order #{order.id} · {order.customer_name}</Text></Stack>} closeOnClickOutside={!pending} closeOnEscape={!pending}>
+  return <Modal opened={opened} onClose={() => !pending && onClose()} centered size="lg" radius="md" padding="xl" title={<Stack gap={2}><Text fw={600} size="lg">{mode === "prepare" ? "Prepare order" : "Pack and dispatch"}</Text><Text size="sm" c="dimmed">Order #{order.id} · {order.customer_name}</Text></Stack>} closeOnClickOutside={!pending} closeOnEscape={!pending}>
     <Stack gap="lg">
       <Paper withBorder p="md" radius="md">
-        <Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={700}>Order items</Text><Text size="sm" c="dimmed">Pack the exact quantities shown below.</Text></Stack><Badge color="green" variant="light">Payment confirmed</Badge></Group>
+        <Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order items</Text><Text size="sm" c="dimmed">Pack the exact quantities shown below.</Text></Stack><Badge color="green" variant="light">Payment confirmed</Badge></Group>
         <Stack gap="xs" mt="md">{order.items.map((item) => mode === "dispatch" ? <Checkbox key={item.id} checked={checkedItemIds.includes(item.id)} onChange={() => toggleItem(item.id)} label={<Text size="sm" fw={600}>{item.product_name} <Text component="span" c="dimmed">× {item.quantity}</Text></Text>} disabled={pending} /> : <Group key={item.id} justify="space-between"><Text size="sm" fw={600}>{item.product_name}</Text><Badge variant="light" color="bahulu">× {item.quantity}</Badge></Group>)}</Stack>
         {mode === "dispatch" ? <Text size="xs" c={allPacked ? "green" : "dimmed"} mt="md">{allPacked ? "Every item has been confirmed packed." : "Confirm every item to enable dispatch."}</Text> : null}
       </Paper>
 
-      <Paper withBorder p="md" radius="md"><Stack gap="xs"><Group gap="xs"><IconTruck size={17} /><Text fw={700}>Delivery handover</Text></Group><Text size="sm">{order.delivery?.recipient_name ?? "Recipient not recorded"}</Text>{order.delivery?.recipient_phone ? <Text size="sm" c="dimmed">{order.delivery.recipient_phone}</Text> : null}<Text size="sm" c="dimmed">{deliveryAddress(order)}</Text></Stack></Paper>
+      <Paper withBorder p="md" radius="md"><Stack gap="xs"><Group gap="xs"><IconTruck size={17} /><Text fw={600}>Delivery handover</Text></Group><Text size="sm">{order.delivery?.recipient_name ?? "Recipient not recorded"}</Text>{order.delivery?.recipient_phone ? <Text size="sm" c="dimmed">{order.delivery.recipient_phone}</Text> : null}<Text size="sm" c="dimmed">{deliveryAddress(order)}</Text></Stack></Paper>
 
       {mode === "dispatch" && <><Divider label="Courier details" labelPosition="center" /><TextInput label="Courier" placeholder="Optional, e.g. J&T Express" value={courier} onChange={(event) => setCourier(event.currentTarget.value)} disabled={pending} /><TextInput label="Tracking number" placeholder="Optional" value={trackingNumber} onChange={(event) => setTrackingNumber(event.currentTarget.value)} disabled={pending} /></>}
       {mode === "dispatch" && !order.items.length ? <Alert color="red" title="Order items unavailable">This order cannot be dispatched until its item details are available.</Alert> : null}

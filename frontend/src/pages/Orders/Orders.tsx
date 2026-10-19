@@ -1,4 +1,4 @@
-import { Button, Card } from "@mantine/core";
+import { Button } from "@mantine/core";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -20,9 +20,7 @@ export default function Orders() {
         description="Manage customer orders, payments, and delivery progress."
         action={<Button onClick={() => setCreateOpened(true)}>Create Order</Button>}
       />
-      <Card withBorder p="md">
       <OrdersTable />
-      </Card>
 
       <CreateOrderModal
         opened={createOpened || isCreateRequested}

@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Stack } from "@mantine/core";
+import { Alert, Button, Stack } from "@mantine/core";
 import { IconPackageImport } from "@tabler/icons-react";
 import { useState } from "react";
 import InventoryTable from "../../components/inventory/InventoryTable";
@@ -18,8 +18,8 @@ export default function InventoryPage() {
   return (
     <>
       <PageHeader title="Inventory" description="Monitor stock levels and keep products available." action={<Button leftSection={<IconPackageImport size={16} />} onClick={() => setReceivingOpened(true)}>Receive stock</Button>} />
-      {productId ? <Alert mb="md" color="blue" title={`Inventory for ${productName ?? `product #${productId}`}`}><Button variant="subtle" size="compact-sm" onClick={() => setSearchParams({})}>Show all inventory</Button></Alert> : null}
-      <Stack><Card withBorder p="md"><InventoryTable productId={productId} /></Card><StockMovementHistory productId={productId} /></Stack>
+      {productId ? <Alert mb="md" color="gray" title={`Inventory for ${productName ?? `product #${productId}`}`}><Button variant="subtle" size="compact-sm" onClick={() => setSearchParams({})}>Show all inventory</Button></Alert> : null}
+      <Stack><InventoryTable productId={productId} /><StockMovementHistory productId={productId} /></Stack>
       <BatchStockReceiptModal opened={receivingOpened} onClose={() => setReceivingOpened(false)} inventories={inventories} />
     </>
   );

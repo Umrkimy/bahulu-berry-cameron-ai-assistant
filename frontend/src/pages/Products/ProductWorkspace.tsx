@@ -66,7 +66,7 @@ export default function ProductWorkspace() {
 
   if (invalidId) return <Alert color="red" title="Invalid product">Return to the product list and choose a valid product.</Alert>;
   if (!creating && productQuery.isLoading) return <Group justify="center" py="xl"><Loader /><Text>Loading product workspace…</Text></Group>;
-  if (!creating && productQuery.isError) return <Alert color="red" title="Product could not be loaded"><Button component={Link} to="/products" variant="light" mt="sm">Back to products</Button></Alert>;
+  if (!creating && productQuery.isError) return <Alert color="red" title="Product could not be loaded"><Button component={Link} to="/products" variant="default" mt="sm">Back to products</Button></Alert>;
   if (!creating && !productQuery.data) return null;
 
   const product = productQuery.data ?? null;
@@ -80,7 +80,7 @@ export default function ProductWorkspace() {
       {!creating && product ? <Group><Badge color={product.is_active ? "green" : "gray"}>{product.is_active ? "Active for operations" : "Inactive"}</Badge><Badge color={product.storefront_published ? "bahulu" : "gray"}>{product.storefront_published ? "Published online" : "Storefront draft"}</Badge></Group> : null}
     </Group>
 
-    {!canEdit ? <Alert color="blue" title="Read-only access">Only an Owner can change product details, publication, or photos.</Alert> : null}
+    {!canEdit ? <Alert color="gray" title="Read-only access">Only an Owner can change product details, publication, or photos.</Alert> : null}
 
     {creating ? <ProductDetailsForm product={null} canEdit={canEdit} onDirtyChange={setDirty} /> : <>
       <Tabs value={section} onChange={openSection} keepMounted={false}>
@@ -147,13 +147,13 @@ function ProductDetailsForm({ product, canEdit, onDirtyChange }: { product: Prod
   });
 
   return <form onSubmit={submit}><Stack gap="lg">
-    <div><Text fw={700} fz="lg">English product details</Text><Text size="sm" c="dimmed">These details are used by operations and as the English storefront content. Enter them only once.</Text></div>
+    <div><Text fw={600} fz="lg">English product details</Text><Text size="sm" c="dimmed">These details are used by operations and as the English storefront content. Enter them only once.</Text></div>
     <TextInput label="Product name — English" withAsterisk disabled={!canEdit || pending} {...form.getInputProps("name")} />
     <Textarea label="Description — English" autosize minRows={4} disabled={!canEdit || pending} {...form.getInputProps("description")} />
     <Group grow align="start"><TextInput label="Category" disabled={!canEdit || pending} {...form.getInputProps("category")} /><NumberInput label="Base price" prefix="RM " min={0.01} decimalScale={2} fixedDecimalScale withAsterisk disabled={!canEdit || pending} {...form.getInputProps("price")} /></Group>
     {!product ? <NumberInput label="Opening stock" min={0} disabled={!canEdit || pending} {...form.getInputProps("initial_quantity")} /> : null}
     <Switch label="Active for operations" description={form.values.is_active ? "Available for operational workflows. Storefront publishing remains separate." : "Inactive products are also removed from the public storefront."} checked={form.values.is_active} disabled={!canEdit || pending} onChange={(event) => form.setFieldValue("is_active", event.currentTarget.checked)} />
-    {product ? <><Divider /><Group grow align="stretch"><Card withBorder><Text size="xs" c="dimmed">Current stock</Text><Text fw={800} fz="xl">{product.inventory?.quantity ?? 0}</Text><Button component={Link} to={`/inventory?product_id=${product.id}`} variant="subtle" size="compact-sm">Open Inventory</Button></Card><Card withBorder><Text size="xs" c="dimmed">Active promotions</Text><Text fw={800} fz="xl">{activePromotions.length}</Text><Button component={Link} to={`/discounts?product_id=${product.id}`} variant="subtle" size="compact-sm">Open Promotions</Button></Card></Group></> : null}
+    {product ? <><Divider /><Group grow align="stretch"><Card withBorder><Text size="xs" c="dimmed">Current stock</Text><Text fw={600} fz="xl">{product.inventory?.quantity ?? 0}</Text><Button component={Link} to={`/inventory?product_id=${product.id}`} variant="subtle" size="compact-sm">Open Inventory</Button></Card><Card withBorder><Text size="xs" c="dimmed">Active promotions</Text><Text fw={600} fz="xl">{activePromotions.length}</Text><Button component={Link} to={`/discounts?product_id=${product.id}`} variant="subtle" size="compact-sm">Open Promotions</Button></Card></Group></> : null}
     {canEdit ? <Group justify="flex-end"><Button type="submit" loading={pending}>{product ? "Save details" : "Create product"}</Button></Group> : null}
   </Stack></form>;
 }
@@ -184,11 +184,11 @@ function StorefrontForm({ product, canEdit, onDirtyChange }: { product: Product;
   const storefrontBase = import.meta.env.VITE_STOREFRONT_BASE_URL ?? "http://localhost:3000";
 
   return <form onSubmit={submit}><Stack gap="lg">
-    <div><Text fw={700} fz="lg">Storefront content</Text><Text size="sm" c="dimmed">English comes from Product Details. Add the approved Bahasa Melayu translation here, then publish when the checklist is complete.</Text></div>
-    <Card withBorder bg="#fffaf1"><Stack gap="xs"><Text fw={700}>English preview</Text><Text fw={600}>{product.name}</Text><Text size="sm" c="dimmed">{product.description || "No English description added."}</Text></Stack></Card>
+    <div><Text fw={600} fz="lg">Storefront content</Text><Text size="sm" c="dimmed">English comes from Product Details. Add the approved Bahasa Melayu translation here, then publish when the checklist is complete.</Text></div>
+    <Card withBorder bg="#fafafa"><Stack gap="xs"><Text fw={600}>English preview</Text><Text fw={600}>{product.name}</Text><Text size="sm" c="dimmed">{product.description || "No English description added."}</Text></Stack></Card>
     <TextInput label="Product name — Bahasa Melayu" withAsterisk disabled={!canEdit || update.isPending} {...form.getInputProps("name_ms")} />
     <Textarea label="Description — Bahasa Melayu" autosize minRows={4} disabled={!canEdit || update.isPending} {...form.getInputProps("description_ms")} />
-    <Card withBorder><Stack gap="xs"><Text fw={700}>Publishing checklist</Text>{readiness.map((item) => <Group key={item.label} gap="xs"><Badge color={item.ready ? "green" : "gray"} circle>{item.ready ? <IconCheck size={12} /> : "–"}</Badge><Text size="sm" c={item.ready ? undefined : "dimmed"}>{item.label}</Text></Group>)}</Stack></Card>
+    <Card withBorder><Stack gap="xs"><Text fw={600}>Publishing checklist</Text>{readiness.map((item) => <Group key={item.label} gap="xs"><Badge color={item.ready ? "green" : "gray"} circle>{item.ready ? <IconCheck size={12} /> : "–"}</Badge><Text size="sm" c={item.ready ? undefined : "dimmed"}>{item.label}</Text></Group>)}</Stack></Card>
     <Switch label="Published online" description={form.values.storefront_published ? "Visible in the public catalogue while active and available according to stock." : "Saved as a private storefront draft."} checked={form.values.storefront_published} disabled={!canEdit || update.isPending || (!readyToPublish && !form.values.storefront_published)} onChange={(event) => form.setFieldValue("storefront_published", event.currentTarget.checked)} />
     <Group justify="space-between" wrap="wrap">
       {product.storefront_published ? <Group><Button component="a" href={`${storefrontBase}/products/${product.id}`} target="_blank" rel="noreferrer" variant="default" rightSection={<IconExternalLink size={14} />}>Preview product</Button></Group> : null}

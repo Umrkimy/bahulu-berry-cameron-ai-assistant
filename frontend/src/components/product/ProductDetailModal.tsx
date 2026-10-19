@@ -19,20 +19,20 @@ interface Props {
 function getStockStatus(quantity: number, threshold: number) {
   if (quantity === 0) {
     return {
-      label: "OUT OF STOCK",
+      label: "Out of stock",
       color: "red",
     };
   }
 
   if (quantity <= threshold) {
     return {
-      label: "LOW STOCK",
+      label: "Low stock",
       color: "orange",
     };
   }
 
   return {
-    label: "IN STOCK",
+    label: "In stock",
     color: "green",
   };
 }
@@ -62,7 +62,7 @@ export default function ProductDetailsModal({
       radius="md"
       title={
         <Stack gap={2}>
-          <Text fw={700} size="lg">
+          <Text fw={600} size="lg">
             Product Details
           </Text>
 
@@ -82,7 +82,7 @@ export default function ProductDetailsModal({
                 Product
               </Text>
 
-              <Text fw={700} size="lg">
+              <Text fw={600} size="lg">
                 {product.name}
               </Text>
 
@@ -130,7 +130,7 @@ export default function ProductDetailsModal({
                 Price
               </Text>
 
-              <Text fw={700}>RM {Number(product.price).toFixed(2)}</Text>
+              <Text fw={600}>RM {Number(product.price).toFixed(2)}</Text>
             </Group>
 
             <Group justify="space-between">
@@ -171,7 +171,7 @@ export default function ProductDetailsModal({
                 Current Stock
               </Text>
 
-              <Text fw={700} size="lg">
+              <Text fw={600} size="lg">
                 {quantity}
               </Text>
             </Group>

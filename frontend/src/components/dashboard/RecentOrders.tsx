@@ -1,6 +1,7 @@
 import { Avatar, Badge, Card, Group, Table, Text } from "@mantine/core";
 
 import { useDashboard } from "../../hooks/useDashboard";
+import { formatCode } from "../../utils/format";
 
 function getShortName(fullName: string) {
   const parts = fullName.trim().split(" ");
@@ -20,7 +21,7 @@ function StatusBadge({ status }: { status: string }) {
   const color =
     status === "COMPLETED" ? "green" : status === "PENDING" ? "yellow" : "blue";
 
-  return <Badge color={color}>{status}</Badge>;
+  return <Badge color={color}>{formatCode(status)}</Badge>;
 }
 
 export default function RecentOrders() {
@@ -28,7 +29,7 @@ export default function RecentOrders() {
 
   if (isLoading) {
     return (
-      <Card withBorder radius="md" p="lg">
+      <Card withBorder>
         Loading orders...
       </Card>
     );
@@ -37,10 +38,10 @@ export default function RecentOrders() {
   const orders = data?.recent_orders ?? [];
 
   return (
-    <Card withBorder radius="md" p="lg">
+    <Card withBorder>
       <Group justify="space-between" mb="md">
         <div>
-          <Text fw={700}>Recent Orders</Text>
+          <Text fw={600}>Recent Orders</Text>
           <Text size="sm" c="dimmed">Latest orders across the business</Text>
         </div>
       </Group>

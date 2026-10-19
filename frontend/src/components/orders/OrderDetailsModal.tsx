@@ -179,7 +179,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       closeOnEscape={!createPaymentMutation.isPending}
     >
       <Stack gap="lg">
-        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="light" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
+        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
         {/* ORDER SUMMARY */}
 
         <Paper withBorder radius="md" p="md">
@@ -189,7 +189,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 Customer
               </Text>
 
-              <Text fw={700}>{customerName}</Text>
+              <Text fw={600}>{customerName}</Text>
             </div>
 
             <Stack gap={2} align="flex-end">
@@ -209,7 +209,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 </Text>
               </Group>
 
-              <Text fw={700} size="lg">
+              <Text fw={600} size="lg">
                 RM {Number(order.total_amount).toFixed(2)}
               </Text>
             </Stack>
@@ -413,7 +413,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                         <Button
                           size="sm"
-                          variant="light"
+                          variant="default"
                           onClick={handleCopyPaymentLink}
                         >
                           Copy Link
@@ -498,7 +498,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 </Text>
               )}
               <Button
-                variant="light"
+                variant="default"
                 onClick={() => navigate("/refund-requests")}
               >
                 View Refund Requests
@@ -581,7 +581,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                   </Text>
                 </Group>
 
-                <Button variant="light" onClick={handleViewDelivery}>
+                <Button variant="default" onClick={handleViewDelivery}>
                   View Delivery
                 </Button>
               </>
@@ -591,7 +591,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                   No delivery record found for this order.
                 </Text>
 
-                <Button variant="light" onClick={handleViewDelivery}>
+                <Button variant="default" onClick={handleViewDelivery}>
                   View Delivery
                 </Button>
               </>
@@ -651,7 +651,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                       )}
                     </Table.Td>
 
-                    <Table.Td fw={700}>
+                    <Table.Td fw={600}>
                       RM {Number(item.total_amount).toFixed(2)}
                     </Table.Td>
                   </Table.Tr>

@@ -38,7 +38,7 @@ export default function ProductImportModal({ opened, onClose }: { opened: boolea
   const busy = previewMutation.isPending || importMutation.isPending;
   return <Modal opened={opened} onClose={() => !busy && onClose()} title="Import products from CSV" centered size="xl">
     <Stack gap="md">
-      <Alert color="blue" variant="light" icon={<IconFileSpreadsheet size={18} />}>Upload the downloaded template. Previewing never changes the database; import creates every valid row together.</Alert>
+      <Alert color="gray" variant="light" icon={<IconFileSpreadsheet size={18} />}>Upload the downloaded template. Previewing never changes the database; import creates every valid row together.</Alert>
       <FileInput label="CSV file" accept=".csv,text/csv" placeholder="Choose a product CSV" value={file} onChange={changeFile} disabled={busy} clearable />
       <Group justify="flex-end"><Button leftSection={<IconUpload size={16} />} onClick={() => previewMutation.mutate()} disabled={!file} loading={previewMutation.isPending}>Preview CSV</Button></Group>
       {preview ? <>

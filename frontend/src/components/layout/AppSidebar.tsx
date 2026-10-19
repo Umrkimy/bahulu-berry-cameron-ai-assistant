@@ -1,4 +1,4 @@
-import { Stack } from "@mantine/core";
+import { Burger, Group, ScrollArea, Stack } from "@mantine/core";
 
 import {
   IconHome,
@@ -22,127 +22,125 @@ import {
   IconMessageDots,
   IconBrowser,
   IconPhoto,
+  IconGauge,
 } from "@tabler/icons-react";
 
 import NavSection from "./NavSection";
+import Logo from "../brand/Logo";
 import useAuth from "../../auth/useAuth";
 
 export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
   const { admin } = useAuth();
   return (
-    <Stack p="md" gap="sm">
+    <>
+    <Group className="sidebar-brand" justify="space-between" wrap="nowrap">
+      <Group gap={10} wrap="nowrap"><Logo size={28} alt="" /><span className="sidebar-brand-name">Bahulu Berry Cameron</span></Group>
+      <Burger opened onClick={onNavigate} hiddenFrom="sm" size="sm" aria-label="Close navigation" />
+    </Group>
+    <ScrollArea className="sidebar-scroll" type="hover" scrollbarSize={6}>
+    <Stack p="sm" gap="md">
       <NavSection
-        title="OVERVIEW"
+        title="Overview"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
           {
             label: "Dashboard",
             link: "/dashboard",
-            icon: <IconHome size={18} />,
+            icon: <IconHome size={17} stroke={1.75} />,
           },
-          { label: "Updates", link: "/updates", icon: <IconBell size={18} /> },
+          { label: "Updates", link: "/updates", icon: <IconBell size={17} stroke={1.75} /> },
         ]}
       />
 
       <NavSection
-        title="DAILY WORK"
+        title="Daily work"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
           {
             label: "Orders",
             link: "/orders",
-            icon: <IconShoppingCart size={18} />,
+            icon: <IconShoppingCart size={17} stroke={1.75} />,
           },
 
           {
             label: "Fulfilment",
             link: "/fulfillment",
-            icon: <IconClipboardCheck size={18} />,
+            icon: <IconClipboardCheck size={17} stroke={1.75} />,
           },
           {
             label: "Deliveries",
             link: "/deliveries",
-            icon: <IconTruck size={18} />,
+            icon: <IconTruck size={17} stroke={1.75} />,
           },
           {
             label: "Tasks",
             link: "/tasks",
-            icon: <IconChecklist size={18} />,
+            icon: <IconChecklist size={17} stroke={1.75} />,
           },
           {
             label: "Operations Copilot",
             link: "/ai-assistant",
-            icon: <IconMessageChatbot size={18} />,
+            icon: <IconMessageChatbot size={17} stroke={1.75} />,
           },
           {
             label: "WhatsApp",
             link: "/whatsapp",
-            icon: <IconBrandWhatsapp size={18} />,
+            icon: <IconBrandWhatsapp size={17} stroke={1.75} />,
           },
         ]}
       />
 
       <NavSection
-        title="CATALOGUE"
+        title="Catalogue"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
           {
             label: "Products",
             link: "/products",
-            icon: <IconPackage size={18} />,
+            icon: <IconPackage size={17} stroke={1.75} />,
           },
-          { label: "Media", link: "/media", icon: <IconPhoto size={18} /> },
-          ...(admin?.role === "OWNER" ? [{ label: "Homepage", link: "/storefront/homepage", icon: <IconBrowser size={18} /> }] : []),
+          { label: "Media", link: "/media", icon: <IconPhoto size={17} stroke={1.75} /> },
+          ...(admin?.role === "OWNER" ? [{ label: "Homepage", link: "/storefront/homepage", icon: <IconBrowser size={17} stroke={1.75} /> }] : []),
           {
             label: "Inventory",
             link: "/inventory",
-            icon: <IconBuildingWarehouse size={18} />,
+            icon: <IconBuildingWarehouse size={17} stroke={1.75} />,
           },
-          { label: "Discounts", link: "/discounts", icon: <IconDiscount2 size={18} /> },
-          ...(admin?.role === "OWNER" ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={18} /> }] : []),
+          { label: "Discounts", link: "/discounts", icon: <IconDiscount2 size={17} stroke={1.75} /> },
+          ...(admin?.role === "OWNER" ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={17} stroke={1.75} /> }] : []),
         ]}
       />
 
       <NavSection
-        title="CUSTOMERS & ENQUIRIES"
+        title="Customers"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
-          { label: "Customers", link: "/customers", icon: <IconUsers size={18} /> },
-          ...(admin?.role === "OWNER" ? [{ label: "Enquiries", link: "/enquiries", icon: <IconMessageDots size={18} /> }] : []),
+          { label: "Customers", link: "/customers", icon: <IconUsers size={17} stroke={1.75} /> },
+          ...(admin?.role === "OWNER" ? [{ label: "Enquiries", link: "/enquiries", icon: <IconMessageDots size={17} stroke={1.75} /> }] : []),
         ]}
       />
 
       {admin?.role === "OWNER" ? <NavSection
-        title="OWNER CONTROLS"
+        title="Owner controls"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
-          { label: "Refund Requests", link: "/refund-requests", icon: <IconCash size={18} /> },
-          { label: "Reports", link: "/reports", icon: <IconChartBar size={18} /> },
-          { label: "Activity", link: "/activity", icon: <IconActivity size={18} /> },
-          { label: "AI Usage", link: "/ai-usage", icon: <IconChartBar size={18} /> },
+          { label: "Refund Requests", link: "/refund-requests", icon: <IconCash size={17} stroke={1.75} /> },
+          { label: "Reports", link: "/reports", icon: <IconChartBar size={17} stroke={1.75} /> },
+          { label: "Activity", link: "/activity", icon: <IconActivity size={17} stroke={1.75} /> },
+          { label: "AI Usage", link: "/ai-usage", icon: <IconGauge size={17} stroke={1.75} /> },
         ]}
       /> : null}
 
       {admin?.role === "OWNER" ? <NavSection
-        title="ADMINISTRATION"
+        title="Administration"
         onNavigate={onNavigate}
-        collapsible
-        initiallyCollapsed
         items={[
-          { label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={18} /> },
-          { label: "Settings", link: "/settings", icon: <IconSettings size={18} /> },
+          { label: "Team & Roles", link: "/team", icon: <IconUsersGroup size={17} stroke={1.75} /> },
+          { label: "Settings", link: "/settings", icon: <IconSettings size={17} stroke={1.75} /> },
         ]}
       /> : null}
     </Stack>
+    </ScrollArea>
+    </>
   );
 }

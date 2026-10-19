@@ -160,32 +160,22 @@ export default function DataTable<TData extends object>({
   };
 
   return (
-    <Paper
-      withBorder
-      radius="md"
-      style={{
-        overflow: "hidden",
-        background: "rgba(255, 255, 255, 0.88)",
-        borderColor: "#f0dcd8",
-      }}
-    >
+    <Paper withBorder radius="md" className="data-table" style={{ overflow: "hidden" }}>
       <Text className="sr-only" aria-live="polite">{stateMessage}</Text>
       {/* SEARCH */}
       <Group
         className="data-table-toolbar"
         justify="space-between"
-        p="md"
-        style={{
-          borderBottom:
-            "1px solid #f1e1de",
-        }}
+        px="md"
+        py="sm"
+        style={{ borderBottom: "1px solid var(--ui-border)" }}
       >
         <Group gap="xs" wrap="wrap">
           <TextInput
             className="data-table-search"
             placeholder={searchPlaceholder}
             aria-label={`Search ${tableLabel.toLowerCase()}`}
-            leftSection={<IconSearch size={16} />}
+            leftSection={<IconSearch size={15} stroke={1.75} />}
             value={searchValue ?? globalFilter}
             onChange={(event) => {
               const value = event.currentTarget.value;
@@ -193,10 +183,10 @@ export default function DataTable<TData extends object>({
               onSearchChange?.(value);
               setPagination((current) => ({ ...current, pageIndex: 0 }));
             }}
-            w={280}
+            w={260}
           />
           <Tooltip label="Reset search and sorting">
-            <ActionIcon variant="subtle" color="gray" onClick={resetTable} aria-label="Reset table controls">
+            <ActionIcon size={32} onClick={resetTable} aria-label="Reset table controls">
               <IconRefresh size={16} />
             </ActionIcon>
           </Tooltip>
@@ -234,27 +224,15 @@ export default function DataTable<TData extends object>({
                     <th
                       key={header.id}
                       aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"}
-                      style={{
-                        padding: "14px 16px",
-                        textAlign: "left",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                        background: "#fff7f4",
-                        borderBottom:
-                          "1px solid #f1e1de",
-                      }}
+                      className="data-table-th"
+                      data-align={(header.column.columnDef.meta as { align?: string } | undefined)?.align}
                     >
                       {header.isPlaceholder ? null : canSort ? (
                         <UnstyledButton
                           onClick={header.column.getToggleSortingHandler()}
                           aria-label={`Sort by ${typeof header.column.columnDef.header === "string" ? header.column.columnDef.header : header.column.id}${sorted ? `, currently ${sorted === "asc" ? "ascending" : "descending"}` : ""}`}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontWeight: 600,
-                          }}
+                          className="data-table-sort"
+                          data-sorted={sorted || undefined}
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -262,21 +240,15 @@ export default function DataTable<TData extends object>({
                           )}
 
                           {sorted === "asc" ? (
-                            <IconChevronUp size={15} />
+                            <IconChevronUp size={14} aria-hidden="true" />
                           ) : sorted === "desc" ? (
-                            <IconChevronDown size={15} />
+                            <IconChevronDown size={14} aria-hidden="true" />
                           ) : (
-                            <IconSelector size={15} />
+                            <IconSelector size={14} aria-hidden="true" className="data-table-sort-idle" />
                           )}
                         </UnstyledButton>
                       ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            fontWeight: 600,
-                          }}
-                        >
+                        <div className="data-table-head">
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
@@ -293,7 +265,7 @@ export default function DataTable<TData extends object>({
           <tbody>
             {/* LOADING */}
             {error ? (
-              <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="light" color="bahulu" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack></td></tr>
+              <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="default" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack></td></tr>
             ) : loading ? (
               <tr>
                 <td
@@ -326,19 +298,12 @@ export default function DataTable<TData extends object>({
             ) : (
               /* ROWS */
               rows.map((row) => (
-                <tr
-                  key={row.id}
-                  style={{
-                    borderBottom: "1px solid #f6e8e5",
-                  }}
-                >
+                <tr key={row.id} className="data-table-row">
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: "14px",
-                      }}
+                      className="data-table-td"
+                      data-align={(cell.column.columnDef.meta as { align?: string } | undefined)?.align}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
@@ -355,7 +320,7 @@ export default function DataTable<TData extends object>({
 
       <Box className="data-table-mobile" p="sm">
         {error ? (
-          <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="light" color="bahulu" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack>
+          <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="default" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack>
         ) : loading ? (
           <Text c="dimmed" ta="center" py="xl" role="status">Loading...</Text>
         ) : rows.length === 0 ? (
@@ -391,11 +356,9 @@ export default function DataTable<TData extends object>({
       <Group
         className="data-table-pagination"
         justify="space-between"
-        p="md"
-        style={{
-          borderTop:
-            "1px solid #f1e1de",
-        }}
+        px="md"
+        py="xs"
+        style={{ borderTop: "1px solid var(--ui-border)" }}
       >
         <Group gap="xs">
           <Text size="sm" c="dimmed">
@@ -404,7 +367,7 @@ export default function DataTable<TData extends object>({
 
           <Select
             size="xs"
-            w={80}
+            w={72}
             value={String(manualPagination?.pageSize ?? pagination.pageSize)}
             aria-label="Rows per page"
             data={pageSizeOptions}
@@ -426,6 +389,7 @@ export default function DataTable<TData extends object>({
 
           <ActionIcon
             variant="default"
+            size={28}
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
             aria-label="Previous page"
@@ -440,6 +404,7 @@ export default function DataTable<TData extends object>({
 
           <ActionIcon
             variant="default"
+            size={28}
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
             aria-label="Next page"

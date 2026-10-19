@@ -34,7 +34,7 @@ export default function ConfirmationCard({
       <Stack gap="sm">
         <Group gap="xs">
           <IconAlertTriangle size={18} aria-hidden="true" />
-          <Text fw={700}>{preview.action_title}</Text>
+          <Text fw={600}>{preview.action_title}</Text>
         </Group>
         <List size="sm" spacing={4}>
           {preview.details.map((detail) => <List.Item key={detail}>{detail}</List.Item>)}

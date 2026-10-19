@@ -1,4 +1,4 @@
-import { Button, Card, Group, SegmentedControl } from "@mantine/core";
+import { Button, Group, SegmentedControl } from "@mantine/core";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -36,9 +36,7 @@ export default function Customers() {
         action={<Group gap="sm"><SegmentedControl value={customerStatus} onChange={(value) => setCustomerStatus(value as "active" | "archived")} data={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }]} /><Button onClick={() => setCreateOpened(true)}>Add Customer</Button></Group>}
       />
 
-      <Card withBorder p={0} style={{ overflow: "hidden" }}>
-        <CustomerTable customerStatus={customerStatus} onEdit={openEdit} />
-      </Card>
+      <CustomerTable customerStatus={customerStatus} onEdit={openEdit} />
 
       <CreateCustomerModal
         opened={createOpened || isCreateRequested}

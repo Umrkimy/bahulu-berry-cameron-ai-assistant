@@ -167,8 +167,8 @@ export default function DeliveriesTable() {
             <Tooltip label="View delivery" withArrow>
               <ActionIcon
                 size="lg"
-                variant="light"
-                color="blue"
+                variant="subtle"
+                color="gray"
                 onClick={() => handleView(row.original)}
                 aria-label="View delivery"
               >
@@ -179,8 +179,8 @@ export default function DeliveriesTable() {
             <Tooltip label="Edit delivery" withArrow>
               <ActionIcon
                 size="lg"
-                variant="light"
-                color="orange"
+                variant="subtle"
+                color="gray"
                 onClick={() => handleEdit(row.original)}
                 aria-label="Edit delivery"
               >

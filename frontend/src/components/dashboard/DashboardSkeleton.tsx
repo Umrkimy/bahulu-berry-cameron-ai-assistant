@@ -23,13 +23,13 @@ export default function DashboardSkeleton() {
 
       {/* Chart loading */}
 
-      <Card withBorder radius="md" p="lg">
+      <Card withBorder>
         <Skeleton height={240} />
       </Card>
 
       {/* Table loading */}
 
-      <Card withBorder radius="md" p="lg">
+      <Card withBorder>
         <Skeleton height={250} />
       </Card>
     </Stack>

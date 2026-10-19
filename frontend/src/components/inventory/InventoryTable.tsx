@@ -52,6 +52,7 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
         id: "quantity",
         accessorKey: "quantity",
         header: "Quantity",
+        meta: { align: "right" },
 
         cell: ({ row }) => <Text fw={600}>{row.original.quantity}</Text>,
       },
@@ -60,6 +61,7 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
         id: "threshold",
         accessorKey: "low_stock_threshold",
         header: "Threshold",
+        meta: { align: "right" },
 
         cell: ({ row }) => <Text>{row.original.low_stock_threshold}</Text>,
       },
@@ -88,16 +90,16 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
           const status =
             quantity === 0
               ? {
-                  label: "OUT",
+                  label: "Out of stock",
                   color: "red",
                 }
               : quantity <= threshold
                 ? {
-                    label: "LOW",
+                    label: "Low stock",
                     color: "orange",
                   }
                 : {
-                    label: "GOOD",
+                    label: "In stock",
                     color: "green",
                   };
 
@@ -117,13 +119,13 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
         cell: ({ row }) => (
           <Group gap="xs"><Tooltip label="Adjust Stock"><ActionIcon
               size="lg"
-              variant="light"
-              color="blue"
+              variant="subtle"
+              color="gray"
               onClick={() => setSelectedInventory(row.original)}
               aria-label="Adjust stock"
             >
               <IconAdjustments size={20} />
-            </ActionIcon></Tooltip>{admin?.role === "OWNER" && <Tooltip label="Create task"><ActionIcon size="lg" variant="light" color="grape" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
+            </ActionIcon></Tooltip>{admin?.role === "OWNER" && <Tooltip label="Create task"><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
         ),
       },
     ],
@@ -150,8 +152,8 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
           searchPlaceholder="Search inventory..."
           emptyMessage="No inventory found."
           renderMobileCard={(inventory) => {
-            const status = inventory.quantity === 0 ? { label: "OUT", color: "red" } : inventory.quantity <= inventory.low_stock_threshold ? { label: "LOW", color: "orange" } : { label: "GOOD", color: "green" };
-            return <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{inventory.product_name}</Text><Text size="sm" c="dimmed">{inventory.product_category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={status.color} variant="light">{status.label}</Badge><Text size="sm">{inventory.quantity} in stock · Threshold {inventory.low_stock_threshold}</Text></Group></Stack><ActionIcon size="lg" variant="light" color="blue" onClick={() => setSelectedInventory(inventory)} aria-label="Adjust stock"><IconAdjustments size={20} /></ActionIcon></Group></Card>;
+            const status = inventory.quantity === 0 ? { label: "Out of stock", color: "red" } : inventory.quantity <= inventory.low_stock_threshold ? { label: "Low stock", color: "orange" } : { label: "In stock", color: "green" };
+            return <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={600}>{inventory.product_name}</Text><Text size="sm" c="dimmed">{inventory.product_category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={status.color} variant="light">{status.label}</Badge><Text size="sm">{inventory.quantity} in stock · Threshold {inventory.low_stock_threshold}</Text></Group></Stack><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => setSelectedInventory(inventory)} aria-label="Adjust stock"><IconAdjustments size={20} /></ActionIcon></Group></Card>;
           }}
         />
       </Card>
