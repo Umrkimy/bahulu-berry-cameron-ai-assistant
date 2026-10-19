@@ -12,7 +12,7 @@ export default function RecordWorkspace({ orderId, kind, onClose }: { orderId: n
   const delivery = useQuery({ queryKey: ["delivery", orderId], queryFn: () => getOrderDelivery(orderId), enabled: kind === "delivery" });
   const active = kind === "order" ? order : delivery;
   if (active.isPending || active.isError) return <Modal opened onClose={onClose} title={`Order #${orderId}`} centered>
-    {active.isError ? <Alert color="red" title="Could not open this record">{getApiError(active.error).message}<Button mt="sm" variant="light" onClick={() => void active.refetch()}>Try again</Button></Alert> : <Loader aria-label="Loading record" />}
+    {active.isError ? <Alert color="red" title="Could not open this record">{getApiError(active.error).message}<Button mt="sm" variant="default" onClick={() => void active.refetch()}>Try again</Button></Alert> : <Loader aria-label="Loading record" />}
   </Modal>;
   return kind === "order" ? <OrderDetailsModal opened order={order.data ?? null} onClose={onClose} /> : <EditDeliveryModal opened delivery={delivery.data ?? null} onClose={onClose} />;
 }

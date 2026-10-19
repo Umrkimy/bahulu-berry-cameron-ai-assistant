@@ -98,12 +98,13 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         id: "price",
         accessorKey: "price",
         header: "Price",
+        meta: { align: "right" },
 
         cell: ({ row }) => (
           <>
             {getPriceDiscount(row.original) ? (
               <>
-                <Text fw={700} c="red">
+                <Text fw={600} c="red">
                   RM {getSalePrice(row.original).toFixed(2)}
                 </Text>
 
@@ -144,6 +145,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
       {
         id: "stock",
         header: "Stock",
+        meta: { align: "right" },
 
         accessorFn: (row) => row.inventory?.quantity ?? 0,
 
@@ -160,7 +162,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
             color={row.original.is_active ? "green" : "red"}
             variant="light"
           >
-            {row.original.is_active ? "ACTIVE" : "INACTIVE"}
+            {row.original.is_active ? "Active" : "Inactive"}
           </Badge>
         ),
       },
@@ -170,8 +172,8 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Storefront",
         enableSorting: false,
         cell: ({ row }) => (
-          <Badge color={row.original.storefront_published ? "bahulu" : "gray"} variant="light">
-            {row.original.storefront_published ? "PUBLISHED" : "DRAFT"}
+          <Badge color={row.original.storefront_published ? "green" : "gray"} variant="light">
+            {row.original.storefront_published ? "Published" : "Draft"}
           </Badge>
         ),
       },
@@ -187,8 +189,8 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
             <Tooltip label="Open product workspace" withArrow>
               <ActionIcon
                 size="lg"
-                variant="light"
-                color="orange"
+                variant="subtle"
+                color="gray"
                 onClick={() => onEdit(row.original)}
                 aria-label="Open product workspace"
               >
@@ -200,7 +202,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
             <Tooltip label="Delete product" withArrow>
               <ActionIcon
                 size="lg"
-                variant="light"
+                variant="subtle"
                 color="red"
                 onClick={() => handleDelete(row.original)}
                 loading={deleteMutation.isPending}
@@ -240,7 +242,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         searchPlaceholder="Search products..."
         emptyMessage="No products found."
         renderMobileCard={(product) => (
-          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={700}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "ACTIVE" : "INACTIVE"}</Badge><Badge color={product.storefront_published ? "bahulu" : "gray"} variant="light">{product.storefront_published ? "PUBLISHED" : "DRAFT"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={700} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="light" color="orange" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon><ActionIcon variant="light" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
+          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={600}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "Active" : "Inactive"}</Badge><Badge color={product.storefront_published ? "green" : "gray"} variant="light">{product.storefront_published ? "Published" : "Draft"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={600} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="subtle" color="gray" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon><ActionIcon variant="subtle" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
         )}
       />
     </Card>

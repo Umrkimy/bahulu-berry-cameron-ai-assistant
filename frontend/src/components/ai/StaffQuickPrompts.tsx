@@ -1,4 +1,4 @@
-import { Button, Card, Group, SimpleGrid, Stack, Text } from "@mantine/core";
+import { SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconBox, IconMessage2, IconTruck, IconClipboardList } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
@@ -13,5 +13,10 @@ const prompts = [
 ];
 
 export default function StaffQuickPrompts({ onSelect }: { onSelect: (message: string) => void }) {
-  return <Stack gap="md" w="100%" maw={760}><Stack gap={2} ta="center"><Text fw={700}>Operations Copilot</Text><Text size="sm" c="dimmed">Use live data for daily work. Staff access is read-only.</Text></Stack><SimpleGrid cols={{ base: 1, sm: 2 }}>{prompts.map(({ label, description, message, href, icon: Icon }) => <Card key={label} withBorder p="md"><Stack gap="xs"><Group gap="xs"><Icon size={18} /><Text fw={700} size="sm">{label}</Text></Group><Text size="xs" c="dimmed">{description}</Text>{href ? <Button component={Link} to={href} size="xs" variant="light">Open Support Queue</Button> : <Button size="xs" variant="light" onClick={() => onSelect(message!)}>Ask Copilot</Button>}</Stack></Card>)}</SimpleGrid></Stack>;
+  return <Stack gap="md" w="100%" maw={760}><Stack gap={2} ta="center"><Text fw={600} size="lg">Operations Copilot</Text><Text size="sm" c="dimmed">Use live data for daily work. Staff access is read-only.</Text></Stack><SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">{prompts.map(({ label, description, message, href, icon: Icon }) => {
+    const body = <><span className="list-row-icon"><Icon size={16} stroke={1.75} /></span><span><Text fw={500} size="sm">{label}</Text><Text size="sm" c="dimmed">{description}</Text></span></>;
+    return href
+      ? <UnstyledButton key={label} component={Link} to={href} className="prompt-tile" aria-label={`Open Support Queue: ${label}`}>{body}</UnstyledButton>
+      : <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message!)} aria-label={`Ask Copilot: ${label}`}>{body}</UnstyledButton>;
+  })}</SimpleGrid></Stack>;
 }

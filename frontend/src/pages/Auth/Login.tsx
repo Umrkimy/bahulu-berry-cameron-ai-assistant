@@ -65,87 +65,62 @@ export default function Login() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#FFFDF3",
-        padding: "40px",
-      }}
-    >
-      <Stack align="center" gap={32}>
-        {/* Brand */}
+    <div className="auth-screen">
+      <Stack gap="lg" w="100%" maw={380}>
+        <BrandName showDescription={false} />
 
-        <BrandName />
+        <Paper withBorder p="xl" radius="md">
+          <form onSubmit={(event) => { event.preventDefault(); void handleLogin(); }} noValidate>
+            <Stack gap="md">
+              <div>
+                <Title order={1} size={20}>
+                  Welcome back
+                </Title>
+                <Text c="dimmed" size="sm" mt={4}>
+                  Sign in to the Bahulu Berry Cameron dashboard.
+                </Text>
+              </div>
 
-        <Paper
-          shadow="lg"
-          radius="xl"
-          p={48}
-          withBorder
-          style={{
-            width: "480px",
-            maxWidth: "95vw",
-          }}
-        >
-          <Stack gap={28}>
-            <div>
-              <Title order={1} size={36} fw={700}>
-                Welcome back
-              </Title>
+              <TextInput
+                label="Email"
+                type="email"
+                autoComplete="username"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.currentTarget.value)}
+              />
 
-              <Text c="dimmed" size="md" mt="sm">
-                Sign in to your Bahulu Berry Cameron admin dashboard
-              </Text>
-            </div>
+              <PasswordInput
+                label="Password"
+                autoComplete="current-password"
+                placeholder="Your password"
+                value={password}
+                onChange={(event) => setPassword(event.currentTarget.value)}
+              />
 
-            <TextInput
-              label="Email"
-              placeholder="admin@bahuluberry.com"
-              size="lg"
-              radius="md"
-              value={email}
-              onChange={(event) => setEmail(event.currentTarget.value)}
-            />
+              {error && (
+                <Text c="red.7" size="sm" role="alert">
+                  {error}
+                </Text>
+              )}
 
-            <PasswordInput
-              label="Password"
-              placeholder="Your password"
-              size="lg"
-              radius="md"
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-            />
+              {params.get("reason") === "session-expired" && !error ? <Text c="orange.8" size="sm" role="status">Your session expired. Please sign in again.</Text> : null}
 
-            {error && (
-              <Text c="red" size="sm" role="alert">
-                {error}
-              </Text>
-            )}
+              <Button
+                type="submit"
+                fullWidth
+                loading={loading}
+                disabled={loading || remainingSeconds > 0}
+              >
+                {remainingSeconds > 0 ? `Try again in ${remainingSeconds}s` : "Login"}
+              </Button>
 
-            {params.get("reason") === "session-expired" && !error ? <Text c="orange" size="sm" role="status">Your session expired. Please sign in again.</Text> : null}
-
-            <Button
-              fullWidth
-              size="lg"
-              radius="md"
-              loading={loading}
-              onClick={handleLogin}
-              disabled={loading || remainingSeconds > 0}
-            >
-              {remainingSeconds > 0 ? `Try again in ${remainingSeconds}s` : "Login"}
-            </Button>
-
-            <Text size="sm" ta="center" c="dimmed">
-              Forgot password?{" "}
-              <Anchor component={Link} to="/forgot-password">Reset your password</Anchor>
-            </Text>
-          </Stack>
+              <Anchor component={Link} to="/forgot-password" size="sm" ta="center" c="dimmed">Forgot your password?</Anchor>
+            </Stack>
+          </form>
         </Paper>
 
-        <Text size="sm" c="dimmed">
+        <Text size="xs" c="dimmed" ta="center">
           © 2026 Bahulu Berry Cameron
         </Text>
       </Stack>

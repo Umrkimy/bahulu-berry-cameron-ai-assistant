@@ -25,7 +25,7 @@ export default function StockMovementHistory({ productId = null }: { productId?:
       <Stack>
         <Group justify="space-between">
           <Stack gap={0}>
-            <Text fw={700}>Recent stock movements</Text>
+            <Text fw={600}>Recent stock movements</Text>
             <Text size="sm" c="dimmed">Immutable stock history. {data?.total ?? 0} record(s).</Text>
           </Stack>
         </Group>
@@ -37,13 +37,13 @@ export default function StockMovementHistory({ productId = null }: { productId?:
           <Group key={item.id} justify="space-between" wrap="nowrap">
             <Stack gap={1}>
               <Text fw={600}>{item.product_name}</Text>
-              <Text size="xs" c="dimmed">{item.reason ?? item.movement_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur", dateStyle: "medium", timeStyle: "short" })}</Text>
-              {item.supplier_name || item.reference ? <Text size="xs" c="dimmed">{[item.supplier_name, item.reference ? `Reference: ${item.reference}` : null].filter(Boolean).join(" · ")}</Text> : null}
-              <Text size="xs" c="dimmed">{movementAttribution(item.admin_name, item.source_type, item.source_id)}</Text>
+              <Text size="sm" c="dimmed">{item.reason ?? item.movement_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur", dateStyle: "medium", timeStyle: "short" })}</Text>
+              {item.supplier_name || item.reference ? <Text size="sm" c="dimmed">{[item.supplier_name, item.reference ? `Reference: ${item.reference}` : null].filter(Boolean).join(" · ")}</Text> : null}
+              <Text size="sm" c="dimmed">{movementAttribution(item.admin_name, item.source_type, item.source_id)}</Text>
             </Stack>
-            <Stack gap={2} align="flex-end">
+            <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
               <Badge color={item.quantity_change < 0 ? "red" : "green"} variant="light">{item.quantity_change > 0 ? "+" : ""}{item.quantity_change} units</Badge>
-              <Text size="xs" c="dimmed">{item.quantity_before} → {item.quantity_after}</Text>
+              <Text size="sm" c="dimmed">{item.quantity_before} → {item.quantity_after}</Text>
             </Stack>
           </Group>
         ))}

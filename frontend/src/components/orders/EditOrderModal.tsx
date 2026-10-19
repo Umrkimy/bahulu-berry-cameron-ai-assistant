@@ -208,7 +208,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
       radius="md"
       title={
         <Stack gap={2}>
-          <Text fw={700} size="lg">
+          <Text fw={600} size="lg">
             Edit Order
           </Text>
 
@@ -230,7 +230,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
                 Current Order Status
               </Text>
 
-              <Text fw={700} size="lg" mt={4}>
+              <Text fw={600} size="lg" mt={4}>
                 {formatStatus(order.status)}
               </Text>
             </div>

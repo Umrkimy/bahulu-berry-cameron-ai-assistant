@@ -53,7 +53,7 @@ export default function FormModal({
       onClose={requestClose}
       title={
         <Stack gap={2}>
-          <Text fw={700} size="lg">
+          <Text fw={600} size="lg">
             {title}
           </Text>
 

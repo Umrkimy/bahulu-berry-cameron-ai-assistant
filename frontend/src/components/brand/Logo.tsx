@@ -1,21 +1,17 @@
-import { ThemeIcon } from "@mantine/core";
-
 interface LogoProps {
   size?: number;
+  alt?: string;
 }
 
-export default function Logo({ size = 42 }: LogoProps) {
+export default function Logo({ size = 42, alt = "Bahulu Berry Cameron" }: LogoProps) {
   return (
-    <ThemeIcon size={size} radius="xl" variant="light">
-      <img
-        src="/logo.jpeg"
-        alt="Bahulu Berry Cameron"
-        width={size}
-        height={size}
-        style={{
-          objectFit: "contain",
-        }}
-      />
-    </ThemeIcon>
+    <img
+      className="brand-logo"
+      src="/logo.jpeg"
+      alt={alt}
+      width={size}
+      height={size}
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.24), objectFit: "cover", flexShrink: 0 }}
+    />
   );
 }

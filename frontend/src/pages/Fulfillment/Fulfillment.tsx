@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, Group, Loader, Select, SimpleGrid, Stack, Text, TextInput, ThemeIcon } from "@mantine/core";
-import { IconArrowRight, IconPackage, IconSearch, IconTruck } from "@tabler/icons-react";
+import { Badge, Button, Card, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, TextInput } from "@mantine/core";
+import { IconArrowRight, IconSearch, IconTruck } from "@tabler/icons-react";
 import RecordWorkspace from "../../components/fulfillment/RecordWorkspace";
 
 import PageHeader from "../../components/common/PageHeader";
 import PackingOrderModal from "../../components/fulfillment/PackingOrderModal";
 import { useFulfillmentQueue } from "../../hooks/useOrders";
 import type { FulfillmentOrder, FulfillmentStage } from "../../types/order";
+import { formatCode } from "../../utils/format";
 
 const SECTIONS: Array<{ stage: FulfillmentStage; title: string; description: string; color: string }> = [
   { stage: "NEEDS_ATTENTION", title: "Needs attention", description: "Payment or delivery issue", color: "red" },
@@ -17,7 +18,7 @@ const SECTIONS: Array<{ stage: FulfillmentStage; title: string; description: str
 
 function formatMoney(value: number | string) { return new Intl.NumberFormat("en-MY", { style: "currency", currency: "MYR" }).format(Number(value)); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("en-MY", { timeZone: "Asia/Kuala_Lumpur", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
-function label(value: string) { return value.replaceAll("_", " "); }
+function label(value: string) { return formatCode(value); }
 
 export default function Fulfillment() {
   const { data, isLoading, isError, refetch } = useFulfillmentQueue();
@@ -31,18 +32,20 @@ export default function Fulfillment() {
   function cardAction(order: FulfillmentOrder) {
     if (order.queue_stage === "READY_TO_PREPARE") return <Button size="sm" rightSection={<IconArrowRight size={14} />} onClick={() => setPackingOrder({ order, mode: "prepare" })}>Open packing</Button>;
     if (order.queue_stage === "IN_PREPARATION") return <Button size="sm" rightSection={<IconTruck size={14} />} onClick={() => setPackingOrder({ order, mode: "dispatch" })}>Pack and dispatch</Button>;
-    if (order.queue_stage === "IN_DELIVERY" || order.delivery?.status === "FAILED") return <Button size="sm" variant="light" onClick={() => setRecord({ id: order.id, kind: "delivery" })}>Open delivery</Button>;
-    return <Button size="sm" variant="light" onClick={() => setRecord({ id: order.id, kind: "order" })}>Open order</Button>;
+    if (order.queue_stage === "IN_DELIVERY" || order.delivery?.status === "FAILED") return <Button size="sm" variant="default" onClick={() => setRecord({ id: order.id, kind: "delivery" })}>Open delivery</Button>;
+    return <Button size="sm" variant="default" onClick={() => setRecord({ id: order.id, kind: "order" })}>Open order</Button>;
   }
 
   if (isLoading) return <Group justify="center" py="xl"><Loader color="bahulu" /></Group>;
-  if (isError) return <Card withBorder><Stack align="center" py="xl"><Text fw={600}>Couldn’t load the fulfilment queue.</Text><Button variant="light" onClick={() => refetch()}>Try again</Button></Stack></Card>;
+  if (isError) return <Card withBorder><Stack align="center" py="xl"><Text fw={600}>Couldn’t load the fulfilment queue.</Text><Button variant="default" onClick={() => refetch()}>Try again</Button></Stack></Card>;
 
   return <>
     <PageHeader title="Fulfilment" description="Work through paid orders from preparation to delivery." />
-    <SimpleGrid cols={{ base: 2, sm: 4 }} mb="md">
-      {SECTIONS.map((section) => <Card key={section.stage} withBorder p="sm"><Group justify="space-between"><Stack gap={1}><Text size="xs" c="dimmed">{section.title}</Text><Text fw={800} size="xl">{data?.counts[section.stage] ?? 0}</Text></Stack><ThemeIcon variant="light" color={section.color}><IconPackage size={18} /></ThemeIcon></Group></Card>)}
-    </SimpleGrid>
+    <Paper withBorder className="kpi-strip" mb="md">
+      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing={0}>
+        {SECTIONS.map((section) => <div key={section.stage} className="kpi-cell"><Text size="sm" c="dimmed" fw={500}>{section.title}</Text><Text className="metric-value" fw={600} fz={24} mt={4}>{data?.counts[section.stage] ?? 0}</Text></div>)}
+      </SimpleGrid>
+    </Paper>
     <Group align="end" mb="md" wrap="wrap">
       <TextInput style={{ flex: 1 }} leftSection={<IconSearch size={16} />} placeholder="Search order, customer, courier, tracking..." value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
       <Select clearable w={{ base: "100%", sm: 220 }} label="Queue stage" placeholder="All stages" value={stageFilter} onChange={setStageFilter} data={SECTIONS.map((section) => ({ value: section.stage, label: section.title }))} />
@@ -51,9 +54,9 @@ export default function Fulfillment() {
     <Stack gap="lg">
       {SECTIONS.filter((section) => !stageFilter || section.stage === stageFilter).map((section) => {
         const sectionItems = items.filter((item) => item.queue_stage === section.stage);
-        return <Card key={section.stage} withBorder p="md"><Group justify="space-between" mb="sm"><div><Group gap="xs"><Badge color={section.color} variant="light">{section.title}</Badge><Text size="sm" c="dimmed">{sectionItems.length} shown</Text></Group><Text size="xs" c="dimmed" mt={4}>{section.description}</Text></div></Group>
-          {sectionItems.length === 0 ? <Text size="sm" c="dimmed">Nothing here right now.</Text> : <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }}>{sectionItems.map((order) => <Card key={order.id} withBorder p="sm" className="fulfillment-card"><Stack gap="xs"><Group justify="space-between" align="flex-start"><div><Text fw={700}>Order #{order.id}</Text><Text size="sm">{order.customer_name}</Text></div><Text fw={700}>{formatMoney(order.total_amount)}</Text></Group><Group gap="xs"><Badge variant="light" color={order.payment_status === "PAID" ? "green" : "red"}>{label(order.payment_status)}</Badge><Badge variant="light" color={section.color}>{label(order.status)}</Badge></Group>{order.delivery && <Text size="xs">Delivery: {label(order.delivery.status)}</Text>}{order.queue_stage === "NEEDS_ATTENTION" && <Text size="sm" c="red">{order.delivery?.status === "FAILED" ? "Delivery failed. Review before retrying." : "Payment must be confirmed before preparation."}</Text>}<Text size="xs" c="dimmed">Created {formatDate(order.created_at)}</Text>{order.status === "SHIPPED" && order.delivery && <Text size="xs" c={order.delivery.tracking_number ? "dimmed" : "orange"}>{order.delivery.tracking_number ? `${order.delivery.courier ?? "Delivery"} · ${order.delivery.tracking_number}` : "Tracking not added yet"}</Text>}<Group justify="space-between" mt={2}><Button size="xs" variant="subtle" onClick={() => setRecord({ id: order.id, kind: "order" })}>View details</Button>{cardAction(order)}</Group></Stack></Card>)}</SimpleGrid>}
-        </Card>;
+        return <section key={section.stage} aria-label={section.title}><Group justify="space-between" mb="sm" align="baseline"><Group gap="xs" align="baseline"><Text fw={600}>{section.title}</Text><Text size="sm" c="dimmed">{sectionItems.length} shown · {section.description}</Text></Group></Group>
+          {sectionItems.length === 0 ? <Text size="sm" c="dimmed">Nothing here right now.</Text> : <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }}>{sectionItems.map((order) => <Card key={order.id} withBorder p="sm" className="fulfillment-card"><Stack gap="xs"><Group justify="space-between" align="flex-start"><div><Text fw={600}>Order #{order.id}</Text><Text size="sm">{order.customer_name}</Text></div><Text fw={600}>{formatMoney(order.total_amount)}</Text></Group><Group gap="xs"><Badge variant="light" color={order.payment_status === "PAID" ? "green" : "red"}>{label(order.payment_status)}</Badge><Badge variant="light" color={section.color}>{label(order.status)}</Badge></Group>{order.delivery && <Text size="sm">Delivery: {label(order.delivery.status)}</Text>}{order.queue_stage === "NEEDS_ATTENTION" && <Text size="sm" c="red.9">{order.delivery?.status === "FAILED" ? "Delivery failed. Review before retrying." : "Payment must be confirmed before preparation."}</Text>}<Text size="sm" c="dimmed">Created {formatDate(order.created_at)}</Text>{order.status === "SHIPPED" && order.delivery && <Text size="sm" c={order.delivery.tracking_number ? "dimmed" : "orange.9"}>{order.delivery.tracking_number ? `${order.delivery.courier ?? "Delivery"} · ${order.delivery.tracking_number}` : "Tracking not added yet"}</Text>}<Group justify="space-between" mt={2}><Button size="sm" variant="subtle" onClick={() => setRecord({ id: order.id, kind: "order" })}>View details</Button>{cardAction(order)}</Group></Stack></Card>)}</SimpleGrid>}
+        </section>;
       })}
     </Stack>
     {packingOrder && <PackingOrderModal key={`${packingOrder.order.id}-${packingOrder.mode}`} opened order={packingOrder.order} mode={packingOrder.mode} onClose={() => setPackingOrder(null)} />}

@@ -14,7 +14,7 @@ import "@mantine/notifications/styles.css";
 import { ModalsProvider } from "@mantine/modals";
 
 import App from "./App";
-import { theme } from "./theme";
+import { cssVariablesResolver, theme } from "./theme";
 import "./styles.css";
 
 import { AuthProvider } from "./auth/AuthProvider";
@@ -29,7 +29,7 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <LazyMotion features={domAnimation} strict>
           <MotionConfig reducedMotion="user">
-            <MantineProvider theme={theme} defaultColorScheme="light">
+            <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="auto">
               <ActionNotifications />
               <ModalsProvider>
                 <AuthProvider>

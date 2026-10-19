@@ -11,6 +11,7 @@ import { useOrders } from "../../hooks/useOrders";
 import type { Order } from "../../types/order";
 import OrderDetailsModal from "./OrderDetailsModal";
 import EditOrderModal from "./EditOrderModal";
+import { formatCode, formatDate } from "../../utils/format";
 
 function getOrderStatusColor(status: string) {
   if (status === "COMPLETED") return "green";
@@ -28,12 +29,7 @@ function getPaymentStatusColor(status: string) {
 }
 
 function formatOrderDate(value: string) {
-  return new Date(value).toLocaleDateString("en-MY", {
-    timeZone: "Asia/Kuala_Lumpur",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(value);
 }
 
 export default function OrdersTable() {
@@ -72,6 +68,7 @@ export default function OrdersTable() {
       },
       {
         id: "total",
+        meta: { align: "right" },
         accessorFn: (row) => Number(row.total_amount),
         header: "Total",
         cell: ({ row }) => <Text fw={600}>RM {Number(row.original.total_amount).toFixed(2)}</Text>,
@@ -80,13 +77,13 @@ export default function OrdersTable() {
         id: "status",
         accessorKey: "status",
         header: "Status",
-        cell: ({ row }) => <Badge variant="light" color={getOrderStatusColor(row.original.status)}>{row.original.status}</Badge>,
+        cell: ({ row }) => <Badge variant="light" color={getOrderStatusColor(row.original.status)}>{formatCode(row.original.status)}</Badge>,
       },
       {
         id: "payment",
         accessorKey: "payment_status",
         header: "Payment",
-        cell: ({ row }) => <Badge variant="light" color={getPaymentStatusColor(row.original.payment_status)}>{row.original.payment_status}</Badge>,
+        cell: ({ row }) => <Badge variant="light" color={getPaymentStatusColor(row.original.payment_status)}>{formatCode(row.original.payment_status)}</Badge>,
       },
       {
         id: "date",
@@ -101,12 +98,12 @@ export default function OrdersTable() {
         cell: ({ row }) => (
           <Group gap="xs">
             <Tooltip label="View order" withArrow>
-              <ActionIcon size="lg" variant="light" color="blue" onClick={() => { setSelectedOrder(row.original); setViewOpened(true); }} aria-label="View order">
+              <ActionIcon size="lg" variant="subtle" color="gray" onClick={() => { setSelectedOrder(row.original); setViewOpened(true); }} aria-label="View order">
                 <IconEye size={20} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Edit order" withArrow>
-              <ActionIcon size="lg" variant="light" color="orange" onClick={() => { setSelectedOrder(row.original); setEditOpened(true); }} aria-label="Edit order">
+              <ActionIcon size="lg" variant="subtle" color="gray" onClick={() => { setSelectedOrder(row.original); setEditOpened(true); }} aria-label="Edit order">
                 <IconEdit size={20} />
               </ActionIcon>
             </Tooltip>
@@ -129,7 +126,7 @@ export default function OrdersTable() {
         searchPlaceholder="Search orders, customers, statuses..."
         emptyMessage="No orders found."
         renderMobileCard={(order) => (
-          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={700}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={700}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{order.status}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{order.payment_status}</Badge></Group><Group justify="flex-end"><ActionIcon variant="light" color="blue" onClick={() => { setSelectedOrder(order); setViewOpened(true); }} aria-label="View order"><IconEye size={18} /></ActionIcon><ActionIcon variant="light" color="orange" onClick={() => { setSelectedOrder(order); setEditOpened(true); }} aria-label="Edit order"><IconEdit size={18} /></ActionIcon></Group></Stack></Card>
+          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={600}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{formatCode(order.status)}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{formatCode(order.payment_status)}</Badge></Group><Group justify="flex-end"><ActionIcon variant="subtle" color="gray" onClick={() => { setSelectedOrder(order); setViewOpened(true); }} aria-label="View order"><IconEye size={18} /></ActionIcon><ActionIcon variant="subtle" color="gray" onClick={() => { setSelectedOrder(order); setEditOpened(true); }} aria-label="Edit order"><IconEdit size={18} /></ActionIcon></Group></Stack></Card>
         )}
       />
       <OrderDetailsModal opened={viewOpened || routedOrder !== null} order={activeOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); navigate(location.pathname, { replace: true, state: null }); }} />

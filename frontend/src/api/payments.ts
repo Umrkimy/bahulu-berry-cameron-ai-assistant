@@ -12,3 +12,9 @@ export const getOrderPayment = async (orderId: number): Promise<Payment | null> 
 
   return response.data;
 };
+
+export const renewOrderPayment = async (orderId: number): Promise<Payment> => {
+  const response = await api.post<Payment>(`/payments/orders/${orderId}/renew`);
+
+  return response.data;
+};

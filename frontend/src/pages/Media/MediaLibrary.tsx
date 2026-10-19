@@ -37,30 +37,30 @@ export default function MediaLibrary() {
   const confirmDelete = (asset: MediaAsset) => modals.openConfirmModal({ title: `Permanently delete ${asset.title}?`, children: <Text size="sm">This cannot be undone. The photo must be archived and unused by every product.</Text>, labels: { confirm: "Delete permanently", cancel: "Keep photo" }, confirmProps: { color: "red" }, onConfirm: () => remove.mutate(asset.id) });
   return <Stack gap="lg">
     <PageHeader title="Media Library" description="Upload approved product photos once and reuse them across product galleries." action={canEdit ? <FileButton multiple accept="image/jpeg,image/png,image/webp" onChange={(files) => files.length && upload.mutate(files)}>{(props) => <Button {...props} leftSection={<IconPhotoPlus size={16} />} loading={upload.isPending}>Upload photos</Button>}</FileButton> : undefined} />
-    {uploadProgress ? <Alert color="blue" role="status">{uploadProgress}</Alert> : null}
-    {!canEdit ? <Alert color="blue" title="Read-only access">Staff can review media and product usage. Only an Owner can upload or change photos.</Alert> : null}
+    {uploadProgress ? <Alert color="gray" role="status">{uploadProgress}</Alert> : null}
+    {!canEdit ? <Alert color="gray" title="Read-only access">Staff can review media and product usage. Only an Owner can upload or change photos.</Alert> : null}
     <Group align="end" justify="space-between">
       <TextInput label="Search" placeholder="Title or internal note" value={search} onChange={(event) => { setSearch(event.currentTarget.value); setPage(1); }} style={{ flex: 1, minWidth: 220 }} />
       <SegmentedControl aria-label="Media status" value={status} onChange={(value) => { setStatus(value as typeof status); setPage(1); }} data={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }, { label: "All", value: "all" }]} />
       <SegmentedControl aria-label="Media layout" value={view} onChange={(value) => setView(value as typeof view)} data={[{ label: <IconLayoutGrid size={16} aria-label="Grid" />, value: "grid" }, { label: <IconList size={16} aria-label="List" />, value: "list" }]} />
     </Group>
     {query.isLoading ? <Text role="status" c="dimmed">Loading Media Library…</Text> : null}
-    {query.isError ? <Alert color="red" title="Media Library could not be loaded"><Button variant="light" size="compact-sm" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
+    {query.isError ? <Alert color="red" title="Media Library could not be loaded"><Button variant="default" size="compact-sm" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
     {query.isSuccess && query.data.items.length === 0 ? <Alert title="No photos found">{search ? "Try another search." : status === "archived" ? "There are no archived photos." : "Upload an approved product photo to get started."}</Alert> : null}
     <SimpleGrid cols={view === "grid" ? { base: 1, sm: 2, lg: 3 } : 1}>
       {query.data?.items.map((asset) => <Card key={asset.id} withBorder radius="lg" p="sm">
         <Group align="flex-start" wrap="nowrap">
-          <Image src={mediaUrl(asset.content_path)} alt="" w={view === "list" ? 140 : 120} h={120} fit="contain" bg="#fffaf1" radius="md" />
+          <Image src={mediaUrl(asset.content_path)} alt="" w={view === "list" ? 140 : 120} h={120} fit="contain" bg="var(--ui-subtle)" radius="md" />
           <Stack gap={6} style={{ flex: 1, minWidth: 0 }}>
-            <Group justify="space-between" wrap="nowrap"><Text fw={700} truncate>{asset.title}</Text>{asset.is_archived ? <Badge color="gray">Archived</Badge> : <Badge color="green">Active</Badge>}</Group>
+            <Group justify="space-between" wrap="nowrap"><Text fw={600} truncate>{asset.title}</Text>{asset.is_archived ? <Badge color="gray">Archived</Badge> : <Badge color="green">Active</Badge>}</Group>
             <Text size="xs" c="dimmed">{asset.width && asset.height ? `${asset.width} × ${asset.height}` : "Dimensions unavailable"} · {bytes(asset.byte_size)}</Text>
             <Text size="sm">Used by {asset.usage_count} {asset.usage_count === 1 ? "product" : "products"}</Text>
             {asset.usages.length ? <Text size="xs" c="dimmed" lineClamp={2}>{asset.usages.map((usage) => usage.product_name).join(", ")}</Text> : null}
             {asset.note ? <Text size="sm" c="dimmed" lineClamp={2}>{asset.note}</Text> : null}
             {canEdit ? <Group gap="xs">
-              <Tooltip label="Edit details"><ActionIcon variant="light" aria-label={`Edit ${asset.title}`} onClick={() => openEdit(asset)}><IconEdit size={16} /></ActionIcon></Tooltip>
-              <Tooltip label={asset.is_archived ? "Restore" : "Archive"}><ActionIcon variant="light" aria-label={`${asset.is_archived ? "Restore" : "Archive"} ${asset.title}`} onClick={() => confirmArchive(asset)}>{asset.is_archived ? <IconRestore size={16} /> : <IconArchive size={16} />}</ActionIcon></Tooltip>
-              {asset.is_archived ? <Tooltip label={asset.usage_count ? "Remove all product uses first" : "Delete permanently"}><ActionIcon color="red" variant="light" disabled={asset.usage_count > 0} aria-label={`Permanently delete ${asset.title}`} onClick={() => confirmDelete(asset)}><IconTrash size={16} /></ActionIcon></Tooltip> : null}
+              <Tooltip label="Edit details"><ActionIcon color="gray" variant="subtle" aria-label={`Edit ${asset.title}`} onClick={() => openEdit(asset)}><IconEdit size={16} /></ActionIcon></Tooltip>
+              <Tooltip label={asset.is_archived ? "Restore" : "Archive"}><ActionIcon color="gray" variant="subtle" aria-label={`${asset.is_archived ? "Restore" : "Archive"} ${asset.title}`} onClick={() => confirmArchive(asset)}>{asset.is_archived ? <IconRestore size={16} /> : <IconArchive size={16} />}</ActionIcon></Tooltip>
+              {asset.is_archived ? <Tooltip label={asset.usage_count ? "Remove all product uses first" : "Delete permanently"}><ActionIcon color="red" variant="subtle" disabled={asset.usage_count > 0} aria-label={`Permanently delete ${asset.title}`} onClick={() => confirmDelete(asset)}><IconTrash size={16} /></ActionIcon></Tooltip> : null}
             </Group> : null}
           </Stack>
         </Group>

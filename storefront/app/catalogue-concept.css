@@ -79,6 +79,7 @@
 .detail-add-cart { flex: 1; }
 .detail-enquire { width: 100%; margin-top: 12px; }
 .detail-accordion { margin-top: 32px; border-block: 1px solid var(--line); }
+.detail-accordion + .detail-accordion { margin-top: 0; border-top: 0; }
 .detail-accordion summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; cursor: pointer; list-style: none; }
 .detail-accordion summary::-webkit-details-marker { display: none; }
 .detail-accordion summary h2 { font-family: var(--font-body), sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0; }
@@ -174,3 +175,5 @@
 .policy-body ul { margin: 0 0 12px; padding-left: 22px; }
 .policy-body li { margin-bottom: 6px; }
 .policy-body li::marker { color: var(--red); }
+.catalogue-card-meta { align-items: center; }
+.catalogue-card-category { color: var(--muted); font-size: 14px; font-weight: 600; }

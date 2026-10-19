@@ -37,26 +37,26 @@ export default function NotificationBell() {
 
   return <Menu shadow="md" width="min(360px, calc(100vw - 24px))" position="bottom-end" withinPortal onChange={setMenuOpened} styles={{ dropdown: { maxHeight: "calc(100dvh - 88px)", overflowY: "auto" } }}>
     <Menu.Target>
-      <ActionIcon variant="light" color="bahulu" size="lg" aria-label={bellLabel} style={{ position: "relative" }}>
-        <IconBell size={19} />
-        {unreadCount > 0 ? <Badge size="xs" circle color="red" style={{ position: "absolute", top: -4, right: -4 }}>{unreadCount > 9 ? "9+" : unreadCount}</Badge> : null}
-        {attentionCount > 0 ? <Badge size="xs" color="orange" style={{ position: "absolute", bottom: -5, right: -7, minWidth: 16, paddingInline: 4 }}>{attentionCount > 9 ? "9+" : attentionCount}</Badge> : null}
+      <ActionIcon variant="subtle" color="gray" size={32} aria-label={bellLabel} style={{ position: "relative" }}>
+        <IconBell size={18} stroke={1.75} />
+        {unreadCount > 0 ? <Badge size="xs" circle color="bahulu" variant="filled" style={{ position: "absolute", top: -3, right: -3, pointerEvents: "none" }}>{unreadCount > 9 ? "9+" : unreadCount}</Badge> : null}
+        {attentionCount > 0 ? <span className="bell-attention-dot" data-with-count={unreadCount > 0 || undefined} aria-hidden="true" /> : null}
       </ActionIcon>
     </Menu.Target>
     <Menu.Dropdown p="sm">
-      <Group justify="space-between" mb="xs"><Text fw={700}>Updates</Text>{unreadCount > 0 ? <Button variant="subtle" size="compact-xs" leftSection={<IconCheck size={14} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button> : null}</Group>
+      <Group justify="space-between" mb="xs"><Text fw={600}>Updates</Text>{unreadCount > 0 ? <Button variant="subtle" size="compact-xs" leftSection={<IconCheck size={14} />} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all read</Button> : null}</Group>
       <Divider mb="xs" />
       <Stack gap="xs" mb="xs">
-        <Group justify="space-between" wrap="nowrap"><Group gap="xs" wrap="nowrap"><ThemeIcon color={attentionCount ? "orange" : "green"} variant="light" size="sm" radius="xl"><IconAlertTriangle size={13} /></ThemeIcon><div><Text size="sm" fw={650}>Needs attention</Text><Text size="xs" c="dimmed">Live issues clear when resolved.</Text></div></Group>{attentionCount ? <Badge color="orange" variant="light">{attentionCount}</Badge> : null}</Group>
+        <Group justify="space-between" wrap="nowrap"><Group gap="xs" wrap="nowrap"><ThemeIcon color={attentionCount ? "orange" : "green"} variant="default" size="sm" radius="xl"><IconAlertTriangle size={13} /></ThemeIcon><div><Text size="sm" fw={500}>Needs attention</Text><Text size="xs" c="dimmed">Live issues clear when resolved.</Text></div></Group>{attentionCount ? <Badge color="orange" variant="light">{attentionCount}</Badge> : null}</Group>
         {alerts.isLoading ? <Text size="xs" c="dimmed">Checking live work…</Text> : null}
         {alerts.isError ? <Text size="xs" c="red">Live attention is unavailable. Open Updates to try again.</Text> : null}
         {!alerts.isLoading && !alerts.isError && !attentionCount ? <Text size="xs" c="dimmed">No live operational issues.</Text> : null}
         {!alerts.isLoading && !alerts.isError && alertItems.map((item) => <Menu.Item key={item.id} onClick={() => navigate(item.href)} leftSection={<IconAlertTriangle size={15} color={item.severity === "CRITICAL" ? "var(--mantine-color-red-6)" : "var(--mantine-color-orange-6)"} />} rightSection={<Badge size="xs" color={item.severity === "CRITICAL" ? "red" : "orange"}>{item.severity === "CRITICAL" ? "Critical" : "Warning"}</Badge>}>
-          <Text size="sm" fw={650} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={1}>{item.description}</Text>
+          <Text size="sm" fw={500} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={1}>{item.description}</Text>
         </Menu.Item>)}
       </Stack>
       <Divider mb="xs" />
-      <Text size="xs" fw={650} c="dimmed" mb={4}>Recent notifications</Text>
+      <Text size="xs" fw={500} c="dimmed" mb={4}>Recent notifications</Text>
       {latest.isLoading ? <Text size="sm" c="dimmed" py="md">Loading notifications…</Text> : latest.isError ? <Text size="sm" c="red" py="md">{getApiError(latest.error).message}</Text> : !notificationItems.length ? <Text size="sm" c="dimmed" py="md">You are all caught up.</Text> : <Stack gap={4}>{notificationItems.map((item) => <Menu.Item key={item.id} onClick={() => open(item)} leftSection={<IconBell size={15} />} rightSection={!item.read_at ? <Badge size="xs" color="bahulu">New</Badge> : null}>
         <Text size="sm" fw={item.read_at ? 500 : 700} lineClamp={1}>{item.title}</Text><Text size="xs" c="dimmed" lineClamp={2}>{item.description}</Text><Text size="xs" c="dimmed">{formatTime(item.created_at)}</Text>
       </Menu.Item>)}</Stack>}

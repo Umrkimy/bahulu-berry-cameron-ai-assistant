@@ -8,11 +8,11 @@ interface BrandNameProps {
 
 export default function BrandName({ showDescription = true }: BrandNameProps) {
   return (
-    <Group gap="sm">
-      <Logo />
+    <Group gap={10} wrap="nowrap">
+      <Logo size={32} alt="" />
 
       <Stack gap={0}>
-        <Text fw={700} size="lg">
+        <Text fw={600} size="md">
           Bahulu Berry Cameron
         </Text>
 

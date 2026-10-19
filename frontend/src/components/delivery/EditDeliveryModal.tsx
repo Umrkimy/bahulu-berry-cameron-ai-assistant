@@ -178,7 +178,7 @@ export default function EditDeliveryModal({
       padding="xl"
       title={
         <Stack gap={2}>
-          <Text fw={700} size="lg">
+          <Text fw={600} size="lg">
             Edit Delivery
           </Text>
 
@@ -192,7 +192,7 @@ export default function EditDeliveryModal({
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="lg">
-          {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="light" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "DELIVERY", id: currentDelivery.id, label: `Delivery for Order #${currentDelivery.order_id}` } } }); }}>Create task for this delivery</Button></Group>}
+          {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "DELIVERY", id: currentDelivery.id, label: `Delivery for Order #${currentDelivery.order_id}` } } }); }}>Create task for this delivery</Button></Group>}
           {/* CURRENT STATUS */}
 
           <div>

@@ -211,7 +211,7 @@ export default function ChatInput({ onSend, loading = false }: ChatInputProps) {
           aria-label="Dictation language"
           data={languageOptions}
           disabled={loading || isListening || !isDictationSupported}
-          size="xs"
+          size="sm"
           value={dictationLanguage}
           w={175}
           onChange={(value) => {
@@ -220,7 +220,7 @@ export default function ChatInput({ onSend, loading = false }: ChatInputProps) {
             }
           }}
         />
-        <Text size="xs" c="dimmed" ta="right">
+        <Text size="sm" c="dimmed" ta="right">
           Dictation uses your browser&apos;s speech service. Review text before sending.
         </Text>
       </Group>

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Divider,
@@ -26,10 +27,12 @@ import useAuth from "../../auth/useAuth";
 import {
   useCreateOrderPayment,
   useOrderPayment,
+  useRenewOrderPayment,
 } from "../../hooks/usePayments";
 import { useOrderRefundRequest } from "../../hooks/useRefundRequests";
 
 import type { Order } from "../../types/order";
+import { formatCode } from "../../utils/format";
 
 interface Props {
   opened: boolean;
@@ -57,10 +60,21 @@ function getDeliveryStatusColor(status: string) {
   return "yellow";
 }
 
+const PAYMENT_LINK_MINUTES = 30;
+
+function linkExpiresAt(createdAt: string) {
+  return new Date(new Date(createdAt).getTime() + PAYMENT_LINK_MINUTES * 60 * 1000);
+}
+
+function hasLinkExpired(createdAt: string) {
+  return linkExpiresAt(createdAt).getTime() <= Date.now();
+}
+
 export default function OrderDetailsModal({ opened, onClose, order }: Props) {
   const navigate = useNavigate();
   const { admin } = useAuth();
   const createPaymentMutation = useCreateOrderPayment();
+  const renewPaymentMutation = useRenewOrderPayment();
 
   const { data: customers } = useQuery({
     queryKey: ["customers"],
@@ -130,6 +144,23 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
     }
   }
 
+  async function handleRenewPayment() {
+    try {
+      await renewPaymentMutation.mutateAsync(orderId);
+      notifications.show({
+        title: "New payment link ready",
+        message: "The previous link was closed. Send the customer this new one.",
+        color: "green",
+      });
+    } catch (error) {
+      notifications.show({
+        title: "Couldn’t create a new link",
+        message: getApiError(error).message,
+        color: "red",
+      });
+    }
+  }
+
   async function handleCopyPaymentLink() {
     if (!payment?.payment_url) {
       return;
@@ -175,11 +206,11 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       padding="xl"
       radius="md"
       title={`Order #${orderId}`}
-      closeOnClickOutside={!createPaymentMutation.isPending}
-      closeOnEscape={!createPaymentMutation.isPending}
+      closeOnClickOutside={!createPaymentMutation.isPending && !renewPaymentMutation.isPending}
+      closeOnEscape={!createPaymentMutation.isPending && !renewPaymentMutation.isPending}
     >
       <Stack gap="lg">
-        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="light" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
+        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
         {/* ORDER SUMMARY */}
 
         <Paper withBorder radius="md" p="md">
@@ -189,7 +220,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 Customer
               </Text>
 
-              <Text fw={700}>{customerName}</Text>
+              <Text fw={600}>{customerName}</Text>
             </div>
 
             <Stack gap={2} align="flex-end">
@@ -209,7 +240,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 </Text>
               </Group>
 
-              <Text fw={700} size="lg">
+              <Text fw={600} size="lg">
                 RM {Number(order.total_amount).toFixed(2)}
               </Text>
             </Stack>
@@ -237,7 +268,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 }
                 variant="light"
               >
-                {order.payment_status}
+                {formatCode(order.payment_status)}
               </Badge>
             </Group>
 
@@ -256,7 +287,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                     color={getPaymentStatusColor(payment.status)}
                     variant="light"
                   >
-                    {payment.status}
+                    {formatCode(payment.status)}
                   </Badge>
                 </Group>
 
@@ -390,10 +421,25 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                 {/* PENDING */}
 
-                {payment.status === "PENDING" && payment.payment_url && (
+                {payment.status === "PENDING" && payment.payment_url && hasLinkExpired(payment.created_at) && order.status !== "CANCELLED" && (
+                  <Alert color="orange" variant="light" title="This payment link has expired">
+                    <Stack gap="sm">
+                      <Text size="sm">
+                        Links stay open for {PAYMENT_LINK_MINUTES} minutes. This one expired at {linkExpiresAt(payment.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur", dateStyle: "medium", timeStyle: "short" })}. Create a new link and send it to the customer.
+                      </Text>
+                      <Group>
+                        <Button onClick={handleRenewPayment} loading={renewPaymentMutation.isPending}>
+                          Create new payment link
+                        </Button>
+                      </Group>
+                    </Stack>
+                  </Alert>
+                )}
+
+                {payment.status === "PENDING" && payment.payment_url && !hasLinkExpired(payment.created_at) && (
                   <Stack gap="xs">
                     <Text size="sm" c="dimmed">
-                      Payment Link
+                      Payment link · expires {linkExpiresAt(payment.created_at).toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur", hour: "numeric", minute: "2-digit" })}
                     </Text>
 
                     <Text
@@ -413,10 +459,20 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
 
                         <Button
                           size="sm"
-                          variant="light"
+                          variant="default"
                           onClick={handleCopyPaymentLink}
                         >
                           Copy Link
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="subtle"
+                          color="gray"
+                          onClick={handleRenewPayment}
+                          loading={renewPaymentMutation.isPending}
+                        >
+                          Replace link
                         </Button>
                       </Group>
                     )}
@@ -498,7 +554,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                 </Text>
               )}
               <Button
-                variant="light"
+                variant="default"
                 onClick={() => navigate("/refund-requests")}
               >
                 View Refund Requests
@@ -581,7 +637,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                   </Text>
                 </Group>
 
-                <Button variant="light" onClick={handleViewDelivery}>
+                <Button variant="default" onClick={handleViewDelivery}>
                   View Delivery
                 </Button>
               </>
@@ -591,7 +647,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                   No delivery record found for this order.
                 </Text>
 
-                <Button variant="light" onClick={handleViewDelivery}>
+                <Button variant="default" onClick={handleViewDelivery}>
                   View Delivery
                 </Button>
               </>
@@ -651,7 +707,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
                       )}
                     </Table.Td>
 
-                    <Table.Td fw={700}>
+                    <Table.Td fw={600}>
                       RM {Number(item.total_amount).toFixed(2)}
                     </Table.Td>
                   </Table.Tr>

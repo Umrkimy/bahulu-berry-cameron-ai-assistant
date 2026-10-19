@@ -28,7 +28,7 @@ export default function ProductsPage() {
       <PageHeader
         title="Products"
         description="Manage products, prices, promotions, and availability."
-        action={isOwner ? <Group gap="xs"><Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>CSV template</Button><Button variant="light" leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import CSV</Button><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
+        action={isOwner ? <Group gap="xs"><Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>CSV template</Button><Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import CSV</Button><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
       />
 
       <ProductTable onEdit={(product) => navigate(`/products/${product.id}`)} />

@@ -153,7 +153,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
             <Select label="Product" placeholder="Select a product" searchable clearable maxDropdownHeight={240} data={products.map((product) => ({ value: String(product.id), label: `${product.name} - RM ${getDisplayedPrice(product).toFixed(2)} - Stock: ${product.inventory?.quantity ?? 0}` }))} value={productId} onChange={setProductId} disabled={isLoading} nothingFoundMessage="No products available" />
             <NumberInput label="Quantity" min={1} max={productId ? (products.find((product) => product.id === Number(productId))?.inventory?.quantity ?? undefined) : undefined} value={quantity} onChange={(value) => setQuantity(typeof value === "number" && value > 0 ? value : 1)} disabled={createOrderMutation.isPending} />
             <Box style={{ display: "flex", alignItems: "flex-end" }}>
-              <Button fullWidth variant="light" onClick={addItem} disabled={createOrderMutation.isPending}>Add Product</Button>
+              <Button fullWidth variant="default" onClick={addItem} disabled={createOrderMutation.isPending}>Add Product</Button>
             </Box>
           </SimpleGrid>
         </Paper>
@@ -173,7 +173,7 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
                         <Table.Td>RM {Number(item.product.price).toFixed(2)}</Table.Td>
                         <Table.Td>{line?.discount_name ? <><Text size="sm" c="red">-{`RM ${Number(line.discount_amount).toFixed(2)}`}</Text><Text size="xs" c="dimmed">{line.discount_name}</Text></> : "-"}</Table.Td>
                         <Table.Td>{item.quantity}</Table.Td>
-                        <Table.Td fw={700}>{line ? `RM ${Number(line.total_amount).toFixed(2)}` : "-"}</Table.Td>
+                        <Table.Td fw={600}>{line ? `RM ${Number(line.total_amount).toFixed(2)}` : "-"}</Table.Td>
                         <Table.Td><Button color="red" variant="subtle" size="xs" onClick={() => removeItem(item.product.id)} disabled={createOrderMutation.isPending} leftSection={<IconTrash size={14} />}>Remove</Button></Table.Td>
                       </Table.Tr>
                     );
@@ -184,12 +184,12 @@ export default function CreateOrderModal({ opened, onClose }: Props) {
             <Stack hiddenFrom="sm" gap="sm">
               {items.map((item) => {
                 const line = quoteItems.get(item.product.id);
-                return <Paper key={item.product.id} withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={700}>{item.product.name}</Text><Text size="sm" c="dimmed">{item.quantity} × RM {Number(item.product.price).toFixed(2)}</Text>{line?.discount_name ? <Text size="xs" c="red">-{`RM ${Number(line.discount_amount).toFixed(2)}`} · {line.discount_name}</Text> : null}<Text fw={700}>RM {line ? Number(line.total_amount).toFixed(2) : "-"}</Text></Stack><Button color="red" variant="subtle" size="xs" onClick={() => removeItem(item.product.id)} disabled={createOrderMutation.isPending}>Remove</Button></Group></Paper>;
+                return <Paper key={item.product.id} withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={600}>{item.product.name}</Text><Text size="sm" c="dimmed">{item.quantity} × RM {Number(item.product.price).toFixed(2)}</Text>{line?.discount_name ? <Text size="xs" c="red">-{`RM ${Number(line.discount_amount).toFixed(2)}`} · {line.discount_name}</Text> : null}<Text fw={600}>RM {line ? Number(line.total_amount).toFixed(2) : "-"}</Text></Stack><Button color="red" variant="subtle" size="xs" onClick={() => removeItem(item.product.id)} disabled={createOrderMutation.isPending}>Remove</Button></Group></Paper>;
               })}
             </Stack>
 
             <Paper withBorder radius="md" p="md">
-              {quoteLoading ? <Group justify="center"><Loader size="sm" /><Text size="sm" c="dimmed">Calculating current promotion prices...</Text></Group> : quoteError ? <Text c="red">{quoteError}</Text> : quote ? <Stack gap="xs"><Group justify="space-between"><Text c="dimmed">Subtotal</Text><Text>RM {Number(quote.subtotal).toFixed(2)}</Text></Group><Group justify="space-between"><Text c="red">Discount</Text><Text c="red">-RM {Number(quote.discount_amount).toFixed(2)}</Text></Group><Group justify="space-between"><Text fw={700} size="lg">Order Total</Text><Text fw={700} size="lg">RM {Number(quote.total_amount).toFixed(2)}</Text></Group></Stack> : null}
+              {quoteLoading ? <Group justify="center"><Loader size="sm" /><Text size="sm" c="dimmed">Calculating current promotion prices...</Text></Group> : quoteError ? <Text c="red">{quoteError}</Text> : quote ? <Stack gap="xs"><Group justify="space-between"><Text c="dimmed">Subtotal</Text><Text>RM {Number(quote.subtotal).toFixed(2)}</Text></Group><Group justify="space-between"><Text c="red">Discount</Text><Text c="red">-RM {Number(quote.discount_amount).toFixed(2)}</Text></Group><Group justify="space-between"><Text fw={600} size="lg">Order Total</Text><Text fw={600} size="lg">RM {Number(quote.total_amount).toFixed(2)}</Text></Group></Stack> : null}
             </Paper>
           </>
         )}

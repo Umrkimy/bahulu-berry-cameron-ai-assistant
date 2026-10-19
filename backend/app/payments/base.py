@@ -36,6 +36,11 @@ class PaymentProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_payment_state(self, provider_payment_id: str) -> str:
+        """Return "open", "complete" or "expired" for an existing payment link."""
+        raise NotImplementedError
+
+    @abstractmethod
     async def expire_payment(self, provider_payment_id: str) -> None:
         """Close an open payment link so it can no longer be paid."""
         raise NotImplementedError

@@ -11,11 +11,11 @@ interface Props {
 export default function EmptyState({ title, description }: Props) {
   return (
     <Stack align="center" py="xl">
-      <ThemeIcon size={60} radius="xl" variant="light">
+      <ThemeIcon size={60} radius="xl" variant="default">
         <IconInbox size={32} />
       </ThemeIcon>
 
-      <Text fw={700} size="lg">
+      <Text fw={600} size="lg">
         {title}
       </Text>
 

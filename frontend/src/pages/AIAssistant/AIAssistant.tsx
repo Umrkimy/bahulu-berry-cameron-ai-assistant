@@ -25,6 +25,7 @@ import { cancelAIAction, confirmAIAction, sendAIMessage } from "../../api/aiAssi
 import { getApiError } from "../../api/errors";
 import useAuth from "../../auth/useAuth";
 import { invalidateDashboardQueries } from "../../queryPolicy";
+import PageHeader from "../../components/common/PageHeader";
 
 const STORAGE_KEY = "bahulu-cameron-ai-chat";
 const CONVERSATION_ID_KEY = "bahulu-cameron-ai-conversation-id";
@@ -205,64 +206,19 @@ function AccountChat() {
 
   return (
     <>
+      <div className="ai-assistant-page">
+      <PageHeader
+        title="Operations Copilot"
+        description={admin?.role === "OWNER" ? "Ask about today’s work using live data. Previewed changes need your confirmation." : "Live operations help — no dashboard changes. Ask about today’s work using live data."}
+        action={<Button className="ai-chat-actions" variant="default" leftSection={<IconPlus size={16} />} onClick={() => setResetOpened(true)}>New chat</Button>}
+      />
       <Box
         className="ai-assistant-shell"
-        h="calc(100vh - 70px)"
         style={{
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* ================================================== */}
-        {/* HEADER */}
-        {/* ================================================== */}
-
-        <Box
-          px="md"
-          py="sm"
-          style={{
-            borderBottom: "1px solid var(--mantine-color-default-border)",
-          }}
-        >
-          <Box
-            className="ai-chat-header"
-            maw={900}
-            mx="auto"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text fw={600} size="lg">
-              Operations Copilot
-            </Text>
-
-            <Text size="xs" c="dimmed" ml="auto" mr="md">
-              {admin?.role === "STAFF"
-                ? "Live operations help — no dashboard changes"
-                : null}
-              {admin?.role !== "STAFF" ? (
-                <>
-                  {admin?.role === "OWNER"
-                    ? "Previewed changes need your confirmation"
-                    : "Read-only help for staff — no dashboard changes"}
-                </>
-              ) : null}
-            </Text>
-
-            <Button
-              className="ai-chat-actions"
-              size="sm"
-              variant="light"
-              leftSection={<IconPlus size={16} />}
-              onClick={() => setResetOpened(true)}
-            >
-              New Chat
-            </Button>
-          </Box>
-        </Box>
-
         {/* ================================================== */}
         {/* CHAT MESSAGES */}
         {/* ================================================== */}
@@ -271,11 +227,11 @@ function AccountChat() {
           style={{
             flex: 1,
           }}
-          type="auto"
+          type="hover"
         >
           <Box maw={900} mx="auto" px="md" py="xl">
             {messages.length === 0 ? (
-              <Center h="calc(100vh - 220px)">
+              <Center mih="calc(100dvh - 380px)">
                 {admin?.role === "OWNER" ? (
                   <OwnerQuickPrompts onSelect={handleSend} />
                 ) : (
@@ -332,13 +288,14 @@ function AccountChat() {
           <Box maw={900} mx="auto">
             <ChatInput onSend={handleSend} loading={loading} />
 
-            <Text ta="center" size="xs" c="dimmed" mt={6}>
+            <Text ta="center" size="sm" c="dimmed" mt={6}>
               AI uses live dashboard data. Staff can only ask read-only
               questions; owners must confirm every change.
             </Text>
           </Box>
         </Box>
       </Box>
+      </div>
 
       {/* ==================================================== */}
       {/* NEW CHAT MODAL */}

@@ -19,7 +19,7 @@ describe("NotificationBell", () => {
     renderWithProviders(<QueryClientProvider client={queryClient}><NotificationBell /></QueryClientProvider>);
     const button = await screen.findByRole("button", { name: /2 unread notifications and 1 item needing attention/i });
     expect(button).toHaveTextContent("2");
-    expect(screen.getAllByText("1").length).toBeGreaterThan(0);
+    expect(button.querySelector(".bell-attention-dot")).not.toBeNull();
   });
 
   it("opens the updates menu with the keyboard", async () => {
