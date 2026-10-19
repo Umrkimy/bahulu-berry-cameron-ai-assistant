@@ -21,7 +21,7 @@ from app.models.admin import Admin
 from app.models.checkout import PaymentWebhookEvent
 from app.models.order import Order
 from app.models.payment import Payment
-from app.payments.service import create_payment
+from app.payments.service import PaymentStillCompleting, create_payment, renew_payment
 from app.schemas.payment import PaymentResponse
 from app.services.activity_services import record_activity
 from app.services.customer_status_emails import ORDER_RECEIVED, queue_status_email
@@ -86,6 +86,48 @@ async def create_order_payment(
         await db.commit()
         await db.refresh(payment)
 
+    return payment
+
+
+@router.post(
+    "/orders/{order_id}/renew",
+    response_model=PaymentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def renew_order_payment(
+    order_id: int,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    await rate_limiter.check(request, "payment-link", PAYMENT_LIMIT)
+    order = await db.scalar(select(Order).where(Order.id == order_id).with_for_update())
+
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+    if order.status == "CANCELLED":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot create payment for a cancelled order.")
+    if order.payment_status in {"PAID", "REFUNDED"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Order is already paid.")
+
+    try:
+        payment = await renew_payment(db, order)
+    except PaymentStillCompleting:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The customer has already paid this link. Wait a minute for Stripe to confirm it, then refresh.",
+        )
+    except stripe.StripeError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Stripe could not be reached. Try again in a moment.",
+        )
+
+    await record_activity(db, admin=current_admin, action="renewed", entity_type="payment", entity_id=payment.id, description=f"Created a new payment link for order #{order_id}; the previous link was closed.")
+    await db.commit()
+    await db.refresh(payment)
     return payment
 
 

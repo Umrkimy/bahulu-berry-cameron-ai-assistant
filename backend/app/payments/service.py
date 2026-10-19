@@ -91,6 +91,41 @@ async def create_payment(
     return payment, True
 
 
+class PaymentStillCompleting(Exception):
+    """The provider has a completed payment that the webhook has not recorded yet."""
+
+
+async def renew_payment(db: AsyncSession, order: Order) -> Payment:
+    """Replace an order's pending payment link with a fresh one.
+
+    The old link is closed first so it can never be paid alongside the new one.
+    If the provider already completed it, nothing is replaced: the signed
+    webhook will record that payment.
+    """
+    result = await db.execute(
+        select(Payment)
+        .where(
+            Payment.order_id == order.id,
+            Payment.status == "PENDING",
+        )
+        .with_for_update()
+    )
+
+    for payment in result.scalars().all():
+        if payment.provider_payment_id:
+            provider = get_payment_provider(payment.provider)
+            state = await provider.get_payment_state(payment.provider_payment_id)
+            if state == "complete":
+                raise PaymentStillCompleting()
+            if state == "open":
+                await provider.expire_payment(payment.provider_payment_id)
+        payment.status = "EXPIRED"
+
+    await db.flush()
+    payment, _ = await create_payment(db=db, order=order)
+    return payment
+
+
 async def expire_pending_payments(
     db: AsyncSession,
     order_id: int,

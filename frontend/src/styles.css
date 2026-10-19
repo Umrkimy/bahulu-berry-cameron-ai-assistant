@@ -231,3 +231,6 @@ a.list-row:hover, button.list-row:hover { background: var(--ui-subtle); }
 .data-table-th[data-align="right"], .data-table-td[data-align="right"] { text-align: right; }
 .data-table-th[data-align="right"] .data-table-sort, .data-table-th[data-align="right"] .data-table-head { flex-direction: row-reverse; }
 .data-table-td[data-align="right"] .mantine-Text-root { text-align: right; }
+.preview-sunny { background: #ffdd2d; border: 0; color: #2b2216; }
+.preview-sunny .mantine-Text-root { color: inherit; }
+.sticky-savebar { border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-header); backdrop-filter: blur(8px); box-shadow: var(--mantine-shadow-md); z-index: 2; }
