@@ -144,7 +144,7 @@ export default function DraftReviewQueue() {
 
   return (
     <Stack gap="md">
-      <Card withBorder bg="gray.0">
+      <Card withBorder bg="var(--ui-subtle)">
         <Group gap="xs"><IconInbox size={20} /><Stack gap={0}><Text fw={600}>Drafts to review</Text><Text size="sm" c="dimmed">The AI suggests replies from approved content. Nothing is sent automatically: approve a reply to copy it, then send it yourself in WhatsApp.</Text></Stack></Group>
       </Card>
       <SegmentedControl aria-label="Draft status" value={view} onChange={(value) => setView(value as DraftView)} data={[{ label: "To review", value: "review" }, { label: "Approved", value: "approved" }, { label: "Rejected", value: "rejected" }]} />

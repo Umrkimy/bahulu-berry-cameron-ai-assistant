@@ -185,7 +185,7 @@ function StorefrontForm({ product, canEdit, onDirtyChange }: { product: Product;
 
   return <form onSubmit={submit}><Stack gap="lg">
     <div><Text fw={600} fz="lg">Storefront content</Text><Text size="sm" c="dimmed">English comes from Product Details. Add the approved Bahasa Melayu translation here, then publish when the checklist is complete.</Text></div>
-    <Card withBorder bg="#fafafa"><Stack gap="xs"><Text fw={600}>English preview</Text><Text fw={600}>{product.name}</Text><Text size="sm" c="dimmed">{product.description || "No English description added."}</Text></Stack></Card>
+    <Card withBorder bg="var(--ui-subtle)"><Stack gap="xs"><Text fw={600}>English preview</Text><Text fw={600}>{product.name}</Text><Text size="sm" c="dimmed">{product.description || "No English description added."}</Text></Stack></Card>
     <TextInput label="Product name — Bahasa Melayu" withAsterisk disabled={!canEdit || update.isPending} {...form.getInputProps("name_ms")} />
     <Textarea label="Description — Bahasa Melayu" autosize minRows={4} disabled={!canEdit || update.isPending} {...form.getInputProps("description_ms")} />
     <Card withBorder><Stack gap="xs"><Text fw={600}>Publishing checklist</Text>{readiness.map((item) => <Group key={item.label} gap="xs"><Badge color={item.ready ? "green" : "gray"} circle>{item.ready ? <IconCheck size={12} /> : "–"}</Badge><Text size="sm" c={item.ready ? undefined : "dimmed"}>{item.label}</Text></Group>)}</Stack></Card>

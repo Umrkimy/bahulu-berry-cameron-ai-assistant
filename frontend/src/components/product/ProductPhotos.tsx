@@ -106,7 +106,7 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
       {images.map((image, index) => <Card key={image.id} withBorder radius="lg" p="sm">
         <Card.Section>
-          <Image src={`${origin}${image.image_path}?v=${query.dataUpdatedAt}`} alt={`${index === 0 ? "Cover" : `Gallery ${index + 1}`} photo for this product`} h={220} fit="contain" bg="#fafafa" />
+          <Image src={`${origin}${image.image_path}?v=${query.dataUpdatedAt}`} alt={`${index === 0 ? "Cover" : `Gallery ${index + 1}`} photo for this product`} h={220} fit="contain" bg="var(--ui-subtle)" />
         </Card.Section>
         <Stack gap="xs" mt="sm">
           <Group justify="space-between"><Text fw={600}>{index === 0 ? "Cover photo" : `Photo ${index + 1}`}</Text>{index === 0 ? <Badge color="bahulu" leftSection={<IconStar size={12} />}>Cover</Badge> : null}</Group>

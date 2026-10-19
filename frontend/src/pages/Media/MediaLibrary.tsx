@@ -50,7 +50,7 @@ export default function MediaLibrary() {
     <SimpleGrid cols={view === "grid" ? { base: 1, sm: 2, lg: 3 } : 1}>
       {query.data?.items.map((asset) => <Card key={asset.id} withBorder radius="lg" p="sm">
         <Group align="flex-start" wrap="nowrap">
-          <Image src={mediaUrl(asset.content_path)} alt="" w={view === "list" ? 140 : 120} h={120} fit="contain" bg="#fafafa" radius="md" />
+          <Image src={mediaUrl(asset.content_path)} alt="" w={view === "list" ? 140 : 120} h={120} fit="contain" bg="var(--ui-subtle)" radius="md" />
           <Stack gap={6} style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" wrap="nowrap"><Text fw={600} truncate>{asset.title}</Text>{asset.is_archived ? <Badge color="gray">Archived</Badge> : <Badge color="green">Active</Badge>}</Group>
             <Text size="xs" c="dimmed">{asset.width && asset.height ? `${asset.width} × ${asset.height}` : "Dimensions unavailable"} · {bytes(asset.byte_size)}</Text>

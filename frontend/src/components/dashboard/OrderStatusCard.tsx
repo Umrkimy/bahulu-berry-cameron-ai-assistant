@@ -5,6 +5,7 @@ import type { EChartsOption } from "echarts";
 import { useDashboard } from "../../hooks/useDashboard";
 import EChart from "../common/EChart";
 import AnimatedNumber from "../common/motion/AnimatedNumber";
+import { useChartTheme } from "../../hooks/useChartTheme";
 
 export default function OrderStatusCard() {
   const { data, isLoading, error } = useDashboard();
@@ -12,16 +13,17 @@ export default function OrderStatusCard() {
   const totalOrders = Math.max((orderSummary?.total ?? 0) - (orderSummary?.cancelled ?? 0), 0);
   const activeOrders = Math.max(totalOrders - (orderSummary?.completed ?? 0), 0);
   const completionRate = totalOrders === 0 ? 0 : Math.round(((orderSummary?.completed ?? 0) / totalOrders) * 100);
+  const chart = useChartTheme();
   const option = useMemo<EChartsOption>(() => ({
     animationDuration: 420,
-    title: { text: `${completionRate}%`, subtext: "completed", left: "center", top: "35%", textStyle: { color: "#18181b", fontSize: 23, fontWeight: 600 }, subtextStyle: { color: "#71717a", fontSize: 11 } },
+    title: { text: `${completionRate}%`, subtext: "completed", left: "center", top: "35%", textStyle: { color: chart.ink, fontSize: 23, fontWeight: 600 }, subtextStyle: { color: chart.label, fontSize: 11 } },
     tooltip: { trigger: "item", valueFormatter: (value: unknown) => `${value ?? 0} order${Number(value) === 1 ? "" : "s"}` },
-    series: [{ type: "pie", radius: ["62%", "84%"], center: ["50%", "50%"], startAngle: 90, clockwise: true, label: { show: false }, labelLine: { show: false }, itemStyle: { borderColor: "#ffffff", borderWidth: 3, borderRadius: 4 }, data: [
+    series: [{ type: "pie", radius: ["62%", "84%"], center: ["50%", "50%"], startAngle: 90, clockwise: true, label: { show: false }, labelLine: { show: false }, itemStyle: { borderColor: chart.surface, borderWidth: 3, borderRadius: 4 }, data: [
       { value: orderSummary?.completed ?? 0, name: "Completed", itemStyle: { color: "#2f9e44" } },
-      { value: activeOrders, name: "Active", itemStyle: { color: "#52525b" } },
-      { value: orderSummary?.cancelled ?? 0, name: "Cancelled", itemStyle: { color: "#d4d4d8" } },
+      { value: activeOrders, name: "Active", itemStyle: { color: chart.berry } },
+      { value: orderSummary?.cancelled ?? 0, name: "Cancelled", itemStyle: { color: chart.muted } },
     ] }],
-  }), [activeOrders, completionRate, orderSummary?.cancelled, orderSummary?.completed]);
+  }), [activeOrders, completionRate, orderSummary?.cancelled, orderSummary?.completed, chart]);
 
   if (isLoading) {
     return (

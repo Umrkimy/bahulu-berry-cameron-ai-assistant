@@ -42,7 +42,7 @@ export default function Settings() {
     <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
       <Card withBorder p="lg"><Stack gap="md">
         <Group justify="space-between"><Group gap="sm"><ThemeIcon variant="default" radius="xl"><IconBrandGooglePhotos size={18} /></ThemeIcon><div><Text fw={600}>Brand preview</Text><Text size="sm" c="dimmed">Admin-only temporary artwork</Text></div></Group><Badge color="gray" variant="light">Temporary</Badge></Group>
-        <Image src="/logo.jpeg" alt="Bahulu Berry Cameron temporary brand preview" h={160} fit="contain" radius="md" bg="gray.0" />
+        <Image src="/logo.jpeg" alt="Bahulu Berry Cameron temporary brand preview" h={160} fit="contain" radius="md" bg="var(--ui-subtle)" />
         <Alert color="gray" variant="light">This is the current dashboard logo preview only. It is not an image upload and does not change the storefront.</Alert>
       </Stack></Card>
       <Card withBorder p="lg"><Stack gap="md">

@@ -1,5 +1,5 @@
-import { Avatar, Burger, Group, Kbd, Menu, Text, UnstyledButton } from "@mantine/core";
-import { IconChevronDown, IconLogout, IconSearch } from "@tabler/icons-react";
+import { ActionIcon, Avatar, Burger, Group, Kbd, Menu, Text, Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { IconChevronDown, IconLogout, IconMoon, IconSearch, IconSun } from "@tabler/icons-react";
 
 import useAuth from "../../auth/useAuth";
 import Logo from "../brand/Logo";
@@ -10,6 +10,9 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobileOpened: boolean; onToggleNavigation: () => void }) {
   const { logout, admin } = useAuth();
   const roleLabel = admin?.role === "OWNER" ? "Owner" : "Staff";
+  const { setColorScheme } = useMantineColorScheme();
+  const dark = useComputedColorScheme("light") === "dark";
+  const schemeLabel = dark ? "Switch to light mode" : "Switch to dark mode";
 
   return (
     <Group h="100%" px={{ base: "sm", sm: "xl" }} justify="space-between" wrap="nowrap" gap="sm">
@@ -24,6 +27,11 @@ export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobile
           <span className="header-search-label">Search</span>
           <Kbd className="header-search-kbd" size="xs">{isMac ? "⌘ K" : "Ctrl K"}</Kbd>
         </UnstyledButton>
+        <Tooltip label={schemeLabel}>
+          <ActionIcon size={32} aria-label={schemeLabel} onClick={() => setColorScheme(dark ? "light" : "dark")}>
+            {dark ? <IconSun size={18} stroke={1.75} /> : <IconMoon size={18} stroke={1.75} />}
+          </ActionIcon>
+        </Tooltip>
         <NotificationBell />
         <Menu width={220} position="bottom-end">
           <Menu.Target>

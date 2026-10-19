@@ -1,21 +1,10 @@
-import { createTheme, defaultVariantColorsResolver, parseThemeColor, type CSSVariablesResolver, type VariantColorsResolver } from "@mantine/core";
+import { createTheme, type CSSVariablesResolver } from "@mantine/core";
 
 const uiFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
-const variantColorResolver: VariantColorsResolver = (input) => {
-  const resolved = defaultVariantColorsResolver(input);
-  if (input.variant !== "light") return resolved;
-  const parsed = parseThemeColor({ color: input.color ?? input.theme.primaryColor, theme: input.theme });
-  if (!parsed.isThemeColor) return resolved;
-  const darkest = input.theme.colors[parsed.color][9];
-  const ink = ["yellow", "orange", "lime"].includes(parsed.color) ? 58 : 78;
-  return { ...resolved, color: `color-mix(in srgb, ${darkest} ${ink}%, #000)` };
-};
-
 export const theme = createTheme({
-  variantColorResolver,
   primaryColor: "bahulu",
-  primaryShade: 6,
+  primaryShade: { light: 6, dark: 5 },
   defaultRadius: "sm",
   cursorType: "pointer",
   fontFamily: uiFont,
@@ -47,6 +36,7 @@ export const theme = createTheme({
   },
 
   colors: {
+    dark: ["#e4e4e7", "#a1a1aa", "#8b8b94", "#6f6f78", "#3a3a40", "#2a2a2f", "#1d1d21", "#18181b", "#121214", "#0f0f11"],
     gray: ["#fafafa", "#f4f4f5", "#e9e9ec", "#dcdce0", "#c4c4ca", "#9d9da5", "#6f6f78", "#52525b", "#3f3f46", "#18181b"],
     bahulu: ["#fdf3f3", "#fbe3e3", "#f6c5c6", "#ee9c9e", "#e2686b", "#d03a3e", "#b8171c", "#9a1418", "#7c1215", "#4a0a0c"],
   },
@@ -67,9 +57,16 @@ export const theme = createTheme({
   },
 });
 
+const statusColors = ["gray", "red", "pink", "grape", "violet", "indigo", "blue", "cyan", "teal", "green", "lime", "yellow", "orange", "bahulu"];
+const lightBadgeInk = Object.fromEntries(statusColors.map((color) => [
+  `--mantine-color-${color}-light-color`,
+  `color-mix(in srgb, var(--mantine-color-${color}-9) ${["yellow", "orange", "lime"].includes(color) ? 58 : 78}%, #000)`,
+]));
+
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
   variables: {},
   light: {
+    ...lightBadgeInk,
     "--mantine-color-body": "#f6f6f7",
     "--mantine-color-text": "#18181b",
     "--mantine-color-dimmed": "#5f6168",
@@ -77,5 +74,13 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     "--mantine-color-default-hover": "#f4f4f5",
     "--mantine-color-placeholder": "#6f6f78",
   },
-  dark: {},
+  dark: {
+    "--mantine-color-body": "#0f0f11",
+    "--mantine-color-text": "#f4f4f5",
+    "--mantine-color-dimmed": "#a1a1aa",
+    "--mantine-color-default": "#18181b",
+    "--mantine-color-default-border": "#2a2a2f",
+    "--mantine-color-default-hover": "#232327",
+    "--mantine-color-placeholder": "#8b8b94",
+  },
 });

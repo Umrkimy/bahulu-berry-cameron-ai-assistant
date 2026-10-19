@@ -37,7 +37,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           p="sm"
           px="md"
           radius="lg"
-          bg={isUser ? "bahulu.6" : "gray.0"}
+          bg={isUser ? "bahulu.6" : "var(--ui-subtle)"}
           c={isUser ? "white" : "dark"}
         >
           {!isUser && message.outcome && message.outcome !== "ANSWER" && (

@@ -29,7 +29,7 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <LazyMotion features={domAnimation} strict>
           <MotionConfig reducedMotion="user">
-            <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="light">
+            <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="auto">
               <ActionNotifications />
               <ModalsProvider>
                 <AuthProvider>

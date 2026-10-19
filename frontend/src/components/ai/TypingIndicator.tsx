@@ -6,7 +6,7 @@ export default function TypingIndicator() {
       <Box
         w={6}
         h={6}
-        bg="gray.5"
+        bg="var(--ui-border-strong)"
         style={{
           borderRadius: "50%",
         }}
@@ -15,7 +15,7 @@ export default function TypingIndicator() {
       <Box
         w={6}
         h={6}
-        bg="gray.5"
+        bg="var(--ui-border-strong)"
         style={{
           borderRadius: "50%",
         }}
@@ -24,7 +24,7 @@ export default function TypingIndicator() {
       <Box
         w={6}
         h={6}
-        bg="gray.5"
+        bg="var(--ui-border-strong)"
         style={{
           borderRadius: "50%",
         }}
