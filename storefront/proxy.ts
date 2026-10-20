@@ -75,5 +75,5 @@ export async function proxy(request: NextRequest) {
 
 // Static files and product photos skip the proxy; pages and data routes go through it.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|product-media|concept/|favicon.ico|robots.txt).*)"],
+  matcher: ["/((?!_next/static|_next/image|product-media|concept/|favicon.ico|icon.png|apple-icon.png|robots.txt).*)"],
 };
