@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  CHECKOUT_STEP_FIELDS, checkoutFailure, checkoutPayload, emptyContact, errorsForStep, firstStepWithErrors, idempotencyKeyFor, isValidPhone, safePaymentUrl, serverFieldErrors, validateCheckout,
+  CHECKOUT_STEP_FIELDS, checkoutFailure, checkoutPayload, emptyContact, errorsForStep, firstStepWithErrors, idempotencyKeyFor, isValidPhone, prefillContact, returnPathAfterSignIn, safePaymentUrl, serverFieldErrors, validateCheckout,
 } from "../app/_lib/checkout.ts";
 
 const contact = {
@@ -84,4 +84,17 @@ test("checkout steps cover every field once and route errors to the earliest ste
   assert.equal(firstStepWithErrors(validateCheckout({ ...contact, postal_code: "12" }, true)), 2);
   assert.equal(firstStepWithErrors(validateCheckout(contact, false)), 3);
   assert.equal(firstStepWithErrors(validateCheckout(contact, true)), null);
+});
+
+test("account details fill only empty checkout fields", () => {
+  const account = { email: "aina@example.com", full_name: "Aina Fiksyen", phone_number: "0123456789" };
+  assert.deepEqual(prefillContact(emptyContact, account), { ...emptyContact, full_name: "Aina Fiksyen", phone_number: "0123456789", email: "aina@example.com" });
+  const typed = { ...emptyContact, full_name: "Typed name" };
+  assert.equal(prefillContact(typed, account).full_name, "Typed name");
+  assert.equal(prefillContact(emptyContact, { email: "aina@example.com", full_name: null, phone_number: null }).phone_number, "");
+});
+
+test("sign-in only sends customers back to checkout", () => {
+  assert.equal(returnPathAfterSignIn("?next=/checkout"), "/checkout");
+  for (const search of ["", "?next=https://example.com", "?next=//example.com/checkout", "?next=/account", "?next=/checkout/success"]) assert.equal(returnPathAfterSignIn(search), null);
 });

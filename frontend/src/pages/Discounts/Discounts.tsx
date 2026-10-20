@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { ActionIcon, Alert, Badge, Button, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { Alert, Badge, Button, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
@@ -15,6 +15,7 @@ import type { Discount, DiscountInput, DiscountType } from "../../types/discount
 import useAuth from "../../auth/useAuth";
 import { getApiError } from "../../api/errors";
 import type { DashboardRouteState } from "../../types/navigation";
+import RowActions from "../../components/common/DataTable/RowActions";
 
 interface DiscountFormValues {
   product_id: string;
@@ -162,7 +163,7 @@ export default function Discounts() {
       { id: "start", accessorKey: "start_at", header: "Starts", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.start_at)}</Text> },
       { id: "end", accessorKey: "end_at", header: "Ends", cell: ({ row }) => <Text size="sm">{formatSchedule(row.original.end_at)}</Text> },
       { id: "status", accessorFn: (row) => getStatus(row).label, header: "Status", cell: ({ row }) => { const status = getStatus(row.original); return <Badge color={status.color} variant="light">{status.label}</Badge>; } },
-      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <Group gap="xs"><Tooltip label="Edit promotion"><ActionIcon variant="subtle" color="gray" onClick={() => openEdit(row.original)} aria-label="Edit promotion"><IconEdit size={18} /></ActionIcon></Tooltip><Tooltip label="Delete promotion"><ActionIcon variant="subtle" color="red" loading={deleteMutation.isPending} onClick={() => removeDiscount(row.original)} aria-label="Delete promotion"><IconTrash size={18} /></ActionIcon></Tooltip></Group> : <Text c="dimmed">-</Text> },
+      { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => isOwner ? <RowActions label={row.original.name} actions={[{ label: "Edit promotion", icon: <IconEdit size={16} />, onClick: () => openEdit(row.original) }, { label: "Delete promotion", icon: <IconTrash size={16} />, color: "red", disabled: deleteMutation.isPending, onClick: () => removeDiscount(row.original) }]} /> : null },
     ],
     [deleteMutation.isPending, isOwner, openEdit, productNames, removeDiscount],
   );
@@ -179,7 +180,7 @@ export default function Discounts() {
       {filteredProductId ? <Alert mb="md" color="gray" title={`Promotions for ${productNames.get(filteredProductId) ?? `product #${filteredProductId}`}`}>
         <Button variant="subtle" size="compact-sm" onClick={() => setSearchParams({})}>Show all promotions</Button>
       </Alert> : null}
-      <DataTable data={visibleDiscounts} columns={columns} loading={isLoading} searchPlaceholder="Search promotions, products, statuses..." emptyMessage={filteredProductId ? "No promotions exist for this product yet." : "No promotions created yet."} />
+      <DataTable data={visibleDiscounts} columns={columns} loading={isLoading} onRowClick={isOwner ? openEdit : undefined} searchPlaceholder="Search promotions, products, statuses..." emptyMessage={filteredProductId ? "No promotions exist for this product yet." : "No promotions created yet."} />
       <Modal opened={isOwner && (opened || isCreateRequested)} onClose={closeModal} title={editingDiscount ? "Edit Promotion" : "Create Promotion"} centered>
         <form onSubmit={form.onSubmit(submit)}><Stack>
           <Select label="Product" searchable data={productsData?.items.map((product) => ({ value: String(product.id), label: product.name })) ?? []} {...form.getInputProps("product_id")} />

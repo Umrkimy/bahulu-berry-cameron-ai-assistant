@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
 
-import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Badge, Card, Group, Stack, Text } from "@mantine/core";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { IconAdjustments, IconChecklist } from "@tabler/icons-react";
 
 import { DataTable } from "../common/DataTable";
+import RowActions, { type RowAction } from "../common/DataTable/RowActions";
 
 import { useInventories } from "../../hooks/useInventory";
 
@@ -30,6 +31,11 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
   const navigate = useNavigate();
 
   const routedInventory = inventories.find((item) => item.id === (location.state as { openInventoryId?: number } | null)?.openInventoryId) ?? null;
+
+  const inventoryActions = useCallback((inventory: Inventory): RowAction[] => [
+    { label: "Adjust stock", icon: <IconAdjustments size={16} />, onClick: () => setSelectedInventory(inventory) },
+    { label: "Create task", icon: <IconChecklist size={16} />, hidden: !can(admin, "tasks.manage"), onClick: () => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: inventory.id, label: `${inventory.product_name} inventory` } } }) },
+  ], [admin, navigate]);
 
   const columns = useMemo<ColumnDef<Inventory, unknown>[]>(
     () => [
@@ -117,20 +123,10 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
         header: "Actions",
         enableSorting: false,
 
-        cell: ({ row }) => (
-          <Group gap="xs"><Tooltip label="Adjust Stock"><ActionIcon
-              size="lg"
-              variant="subtle"
-              color="gray"
-              onClick={() => setSelectedInventory(row.original)}
-              aria-label="Adjust stock"
-            >
-              <IconAdjustments size={20} />
-            </ActionIcon></Tooltip>{can(admin, "tasks.manage") && <Tooltip label="Create task"><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
-        ),
+        cell: ({ row }) => <RowActions label={row.original.product_name} actions={inventoryActions(row.original)} />,
       },
     ],
-    [admin, navigate],
+    [inventoryActions],
   );
 
   return (
@@ -152,9 +148,10 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
           onRetry={() => void refetch()}
           searchPlaceholder="Search inventory..."
           emptyMessage="No inventory found."
+          onRowClick={setSelectedInventory}
           renderMobileCard={(inventory) => {
             const status = inventory.quantity === 0 ? { label: "Out of stock", color: "red" } : inventory.quantity <= inventory.low_stock_threshold ? { label: "Low stock", color: "orange" } : { label: "In stock", color: "green" };
-            return <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={600}>{inventory.product_name}</Text><Text size="sm" c="dimmed">{inventory.product_category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={status.color} variant="light">{status.label}</Badge><Text size="sm">{inventory.quantity} in stock · Threshold {inventory.low_stock_threshold}</Text></Group></Stack><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => setSelectedInventory(inventory)} aria-label="Adjust stock"><IconAdjustments size={20} /></ActionIcon></Group></Card>;
+            return <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Text fw={600}>{inventory.product_name}</Text><Text size="sm" c="dimmed">{inventory.product_category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={status.color} variant="light">{status.label}</Badge><Text size="sm">{inventory.quantity} in stock · Threshold {inventory.low_stock_threshold}</Text></Group></Stack><RowActions label={inventory.product_name} actions={inventoryActions(inventory)} /></Group></Card>;
           }}
         />
       </Card>

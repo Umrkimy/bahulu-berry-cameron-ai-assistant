@@ -250,3 +250,6 @@
 .account-orders .tracking-order { display: grid; gap: 16px; padding: 0 20px 20px; }
 .account-sign-out { display: grid; gap: 6px; margin-top: 8px; }
 @media (max-width: 900px) { .account-dashboard { grid-template-columns: 1fr; } }
+.checkout-access h2 { margin-bottom: 8px; }
+.checkout-access-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+@media (max-width: 600px) { .checkout-access-actions .home-button { width: 100%; } }

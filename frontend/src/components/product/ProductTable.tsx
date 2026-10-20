@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { ActionIcon, Anchor, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Badge, Card, Group, Stack, Text } from "@mantine/core";
 
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -11,6 +11,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Link } from "react-router-dom";
 
 import { DataTable } from "../common/DataTable";
+import RowActions, { type RowAction } from "../common/DataTable/RowActions";
 
 import { useDeleteProduct, useProducts } from "../../hooks/useProducts";
 
@@ -77,6 +78,11 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
       },
     });
   }, [deleteMutation]);
+
+  const productActions = useCallback((product: Product): RowAction[] => [
+    { label: canEdit ? "Edit product" : "View product", icon: <IconEdit size={16} />, onClick: () => onEdit(product) },
+    { label: "Delete product", icon: <IconTrash size={16} />, color: "red", hidden: !canDelete, disabled: deleteMutation.isPending, onClick: () => handleDelete(product) },
+  ], [canDelete, canEdit, deleteMutation.isPending, handleDelete, onEdit]);
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
@@ -185,38 +191,10 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Actions",
         enableSorting: false,
 
-        cell: ({ row }) => canEdit ? (
-          <Group gap="xs">
-            {/* EDIT */}
-            <Tooltip label="Open product workspace" withArrow>
-              <ActionIcon
-                size="lg"
-                variant="subtle"
-                color="gray"
-                onClick={() => onEdit(row.original)}
-                aria-label="Open product workspace"
-              >
-                <IconEdit size={20} />
-              </ActionIcon>
-            </Tooltip>
-
-            {canDelete && <Tooltip label="Delete product" withArrow>
-              <ActionIcon
-                size="lg"
-                variant="subtle"
-                color="red"
-                onClick={() => handleDelete(row.original)}
-                loading={deleteMutation.isPending}
-                aria-label="Delete product"
-              >
-                <IconTrash size={20} />
-              </ActionIcon>
-            </Tooltip>}
-          </Group>
-        ) : <Text c="dimmed">-</Text>,
+        cell: ({ row }) => <RowActions label={row.original.name} actions={productActions(row.original)} />,
       },
     ],
-    [canDelete, canEdit, deleteMutation.isPending, handleDelete, onEdit],
+    [productActions],
   );
 
   if (isError) {
@@ -242,8 +220,9 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         loading={isLoading}
         searchPlaceholder="Search products..."
         emptyMessage="No products found."
+        onRowClick={onEdit}
         renderMobileCard={(product) => (
-          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={600}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "Active" : "Inactive"}</Badge><Badge color={product.storefront_published ? "green" : "gray"} variant="light">{product.storefront_published ? "Published" : "Draft"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={600} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{canEdit ? <Group gap="xs"><ActionIcon variant="subtle" color="gray" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon>{canDelete && <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon>}</Group> : null}</Group></Card>
+          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={600}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "Active" : "Inactive"}</Badge><Badge color={product.storefront_published ? "green" : "gray"} variant="light">{product.storefront_published ? "Published" : "Draft"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={600} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack><RowActions label={product.name} actions={productActions(product)} /></Group></Card>
         )}
       />
     </Card>

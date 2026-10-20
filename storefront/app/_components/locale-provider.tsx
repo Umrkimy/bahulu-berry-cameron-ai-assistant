@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 
+import { cookieLocale, localeCookie, LOCALE_STORAGE_KEY } from "../_lib/locale";
 import type { Locale } from "../_lib/types";
 
 const LocaleContext = createContext<{ locale: Locale; setLocale: (locale: Locale) => void }>({ locale: "en", setLocale: () => undefined });
@@ -18,25 +19,31 @@ function subscribe(callback: () => void) {
   };
 }
 
-function getSnapshot(): Locale {
-  if (useFallbackLocale) return fallbackLocale;
+function storedLocale(): Locale | null {
   try {
-    return window.localStorage.getItem("bbc-storefront-locale") === "ms" ? "ms" : "en";
+    const value = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    return value === "ms" || value === "en" ? value : null;
   } catch {
-    return fallbackLocale;
+    return null;
   }
 }
 
-function getServerSnapshot(): Locale {
-  return "en";
+function getSnapshot(): Locale {
+  if (useFallbackLocale) return fallbackLocale;
+  return storedLocale() ?? cookieLocale(document.cookie) ?? fallbackLocale;
 }
 
-export function LocaleProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const locale = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+function saveCookie(locale: Locale) {
+  document.cookie = localeCookie(locale, window.location.protocol === "https:");
+}
+
+export function LocaleProvider({ initialLocale = "en", children }: Readonly<{ initialLocale?: Locale; children: React.ReactNode }>) {
+  const locale = useSyncExternalStore(subscribe, getSnapshot, () => initialLocale);
   const setLocale = useCallback((nextLocale: Locale) => {
     fallbackLocale = nextLocale;
+    saveCookie(nextLocale);
     try {
-      window.localStorage.setItem("bbc-storefront-locale", nextLocale);
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
       useFallbackLocale = false;
     } catch {
       // Language switching still works when browser storage is blocked.
@@ -47,6 +54,8 @@ export function LocaleProvider({ children }: Readonly<{ children: React.ReactNod
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    // Choices saved before the cookie existed still reach the server next time.
+    if (cookieLocale(document.cookie) !== locale) saveCookie(locale);
   }, [locale]);
 
   const value = useMemo(() => ({

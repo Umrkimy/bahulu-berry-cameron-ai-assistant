@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ActionIcon, Badge, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Badge, Card, Group, Stack, Text } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 
 import { getCustomers } from "../../api/customers";
 import { DataTable } from "../common/DataTable";
+import RowActions, { type RowAction } from "../common/DataTable/RowActions";
 import { useOrders } from "../../hooks/useOrders";
 import type { Order } from "../../types/order";
 import OrderDetailsModal from "./OrderDetailsModal";
@@ -52,6 +53,11 @@ export default function OrdersTable() {
     [customers],
   );
 
+  const orderActions = useCallback((order: Order): RowAction[] => [
+    { label: "View order", icon: <IconEye size={16} />, onClick: () => { setSelectedOrder(order); setViewOpened(true); } },
+    { label: "Edit order", icon: <IconEdit size={16} />, onClick: () => { setSelectedOrder(order); setEditOpened(true); } },
+  ], []);
+
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
       {
@@ -95,23 +101,10 @@ export default function OrdersTable() {
         id: "actions",
         header: "Actions",
         enableSorting: false,
-        cell: ({ row }) => (
-          <Group gap="xs">
-            <Tooltip label="View order" withArrow>
-              <ActionIcon size="lg" variant="subtle" color="gray" onClick={() => { setSelectedOrder(row.original); setViewOpened(true); }} aria-label="View order">
-                <IconEye size={20} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Edit order" withArrow>
-              <ActionIcon size="lg" variant="subtle" color="gray" onClick={() => { setSelectedOrder(row.original); setEditOpened(true); }} aria-label="Edit order">
-                <IconEdit size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        ),
+        cell: ({ row }) => <RowActions label={`order #${row.original.id}`} actions={orderActions(row.original)} />,
       },
     ],
-    [customerNames],
+    [customerNames, orderActions],
   );
 
   return (
@@ -125,8 +118,9 @@ export default function OrdersTable() {
         onRetry={() => { void refetchOrders(); void refetchCustomers(); }}
         searchPlaceholder="Search orders, customers, statuses..."
         emptyMessage="No orders found."
+        onRowClick={(order) => { setSelectedOrder(order); setViewOpened(true); }}
         renderMobileCard={(order) => (
-          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={600}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{formatCode(order.status)}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{formatCode(order.payment_status)}</Badge></Group><Group justify="flex-end"><ActionIcon variant="subtle" color="gray" onClick={() => { setSelectedOrder(order); setViewOpened(true); }} aria-label="View order"><IconEye size={18} /></ActionIcon><ActionIcon variant="subtle" color="gray" onClick={() => { setSelectedOrder(order); setEditOpened(true); }} aria-label="Edit order"><IconEdit size={18} /></ActionIcon></Group></Stack></Card>
+          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={600}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{formatCode(order.status)}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{formatCode(order.payment_status)}</Badge></Group><Group justify="flex-end"><RowActions label={`order #${order.id}`} actions={orderActions(order)} /></Group></Stack></Card>
         )}
       />
       <OrderDetailsModal opened={viewOpened || routedOrder !== null} order={activeOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); navigate(location.pathname, { replace: true, state: null }); }} />

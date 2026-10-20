@@ -1,9 +1,10 @@
 import { useCallback, useMemo } from "react";
-import { ActionIcon, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Card, Group, Stack, Text } from "@mantine/core";
 import { IconArchive, IconEdit, IconRestore } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "../common/DataTable";
+import RowActions, { type RowAction } from "../common/DataTable/RowActions";
 
 import { useArchiveCustomer, useCustomers, useRestoreCustomer } from "../../hooks/useCustomers";
 import type { Customer, CustomerStatus } from "../../api/customers";
@@ -34,6 +35,11 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
       notifications.show({ title: "Customer Update Failed", message: "The archive status could not be changed.", color: "red" });
     }
   }, [archiveCustomer, archived, restoreCustomer]);
+
+  const customerActions = useCallback((customer: Customer): RowAction[] => [
+    { label: "Edit customer", icon: <IconEdit size={16} />, hidden: archived, onClick: () => onEdit(customer) },
+    { label: archived ? "Restore customer" : "Archive customer", icon: archived ? <IconRestore size={16} /> : <IconArchive size={16} />, hidden: !canArchive, disabled: archiveCustomer.isPending || restoreCustomer.isPending, onClick: () => void changeArchiveState(customer) },
+  ], [archived, canArchive, archiveCustomer.isPending, restoreCustomer.isPending, changeArchiveState, onEdit]);
 
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(
     () => [
@@ -89,27 +95,10 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
         id: "actions",
         header: "Actions",
         enableSorting: false,
-        cell: ({ row }) => (
-          <Group gap="xs" wrap="nowrap">
-            {!archived && <Tooltip label="Edit customer">
-              <ActionIcon color="gray"
-              aria-label="Edit customer"
-              variant="subtle"
-              onClick={() => onEdit(row.original)}
-              >
-                <IconEdit size={18} />
-              </ActionIcon>
-            </Tooltip>}
-            {canArchive && <Tooltip label={archived ? "Restore customer" : "Archive customer"}>
-              <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="subtle" color="gray" loading={archiveCustomer.isPending || restoreCustomer.isPending} onClick={() => void changeArchiveState(row.original)}>
-                {archived ? <IconRestore size={18} /> : <IconArchive size={18} />}
-              </ActionIcon>
-            </Tooltip>}
-          </Group>
-        ),
+        cell: ({ row }) => <RowActions label={row.original.full_name} actions={customerActions(row.original)} />,
       },
     ],
-    [onEdit, canArchive, archived, archiveCustomer.isPending, restoreCustomer.isPending, changeArchiveState],
+    [customerActions],
   );
 
   return (
@@ -119,11 +108,12 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
       loading={isLoading}
       searchPlaceholder="Search customers..."
       emptyMessage={archived ? "No archived customers found." : "No active customers found."}
+      onRowClick={archived ? undefined : onEdit}
       renderMobileCard={(customer) => (
         <Card withBorder radius="md" p="sm">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <Stack gap={2} style={{ minWidth: 0 }}><Text fw={600}>{customer.full_name}</Text><Text size="sm">{customer.phone_number}</Text><Text size="sm" c="dimmed">{customer.email ?? "No email"}{customer.city || customer.state ? ` · ${[customer.city, customer.state].filter(Boolean).join(", ")}` : ""}</Text></Stack>
-            <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>{!archived && <ActionIcon color="gray" aria-label="Edit customer" variant="subtle" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>}{canArchive && <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="subtle" color="gray" onClick={() => void changeArchiveState(customer)}>{archived ? <IconRestore size={18} /> : <IconArchive size={18} />}</ActionIcon>}</Group>
+            <RowActions label={customer.full_name} actions={customerActions(customer)} />
           </Group>
         </Card>
       )}

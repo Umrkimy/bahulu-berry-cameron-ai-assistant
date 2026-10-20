@@ -19,6 +19,22 @@ export type CheckoutResult = { order_number: number; total_amount: string; payme
 
 export const emptyContact: CheckoutContact = { full_name: "", phone_number: "", email: "", address: "", city: "", state: "", postal_code: "" };
 
+// Signed-in customers start with their account details; anything already typed stays.
+export function prefillContact(contact: CheckoutContact, account: { email: string; full_name: string | null; phone_number: string | null }): CheckoutContact {
+  return {
+    ...contact,
+    full_name: contact.full_name || account.full_name || "",
+    phone_number: contact.phone_number || account.phone_number || "",
+    email: contact.email || account.email,
+  };
+}
+
+// The account page may send a customer back to checkout after signing in, and nowhere else.
+export const CHECKOUT_PATH = "/checkout";
+export function returnPathAfterSignIn(search: string): string | null {
+  return new URLSearchParams(search).get("next") === CHECKOUT_PATH ? CHECKOUT_PATH : null;
+}
+
 // Malaysia's states and federal territories, for the delivery address.
 export const MALAYSIAN_STATES = [
   "Johor", "Kedah", "Kelantan", "Melaka", "Negeri Sembilan", "Pahang", "Perak", "Perlis", "Pulau Pinang",

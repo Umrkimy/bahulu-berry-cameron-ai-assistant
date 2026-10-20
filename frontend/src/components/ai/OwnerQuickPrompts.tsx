@@ -47,12 +47,7 @@ export default function OwnerQuickPrompts({
 }) {
   return (
     <Stack gap="md" w="100%" maw={760}>
-      <Stack gap={2} ta="center">
-        <Text fw={600} size="lg">Owner operations copilot</Text>
-        <Text size="sm" c="dimmed">
-          Use live data for daily work. Proposed changes stay in preview until you confirm them.
-        </Text>
-      </Stack>
+      <Text size="sm" c="dimmed" ta="center">Start with one of these, or type your own question below.</Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
         {prompts.map(({ label, description, message, icon: Icon }) => (
           <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message)} aria-label={`Ask Copilot: ${label}`}>
