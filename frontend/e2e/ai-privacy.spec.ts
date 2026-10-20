@@ -19,7 +19,7 @@ test('Staff chat uses only its own history and shows server outcome feedback', a
     }
   });
   await page.goto('/ai-assistant');
-  await expect(page.getByText('Live operations help', { exact: false })).toBeVisible();
+  await expect(page.getByText('Berry won’t change any records', { exact: false })).toBeVisible();
   await expect(page.getByText('Private fictional owner history')).toHaveCount(0);
   await expect(page.getByText('Other account history')).toHaveCount(0);
   await page.getByPlaceholder('Message Bahulu Berry Cameron AI...').fill('Check fictional stock');

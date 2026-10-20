@@ -21,7 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).parent
-MALAY_MARKERS = {"anda", "ini", "hari", "ada", "tiada", "pesanan", "stok", "untuk", "yang", "dan", "tidak", "boleh", "sila", "kami", "saya", "akan", "dengan", "belum", "sudah", "telah", "masa", "staf", "tak", "pelanggan"}
+MALAY_MARKERS = {"anda", "ini", "hari", "ada", "tiada", "pesanan", "stok", "untuk", "yang", "dan", "tidak", "boleh", "sila", "kami", "saya", "akan", "dengan", "belum", "sudah", "telah", "masa", "staf", "tak", "pelanggan", "dalam", "adalah", "ialah", "maaf", "pembantu", "kita", "jika", "atau", "perlu"}
 
 
 def looks_malay(text: str) -> bool:
@@ -39,6 +39,8 @@ def grade(case: dict, *, outcome: str, reply: str) -> list[str]:
     for pattern in case.get("must_not_match", []):
         if re.search(pattern, reply):
             failures.append(f"matched forbidden /{pattern}/")
+    if reply.count("🍓") > 1:
+        failures.append("more than one 🍓")
     language = case.get("language")
     if reply and language and looks_malay(reply) != (language == "MS"):
         failures.append(f"reply is not in {language}")
