@@ -3,7 +3,7 @@
 Calls OpenAI for real (embeddings, support drafts and the staff Copilot).
 
     EVAL_DATABASE_URL=postgresql+asyncpg://.../bahulu_eval \
-        python -m evals.truth_sheet --fictional [--only rag|copilot] [--label name]
+        python -m evals.truth_sheet --fictional [--only rag|copilot] [--repeat 3] [--label name]
 """
 
 from __future__ import annotations
@@ -111,16 +111,20 @@ async def _records(session) -> list:
     return [tuple(row) for row in stock + orders]
 
 
-async def _run_rag(session, cases: list[dict], faqs: list[dict]) -> list[dict]:
+async def _index_faqs(session, faqs: list[dict]) -> None:
     from app.core.config import settings
     from app.models import SupportFAQ
-    from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index
+    from app.services.support_copilot import rebuild_knowledge_index
 
     settings.WHATSAPP_RAG_ENABLED = True
     session.add_all([SupportFAQ(**faq, is_active=True) for faq in faqs])
     await session.flush()
     await rebuild_knowledge_index(session)
     await session.commit()
+
+
+async def _run_rag(session, cases: list[dict]) -> list[dict]:
+    from app.services.support_copilot import create_grounded_draft
 
     results = []
     for case in cases:
@@ -147,6 +151,16 @@ async def _run_copilot(session, cases: list[dict], ids: dict) -> list[dict]:
     return results
 
 
+def _merge(runs: list[list[dict]]) -> list[dict]:
+    merged = []
+    for attempts in zip(*runs):
+        failed = [result for result in attempts if not result["passed"]]
+        first = (failed or attempts)[0]
+        failures = [f"run {index + 1}: {failure}" for index, result in enumerate(attempts) for failure in result["failures"]] if len(attempts) > 1 else first["failures"]
+        merged.append({**first, "passed": not failed, "failures": failures})
+    return merged
+
+
 def _print(section: str, results: list[dict]) -> None:
     passed = sum(result["passed"] for result in results)
     print(f"\n{section}: {passed}/{len(results)} passed")
@@ -165,6 +179,7 @@ async def main() -> None:
     parser.add_argument("--only", choices=["rag", "copilot"])
     parser.add_argument("--label", default="run")
     parser.add_argument("--min-similarity", type=float)
+    parser.add_argument("--repeat", type=int, default=1, help="Run each case this many times; a case passes only if every run passes.")
     args = parser.parse_args()
     if not args.fictional:
         parser.error("Refusing to run without --fictional.")
@@ -178,15 +193,16 @@ async def main() -> None:
     sheet = json.loads((HERE / "truth_sheet.json").read_text(encoding="utf-8"))
     await _reset(engine)
 
-    report = {"label": args.label, "started_at": datetime.now(UTC).isoformat(), "copilot_model": settings.OPENAI_MODEL, "rag_model": settings.WHATSAPP_RAG_MODEL, "min_similarity": settings.WHATSAPP_RAG_MIN_SIMILARITY}
+    report = {"label": args.label, "repeat": args.repeat, "started_at": datetime.now(UTC).isoformat(), "copilot_model": settings.OPENAI_MODEL, "rag_model": settings.WHATSAPP_RAG_MODEL, "min_similarity": settings.WHATSAPP_RAG_MIN_SIMILARITY}
     async with AsyncSessionLocal() as session:
         ids = await _seed(session)
         if args.only != "copilot":
-            report["rag"] = await _run_rag(session, sheet["rag"], sheet["faqs"])
+            await _index_faqs(session, sheet["faqs"])
+            report["rag"] = _merge([await _run_rag(session, sheet["rag"]) for _ in range(args.repeat)])
             _print("Support drafts", report["rag"])
         if args.only != "rag":
             before = await _records(session)
-            report["copilot"] = await _run_copilot(session, sheet["copilot"], ids)
+            report["copilot"] = _merge([await _run_copilot(session, sheet["copilot"], ids) for _ in range(args.repeat)])
             session.expire_all()
             report["records_unchanged"] = before == await _records(session)
             _print("Staff Copilot", report["copilot"])

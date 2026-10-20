@@ -1,7 +1,7 @@
 import json
 import re
 
-from evals.truth_sheet import HERE, grade, looks_malay
+from evals.truth_sheet import HERE, _merge, grade, looks_malay
 
 
 def test_truth_sheet_cases_are_well_formed():
@@ -27,3 +27,11 @@ def test_grade_checks_outcome_patterns_and_language():
     assert grade({"expect": ["ANSWER", "CONFIRMATION_REQUIRED"]}, outcome="CONFIRMATION_REQUIRED", reply="") == []
     assert looks_malay("Stock for Bahulu is 3 packs") is False
     assert looks_malay("Stok untuk produk ini ada 3")
+
+
+def test_repeated_runs_pass_only_when_every_run_passes():
+    ok = {"name": "a", "passed": True, "failures": [], "reply": "fine"}
+    bad = {"name": "a", "passed": False, "failures": ["missing /x/"], "reply": "wrong"}
+    assert _merge([[ok], [ok]])[0]["passed"] is True
+    merged = _merge([[ok], [bad]])[0]
+    assert merged["passed"] is False and merged["reply"] == "wrong" and merged["failures"] == ["run 2: missing /x/"]
