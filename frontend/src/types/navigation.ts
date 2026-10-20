@@ -3,4 +3,5 @@ export type DashboardAction = "CREATE_CUSTOMER" | "CREATE_PRODUCT" | "CREATE_ORD
 export interface DashboardRouteState {
   dashboardAction?: DashboardAction;
   orderId?: string;
+  openRefundForOrder?: number;
 }
