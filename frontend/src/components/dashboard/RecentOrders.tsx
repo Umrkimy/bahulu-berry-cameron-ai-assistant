@@ -2,6 +2,7 @@ import { Avatar, Badge, Card, Group, Table, Text } from "@mantine/core";
 
 import { useDashboard } from "../../hooks/useDashboard";
 import { formatCode } from "../../utils/format";
+import { CardSkeleton } from "../common/Skeletons";
 
 function getShortName(fullName: string) {
   const parts = fullName.trim().split(" ");
@@ -29,9 +30,7 @@ export default function RecentOrders() {
 
   if (isLoading) {
     return (
-      <Card withBorder>
-        Loading orders...
-      </Card>
+      <CardSkeleton label="Loading orders" />
     );
   }
 

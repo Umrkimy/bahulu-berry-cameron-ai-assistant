@@ -6,6 +6,7 @@ import { useDashboard } from "../../hooks/useDashboard";
 import EChart from "../common/EChart";
 import AnimatedNumber from "../common/motion/AnimatedNumber";
 import { useChartTheme } from "../../hooks/useChartTheme";
+import { CardSkeleton } from "../common/Skeletons";
 
 export default function OrderStatusCard() {
   const { data, isLoading, error } = useDashboard();
@@ -27,9 +28,7 @@ export default function OrderStatusCard() {
 
   if (isLoading) {
     return (
-      <Card withBorder>
-        Loading order status...
-      </Card>
+      <CardSkeleton label="Loading order status" />
     );
   }
 

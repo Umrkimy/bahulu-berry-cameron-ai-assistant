@@ -13,6 +13,7 @@ import DataTable from "../../components/common/DataTable/DataTable";
 import { useOperationAlerts } from "../../hooks/useOperationAlerts";
 import type { AppNotification, NotificationType } from "../../types/notifications";
 import type { OperationAlert } from "../../types/operations";
+import { CardSkeleton } from "../../components/common/Skeletons";
 
 const typeColors: Record<NotificationType, string> = { TASK: "blue", SUPPORT: "grape", REFUND: "orange", PAYMENT: "green", INVENTORY: "red" };
 const typeLabels: Record<NotificationType, string> = { TASK: "Task", SUPPORT: "Support", REFUND: "Refund", PAYMENT: "Payment", INVENTORY: "Inventory" };
@@ -76,7 +77,7 @@ export default function Updates() {
         <Group gap="sm"><ThemeIcon variant="default" radius="xl" size="lg"><IconAlertTriangle size={20} /></ThemeIcon><div><Text fw={600}>Needs attention</Text><Text size="sm" c="dimmed">Live issues clear automatically when the underlying work is resolved.</Text></div></Group>
         <Group gap="xs"><Badge color="red" variant="light">{counts.critical} critical</Badge><Badge color="orange" variant="light">{counts.warning} warnings</Badge></Group>
       </Group>
-      {alerts.isError ? <Card withBorder p="md"><Text c="red" size="sm" role="alert">{getApiError(alerts.error).message}</Text><Button mt="sm" size="compact-xs" variant="default" onClick={() => void alerts.refetch()}>Try again</Button></Card> : alerts.isLoading ? <Text c="dimmed" py="md" role="status">Loading live issues…</Text> : liveAlerts.length ? <Stack gap="sm">{liveAlerts.map((item) => <AlertItem key={item.id} item={item} />)}</Stack> : <Card withBorder radius="md" p="lg" bg="var(--mantine-color-gray-0)"><Group gap="sm"><ThemeIcon color="green" variant="light" radius="xl"><IconCheck size={18} /></ThemeIcon><div><Text fw={600}>Everything is under control</Text><Text size="sm" c="dimmed">There are no live operational issues right now.</Text></div></Group></Card>}
+      {alerts.isError ? <Card withBorder p="md"><Text c="red" size="sm" role="alert">{getApiError(alerts.error).message}</Text><Button mt="sm" size="compact-xs" variant="default" onClick={() => void alerts.refetch()}>Try again</Button></Card> : alerts.isLoading ? <CardSkeleton label="Loading live issues" /> : liveAlerts.length ? <Stack gap="sm">{liveAlerts.map((item) => <AlertItem key={item.id} item={item} />)}</Stack> : <Card withBorder radius="md" p="lg" bg="var(--ui-subtle)"><Group gap="sm"><ThemeIcon color="green" variant="light" radius="xl"><IconCheck size={18} /></ThemeIcon><div><Text fw={600}>Everything is under control</Text><Text size="sm" c="dimmed">There are no live operational issues right now.</Text></div></Group></Card>}
     </Card>
     <Divider />
     <Stack gap="md">

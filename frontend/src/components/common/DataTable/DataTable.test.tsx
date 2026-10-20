@@ -12,7 +12,7 @@ const columns: ColumnDef<RecordItem, unknown>[] = [{ accessorKey: 'name', header
 describe('DataTable', () => {
   it('shows a loading state', () => {
     renderWithProviders(<DataTable data={[]} columns={columns} loading emptyMessage="No records yet." />);
-    expect(screen.getAllByText('Loading...')).toHaveLength(2);
+    expect(screen.getAllByRole('status', { name: 'Loading rows' })).toHaveLength(2);
   });
 
   it('shows an empty state', () => {

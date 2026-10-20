@@ -2,6 +2,7 @@ import { Badge, Card, Group, Select, Stack, Text, TextInput } from "@mantine/cor
 import { useState } from "react";
 
 import { useStockMovements } from "../../hooks/useInventory";
+import { LinesSkeleton } from "../common/Skeletons";
 
 function movementAttribution(adminName: string | null, sourceType: string | null, sourceId: number | null) {
   if (adminName) return `Recorded by ${adminName}`;
@@ -33,7 +34,7 @@ export default function StockMovementHistory({ productId = null }: { productId?:
           <TextInput placeholder="Search product, supplier, or reference..." value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
           <Select placeholder="All movement types" clearable value={type} onChange={setType} data={["OPENING_BALANCE", "SUPPLIER_RECEIPT", "MANUAL_INCREASE", "MANUAL_DECREASE", "ORDER_DEDUCTION", "CANCELLATION_RESTORATION"]} />
         </Group>
-        {isLoading ? <Text c="dimmed">Loading stock history...</Text> : !data?.items.length ? <Text c="dimmed">No stock movements match these filters yet.</Text> : data.items.map((item) => (
+        {isLoading ? <LinesSkeleton lines={4} label="Loading stock history" /> : !data?.items.length ? <Text c="dimmed">No stock movements match these filters yet.</Text> : data.items.map((item) => (
           <Group key={item.id} justify="space-between" wrap="nowrap">
             <Stack gap={1}>
               <Text fw={600}>{item.product_name}</Text>

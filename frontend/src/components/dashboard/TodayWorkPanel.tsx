@@ -1,4 +1,4 @@
-import { Alert, Badge, Card, Group, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Alert, Badge, Box, Card, Group, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconBuildingWarehouse, IconChevronRight, IconCircleCheck, IconClipboardCheck, IconShoppingCart } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 
 import { getTasks, type Task } from "../../api/tasks";
 import type { DashboardResponse } from "../../types/dashboard";
+import { LinesSkeleton } from "../common/Skeletons";
 
 interface TodayWorkPanelProps {
   dashboard: DashboardResponse;
@@ -58,7 +59,7 @@ export default function TodayWorkPanel({ dashboard, teamView = false }: TodayWor
   return <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
     <Card withBorder p={0} aria-labelledby="today-work-title">
       <PanelHeader id="today-work-title" title={taskHeading} description={taskDescription} aside={<Badge color={openTasks.length ? "gray" : "green"}>{openTasks.length} open</Badge>} />
-      {tasks.isLoading ? <Text size="sm" c="dimmed" p="md">Loading tasks…</Text> : null}
+      {tasks.isLoading ? <Box p="md"><LinesSkeleton label="Loading tasks" /></Box> : null}
       {tasks.error ? <Alert m="md" color="red" title="Tasks unavailable">Open Tasks to try again.</Alert> : null}
       {!tasks.isLoading && !tasks.error && openTasks.length === 0 ? <Group gap="xs" p="md"><IconCircleCheck size={18} color="var(--mantine-color-green-7)" /><Text size="sm" c="dimmed">No open tasks right now.</Text></Group> : null}
       {!tasks.isLoading && !tasks.error && openTasks.length > 0 ? <>
