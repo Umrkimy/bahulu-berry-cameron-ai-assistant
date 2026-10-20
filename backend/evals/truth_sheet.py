@@ -39,6 +39,8 @@ def grade(case: dict, *, outcome: str, reply: str) -> list[str]:
     for pattern in case.get("must_not_match", []):
         if re.search(pattern, reply):
             failures.append(f"matched forbidden /{pattern}/")
+    if reply.count("🍓") > 1:
+        failures.append("more than one 🍓")
     language = case.get("language")
     if reply and language and looks_malay(reply) != (language == "MS"):
         failures.append(f"reply is not in {language}")

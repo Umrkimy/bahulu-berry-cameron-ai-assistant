@@ -17,6 +17,6 @@ export default function StaffQuickPrompts({ onSelect }: { onSelect: (message: st
     const body = <><span className="list-row-icon"><Icon size={16} stroke={1.75} /></span><span><Text fw={500} size="sm">{label}</Text><Text size="sm" c="dimmed">{description}</Text></span></>;
     return href
       ? <UnstyledButton key={label} component={Link} to={href} className="prompt-tile" aria-label={`Open Support Queue: ${label}`}>{body}</UnstyledButton>
-      : <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message!)} aria-label={`Ask Copilot: ${label}`}>{body}</UnstyledButton>;
+      : <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message!)} aria-label={`Ask Berry: ${label}`}>{body}</UnstyledButton>;
   })}</SimpleGrid></Stack>;
 }

@@ -79,7 +79,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
             icon: <IconChecklist size={17} stroke={1.75} />,
           },
           {
-            label: "Operations Copilot",
+            label: "Berry",
             link: "/ai-assistant",
             icon: <IconMessageChatbot size={17} stroke={1.75} />,
           },

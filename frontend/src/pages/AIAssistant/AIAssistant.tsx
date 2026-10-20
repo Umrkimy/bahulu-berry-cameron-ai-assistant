@@ -208,8 +208,8 @@ function AccountChat() {
     <>
       <div className="ai-assistant-page">
       <PageHeader
-        title="Operations Copilot"
-        description={admin?.role === "OWNER" ? "Ask about today’s work using live data. Previewed changes need your confirmation." : "Live operations help — no dashboard changes. Ask about today’s work using live data."}
+        title="Berry"
+        description={admin?.role === "OWNER" ? "Your dashboard assistant. Ask about today’s work using live data. Previewed changes need your confirmation." : "Your dashboard assistant. Ask about today’s work using live data. Berry won’t change any records."}
         action={<Button className="ai-chat-actions" variant="default" leftSection={<IconPlus size={16} />} onClick={() => setResetOpened(true)}>New chat</Button>}
       />
       <Box

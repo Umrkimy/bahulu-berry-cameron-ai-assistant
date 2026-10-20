@@ -35,3 +35,8 @@ def test_repeated_runs_pass_only_when_every_run_passes():
     assert _merge([[ok], [ok]])[0]["passed"] is True
     merged = _merge([[ok], [bad]])[0]
     assert merged["passed"] is False and merged["reply"] == "wrong" and merged["failures"] == ["run 2: missing /x/"]
+
+
+def test_grade_allows_at_most_one_strawberry():
+    assert grade({"expect": "ANSWER"}, outcome="ANSWER", reply="All good 🍓") == []
+    assert grade({"expect": "ANSWER"}, outcome="ANSWER", reply="🍓 All good 🍓") == ["more than one 🍓"]

@@ -50,7 +50,7 @@ export default function OwnerQuickPrompts({
       <Text size="sm" c="dimmed" ta="center">Start with one of these, or type your own question below.</Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
         {prompts.map(({ label, description, message, icon: Icon }) => (
-          <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message)} aria-label={`Ask Copilot: ${label}`}>
+          <UnstyledButton key={label} className="prompt-tile" onClick={() => onSelect(message)} aria-label={`Ask Berry: ${label}`}>
             <span className="list-row-icon"><Icon size={16} stroke={1.75} /></span>
             <span>
               <Text fw={500} size="sm">{label}</Text>

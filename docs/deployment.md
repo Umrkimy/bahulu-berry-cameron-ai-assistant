@@ -30,7 +30,7 @@ records, confirmations, or complete AI replies by default.
 | Hetzner CX23 Germany, incl. IPv4 (see hosting-coolify.md) | about €4.49 (~RM23)/month |
 | Malaysian cPanel staff email, annual equivalent | about RM9/month |
 | Cloudflare Free, self-hosted Coolify, R2 free allowance | RM0 initially |
-| Operations Copilot + WhatsApp RAG hard caps | maximum about RM110/month |
+| Berry (staff assistant) + WhatsApp RAG hard caps | maximum about RM110/month |
 | Total if both AI caps are fully used | about RM142/month |
 
 Recheck all prices, taxes, renewal terms, capacity, and provider availability

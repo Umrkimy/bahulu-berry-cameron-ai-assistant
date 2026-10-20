@@ -50,7 +50,7 @@ internet. Draft wording is listed in [draft-content.md](draft-content.md).
    now show. (Status emails appear as `email_console_delivery` log lines.)
 8. Products: edit a description or photo, save, and refresh the storefront.
 9. Storefront homepage: edit draft headings, publish, refresh.
-10. WhatsApp and Operations Copilot: a cited draft reply that staff approve
+10. WhatsApp and the Berry staff assistant: a cited draft reply that staff approve
     before anything is sent; an action preview that needs explicit Owner
     confirmation.
 
