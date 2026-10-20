@@ -120,3 +120,5 @@ backend/scripts/
 
 # Local session handoffs (see the bahulu-resume skill); never committed.
 docs/handoffs/
+
+backend/evals/results/
