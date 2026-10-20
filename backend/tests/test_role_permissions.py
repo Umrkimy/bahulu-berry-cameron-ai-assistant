@@ -57,6 +57,7 @@ def test_role_matrix():
 CASES = [
     ("post", "/api/tasks", {"title": "Fictional task"}, {OWNER, MANAGER}),
     ("patch", "/api/orders/999999", {"status": "CANCELLED"}, {OWNER, MANAGER}),
+    ("post", "/api/orders/999999/cancel", None, {OWNER, MANAGER}),
     ("get", "/api/enquiries", None, {OWNER, MANAGER, STAFF}),
     ("patch", "/api/enquiries/999999/status", {"status": "WORKING"}, {OWNER, MANAGER, STAFF}),
     ("post", "/api/enquiries", {"title": "Fictional enquiry", "notes": "Fictional note", "source": "OTHER"}, {OWNER, MANAGER}),

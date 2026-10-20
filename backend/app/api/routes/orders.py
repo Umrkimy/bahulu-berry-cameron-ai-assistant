@@ -9,13 +9,15 @@ from app.auth.dependencies import (
     get_current_admin,
     get_current_superuser,
 )
-from app.auth.permissions import Permission, can
+from app.auth.permissions import Permission, can, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.schemas.order import (
     OrderCreate,
+    OrderLineSummary,
+    OrderListPrivate,
     OrderPrivate,
     OrderQuoteRequest,
     OrderQuoteResponse,
@@ -58,7 +60,7 @@ async def quote_order(
 
 @router.get(
     "",
-    response_model=list[OrderPrivate],
+    response_model=list[OrderListPrivate],
 )
 async def get_orders(
     db: Annotated[
@@ -71,12 +73,24 @@ async def get_orders(
     ],
 ):
     result = await db.execute(
-        select(Order).order_by(
-            Order.created_at.desc()
-        )
+        select(Order)
+        .options(selectinload(Order.items).selectinload(OrderItem.product))
+        .order_by(Order.created_at.desc())
     )
 
-    return result.scalars().all()
+    return [
+        OrderListPrivate(
+            **OrderPrivate.model_validate(order).model_dump(),
+            items=[
+                OrderLineSummary(
+                    product_name=item.product.name if item.product else f"Product #{item.product_id}",
+                    quantity=item.quantity,
+                )
+                for item in order.items
+            ],
+        )
+        for order in result.scalars().all()
+    ]
 
 
 @router.get("/fulfilment", response_model=FulfillmentQueueResponse)
@@ -285,7 +299,7 @@ async def cancel_order_route(
     ],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_superuser),
+        Depends(require(Permission.CANCEL_ORDERS)),
     ],
 ):
     result = await cancel_order(

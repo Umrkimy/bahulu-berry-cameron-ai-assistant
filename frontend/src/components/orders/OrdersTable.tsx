@@ -29,6 +29,10 @@ function getPaymentStatusColor(status: string) {
   return "yellow";
 }
 
+function formatOrderItems(order: Order) {
+  return order.items?.map((item) => `${item.quantity} × ${item.product_name}`).join(", ") ?? "";
+}
+
 function formatOrderDate(value: string) {
   return formatDate(value);
 }
@@ -71,6 +75,13 @@ export default function OrdersTable() {
         accessorFn: (row) => customerNames.get(row.customer_id) ?? `Customer #${row.customer_id}`,
         header: "Customer",
         cell: ({ row }) => <Text>{customerNames.get(row.original.customer_id) ?? `Customer #${row.original.customer_id}`}</Text>,
+      },
+      {
+        id: "items",
+        accessorFn: formatOrderItems,
+        header: "Items",
+        enableSorting: false,
+        cell: ({ row }) => <Text size="sm" lineClamp={2} maw={280}>{formatOrderItems(row.original) || "—"}</Text>,
       },
       {
         id: "total",
@@ -116,11 +127,11 @@ export default function OrdersTable() {
         error={ordersError || customersError}
         errorMessage="We couldn't load orders and customer details."
         onRetry={() => { void refetchOrders(); void refetchCustomers(); }}
-        searchPlaceholder="Search orders, customers, statuses..."
+        searchPlaceholder="Search orders, customers, products, statuses..."
         emptyMessage="No orders found."
         onRowClick={(order) => { setSelectedOrder(order); setViewOpened(true); }}
         renderMobileCard={(order) => (
-          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text><Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={600}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{formatCode(order.status)}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{formatCode(order.payment_status)}</Badge></Group><Group justify="flex-end"><RowActions label={`order #${order.id}`} actions={orderActions(order)} /></Group></Stack></Card>
+          <Card withBorder radius="md" p="sm"><Stack gap="xs"><Group justify="space-between" align="flex-start"><Stack gap={2}><Text fw={600}>Order #{order.id}</Text><Text size="sm">{customerNames.get(order.customer_id) ?? `Customer #${order.customer_id}`}</Text>{formatOrderItems(order) && <Text size="sm" lineClamp={2}>{formatOrderItems(order)}</Text>}<Text size="xs" c="dimmed">{formatOrderDate(order.created_at)}</Text></Stack><Text fw={600}>RM {Number(order.total_amount).toFixed(2)}</Text></Group><Group gap="xs"><Badge variant="light" color={getOrderStatusColor(order.status)}>{formatCode(order.status)}</Badge><Badge variant="light" color={getPaymentStatusColor(order.payment_status)}>{formatCode(order.payment_status)}</Badge></Group><Group justify="flex-end"><RowActions label={`order #${order.id}`} actions={orderActions(order)} /></Group></Stack></Card>
         )}
       />
       <OrderDetailsModal opened={viewOpened || routedOrder !== null} order={activeOrder} onClose={() => { setViewOpened(false); setSelectedOrder(null); navigate(location.pathname, { replace: true, state: null }); }} />

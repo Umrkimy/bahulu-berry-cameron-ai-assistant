@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.api.routes.orders import dispatch_order
+from app.api.routes.orders import dispatch_order, get_orders
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
 from app.models.customer import Customer
@@ -43,6 +43,14 @@ async def test_fulfillment_queue_includes_authenticated_packing_details(session)
     item = next(row for row in queue["items"] if row["id"] == order.id)
     assert item["items"] == [{"id": item["items"][0]["id"], "product_name": "Fictional Bahulu", "quantity": 2}]
     assert item["delivery"]["recipient_name"] == "Fictional Packing Customer"
+
+
+@pytest.mark.asyncio
+async def test_order_list_shows_what_each_order_contains(session):
+    owner, _, order = await create_paid_order(session)
+    orders = await get_orders(session, owner)
+    listed = next(row for row in orders if row.id == order.id)
+    assert [(line.product_name, line.quantity) for line in listed.items] == [("Fictional Bahulu", 2)]
 
 
 @pytest.mark.asyncio

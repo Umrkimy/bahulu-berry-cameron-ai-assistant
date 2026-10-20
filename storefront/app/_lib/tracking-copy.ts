@@ -17,7 +17,10 @@ export const trackingCopy = {
     courier: "Courier", trackingNumber: "Tracking number",
     subtotal: "Subtotal", discount: "Discount", total: "Total",
     bookmark: "Bookmark this page to check your order later. Anyone with this link can see the order status, so keep it private.",
-    help: "Questions about your order? Message us on WhatsApp with your order number.",
+    helpTitle: "Need to cancel or report a problem?",
+    helpBody: "Message us on WhatsApp with your order number. Our Cancellation & Refund Policy explains how cancellations and refunds work.",
+    helpWhatsApp: "Message us on WhatsApp", helpPolicy: "Cancellation & Refund Policy",
+    helpMessage: "Hi, I need help with my order #",
     trackOrder: "Track your order", trackHint: "Save or bookmark the tracking page to check on your order later.",
     findLink: "Lost your link? Find my order",
     stage: {
@@ -48,7 +51,10 @@ export const trackingCopy = {
     courier: "Kurier", trackingNumber: "Nombor penjejakan",
     subtotal: "Subjumlah", discount: "Diskaun", total: "Jumlah",
     bookmark: "Tandakan halaman ini untuk menyemak pesanan anda kemudian. Sesiapa yang mempunyai pautan ini boleh melihat status pesanan, jadi simpan secara peribadi.",
-    help: "Ada soalan tentang pesanan anda? Hantar mesej kepada kami di WhatsApp bersama nombor pesanan anda.",
+    helpTitle: "Perlu membatalkan pesanan atau melaporkan masalah?",
+    helpBody: "Hantar mesej kepada kami di WhatsApp bersama nombor pesanan anda. Polisi Pembatalan & Bayaran Balik kami menerangkan cara pembatalan dan bayaran balik diuruskan.",
+    helpWhatsApp: "Hantar mesej di WhatsApp", helpPolicy: "Polisi Pembatalan & Bayaran Balik",
+    helpMessage: "Hai, saya perlukan bantuan dengan pesanan saya #",
     trackOrder: "Jejak pesanan anda", trackHint: "Simpan atau tandakan halaman penjejakan untuk menyemak pesanan anda kemudian.",
     findLink: "Hilang pautan? Cari pesanan saya",
     stage: {

@@ -636,7 +636,7 @@ async def cancel_order(
     if order.payment_status == "PAID" and cancellation_admin_id is None:
         return {
             "success": False,
-            "error": "A paid order cancellation requires an authenticated owner.",
+            "error": "A paid order cancellation requires a signed-in owner or manager.",
         }
 
     # Validate all inventory records before changing anything.
