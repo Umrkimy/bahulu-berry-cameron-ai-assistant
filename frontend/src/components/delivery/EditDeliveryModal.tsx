@@ -35,6 +35,7 @@ interface Props {
 
 function getDeliveryStatusOptions(status: DeliveryStatus): DeliveryStatus[] {
   if (status === "PENDING") return ["PENDING"];
+  if (status === "CANCELLED") return ["CANCELLED"];
   if (status === "SHIPPED") return ["SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];
   if (status === "IN_TRANSIT") return ["IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];
   if (status === "OUT_FOR_DELIVERY") return ["OUT_FOR_DELIVERY", "DELIVERED", "FAILED"];

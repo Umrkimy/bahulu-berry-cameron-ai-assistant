@@ -4,7 +4,8 @@ export type DeliveryStatus =
   | "IN_TRANSIT"
   | "OUT_FOR_DELIVERY"
   | "DELIVERED"
-  | "FAILED";
+  | "FAILED"
+  | "CANCELLED";
 
 export interface Delivery {
   id: number;

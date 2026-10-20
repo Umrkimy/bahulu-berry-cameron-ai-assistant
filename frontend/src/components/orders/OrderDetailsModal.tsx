@@ -67,6 +67,7 @@ function getDeliveryStatusColor(status: string) {
   if (status === "IN_TRANSIT") return "cyan";
   if (status === "SHIPPED") return "violet";
   if (status === "FAILED") return "red";
+  if (status === "CANCELLED") return "gray";
 
   return "yellow";
 }
