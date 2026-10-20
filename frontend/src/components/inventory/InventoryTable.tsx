@@ -15,6 +15,7 @@ import { useInventories } from "../../hooks/useInventory";
 import type { Inventory } from "../../types/inventory";
 
 import StockAdjustmentModal from "./StockAdjustmentModal";
+import { can } from "../../auth/permissions";
 
 export default function InventoryTable({ productId = null }: { productId?: number | null }) {
   const { admin } = useAuth();
@@ -125,11 +126,11 @@ export default function InventoryTable({ productId = null }: { productId?: numbe
               aria-label="Adjust stock"
             >
               <IconAdjustments size={20} />
-            </ActionIcon></Tooltip>{admin?.role === "OWNER" && <Tooltip label="Create task"><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
+            </ActionIcon></Tooltip>{can(admin, "tasks.manage") && <Tooltip label="Create task"><ActionIcon size="lg" variant="subtle" color="gray" onClick={() => navigate("/tasks", { state: { taskContext: { type: "INVENTORY", id: row.original.id, label: `${row.original.product_name} inventory` } } })} aria-label="Create inventory task"><IconChecklist size={18} /></ActionIcon></Tooltip>}</Group>
         ),
       },
     ],
-    [admin?.role, navigate],
+    [admin, navigate],
   );
 
   return (

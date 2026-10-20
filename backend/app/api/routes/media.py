@@ -8,6 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.product import Product
@@ -20,6 +21,7 @@ from app.services.product_media import MAX_UPLOAD, media_path
 router = APIRouter()
 DB = Annotated[AsyncSession, Depends(get_db)]
 Owner = Annotated[Admin, Depends(get_current_superuser)]
+ProductEditor = Annotated[Admin, Depends(require(Permission.MANAGE_PRODUCTS))]
 Reader = Annotated[Admin, Depends(get_current_admin)]
 
 
@@ -63,7 +65,7 @@ async def list_media(
 
 
 @router.post("", response_model=MediaAssetPublic, status_code=201)
-async def upload_media(file: Annotated[UploadFile, File()], db: DB, owner: Owner):
+async def upload_media(file: Annotated[UploadFile, File()], db: DB, owner: ProductEditor):
     data = await file.read(MAX_UPLOAD + 1)
     await file.close()
     asset, reused = await create_or_reuse_asset(db, data=data, filename=file.filename, admin_id=owner.id)
@@ -95,7 +97,7 @@ async def read_media(asset_id: int, db: DB, _: Reader):
 
 
 @router.patch("/{asset_id}", response_model=MediaAssetPublic)
-async def update_media(asset_id: int, data: MediaAssetUpdate, db: DB, owner: Owner):
+async def update_media(asset_id: int, data: MediaAssetUpdate, db: DB, owner: ProductEditor):
     asset = await db.get(MediaAsset, asset_id)
     if asset is None:
         raise HTTPException(404, "Media asset not found.")
@@ -107,7 +109,7 @@ async def update_media(asset_id: int, data: MediaAssetUpdate, db: DB, owner: Own
 
 
 @router.post("/{asset_id}/archive", response_model=MediaAssetPublic)
-async def archive_media(asset_id: int, db: DB, owner: Owner):
+async def archive_media(asset_id: int, db: DB, owner: ProductEditor):
     asset = await db.get(MediaAsset, asset_id)
     if asset is None:
         raise HTTPException(404, "Media asset not found.")
@@ -119,7 +121,7 @@ async def archive_media(asset_id: int, db: DB, owner: Owner):
 
 
 @router.post("/{asset_id}/restore", response_model=MediaAssetPublic)
-async def restore_media(asset_id: int, db: DB, owner: Owner):
+async def restore_media(asset_id: int, db: DB, owner: ProductEditor):
     asset = await db.get(MediaAsset, asset_id)
     if asset is None:
         raise HTTPException(404, "Media asset not found.")

@@ -128,6 +128,10 @@ first visitor becomes admin), enable 2FA, then give Coolify its own domain
 7. Stripe webhooks: a separate Access application for
    `admin.<domain>` path `api/payments/webhook` with a **Bypass / Everyone**
    policy. The API verifies Stripe's signature on every call.
+8. Product photos: Caching → Cache Rules → URI path starts with
+   `/product-media/` → Eligible for cache, Edge TTL "Use cache-control
+   header if present". Only versioned photo URLs (`?v=`) are sent with a
+   one-day cache header; everything else stays `no-store`.
 
 ## 4. Deploy the app in Coolify
 

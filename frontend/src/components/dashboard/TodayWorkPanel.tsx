@@ -9,7 +9,7 @@ import type { DashboardResponse } from "../../types/dashboard";
 
 interface TodayWorkPanelProps {
   dashboard: DashboardResponse;
-  role?: "OWNER" | "STAFF";
+  teamView?: boolean;
 }
 
 function taskTone(task: Task) {
@@ -48,11 +48,11 @@ function QueueRow({ to, icon, title, detail, alert = false }: { to: string; icon
   );
 }
 
-export default function TodayWorkPanel({ dashboard, role = "STAFF" }: TodayWorkPanelProps) {
+export default function TodayWorkPanel({ dashboard, teamView = false }: TodayWorkPanelProps) {
   const tasks = useQuery({ queryKey: ["tasks"], queryFn: getTasks });
   const openTasks = (tasks.data ?? []).filter((task) => task.status !== "COMPLETED");
-  const taskHeading = role === "OWNER" ? "Team work" : "My work";
-  const taskDescription = role === "OWNER" ? "Open work across the team." : "Tasks currently assigned to you.";
+  const taskHeading = teamView ? "Team work" : "My work";
+  const taskDescription = teamView ? "Open work across the team." : "Tasks currently assigned to you.";
   const pending = dashboard.orders.pending;
 
   return <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
@@ -72,7 +72,7 @@ export default function TodayWorkPanel({ dashboard, role = "STAFF" }: TodayWorkP
           </div>
         ))}
         <UnstyledButton component={Link} to="/tasks" className="panel-footer-link">
-          Open {role === "OWNER" ? "team" : "my"} tasks<IconChevronRight size={14} aria-hidden="true" />
+          Open {teamView ? "team" : "my"} tasks<IconChevronRight size={14} aria-hidden="true" />
         </UnstyledButton>
       </> : null}
     </Card>

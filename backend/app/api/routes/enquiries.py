@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_superuser
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.enquiry import Enquiry
@@ -53,7 +53,7 @@ async def _active_assignee(db: AsyncSession, admin_id: int | None) -> None:
 @router.get("", response_model=list[EnquiryPublic])
 async def list_enquiries(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_superuser)],
+    _: Annotated[Admin, Depends(require(Permission.VIEW_ENQUIRIES))],
     status: str | None = Query(default=None, pattern=_STATUSES),
     source: str | None = Query(default=None, pattern=_SOURCES),
 ):
@@ -72,7 +72,7 @@ async def list_enquiries(
 
 
 @router.get("/summary")
-async def enquiry_summary(db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_superuser)]):
+async def enquiry_summary(db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(require(Permission.VIEW_ENQUIRIES))]):
     rows = (await db.execute(select(Enquiry.status, func.count(Enquiry.id)).group_by(Enquiry.status))).all()
     counts = {status: 0 for status in ("NEW", "WORKING", "RESOLVED", "SPAM")}
     counts.update(dict(rows))
@@ -80,7 +80,7 @@ async def enquiry_summary(db: Annotated[AsyncSession, Depends(get_db)], _: Annot
 
 
 @router.post("", response_model=EnquiryPublic, status_code=201)
-async def create_enquiry(data: EnquiryInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def create_enquiry(data: EnquiryInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.MANAGE_ENQUIRIES))]):
     item = Enquiry(
         title=data.title.strip(), notes=data.notes.strip(), source=data.source,
         contact_name=_clean_optional(data.contact_name), reply_contact=_clean_optional(data.reply_contact),
@@ -95,7 +95,7 @@ async def create_enquiry(data: EnquiryInput, db: Annotated[AsyncSession, Depends
 
 
 @router.patch("/{enquiry_id}", response_model=EnquiryPublic)
-async def update_enquiry(enquiry_id: int, data: EnquiryInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def update_enquiry(enquiry_id: int, data: EnquiryInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.UPDATE_ENQUIRIES))]):
     item = await _get_enquiry(db, enquiry_id, lock=True)
     if item.status not in {"NEW", "WORKING"}:
         raise HTTPException(400, "Only new or working enquiries can be edited.")
@@ -112,7 +112,7 @@ async def update_enquiry(enquiry_id: int, data: EnquiryInput, db: Annotated[Asyn
 
 
 @router.patch("/{enquiry_id}/status", response_model=EnquiryPublic)
-async def update_enquiry_status(enquiry_id: int, data: EnquiryStatusUpdate, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def update_enquiry_status(enquiry_id: int, data: EnquiryStatusUpdate, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.UPDATE_ENQUIRIES))]):
     item = await _get_enquiry(db, enquiry_id, lock=True)
     allowed = {"NEW": {"WORKING", "RESOLVED", "SPAM"}, "WORKING": {"RESOLVED", "SPAM"}}
     if data.status not in allowed.get(item.status, set()):
@@ -128,7 +128,7 @@ async def update_enquiry_status(enquiry_id: int, data: EnquiryStatusUpdate, db: 
 
 
 @router.post("/{enquiry_id}/task", response_model=EnquiryPublic, status_code=201)
-async def create_enquiry_task(enquiry_id: int, data: EnquiryTaskInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def create_enquiry_task(enquiry_id: int, data: EnquiryTaskInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.MANAGE_ENQUIRIES))]):
     item = await _get_enquiry(db, enquiry_id, lock=True)
     if item.status != "WORKING":
         raise HTTPException(400, "Only working enquiries can become a task.")

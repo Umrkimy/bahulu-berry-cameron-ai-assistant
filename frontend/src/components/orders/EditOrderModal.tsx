@@ -23,6 +23,7 @@ import { getApiError } from "../../api/errors";
 
 import type { Order, OrderStatus } from "../../types/order";
 import useAuth from "../../auth/useAuth";
+import { can } from "../../auth/permissions";
 
 interface Props {
   opened: boolean;
@@ -285,7 +286,7 @@ export default function EditOrderModal({ opened, onClose, order }: Props) {
 
             <Group justify="space-between" mt="sm">
               <div>
-                {!isFinalOrder && admin?.role === "OWNER" && (
+                {!isFinalOrder && can(admin, "orders.cancel") && (
                   <Button
                     color="red"
                     variant="light"

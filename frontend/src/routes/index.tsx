@@ -34,6 +34,7 @@ import OwnerRoute from "../auth/OwnerRoute";
 
 import AppLayout from "../components/layout/AppLayout";
 import AppErrorBoundary from "../components/common/AppErrorBoundary";
+import PermissionRoute from "../auth/PermissionRoute";
 
 export default function AppRoutes() {
   return (
@@ -54,7 +55,7 @@ export default function AppRoutes() {
         <Route path="/dashboard" element={<Home />} />
 
         <Route path="/products" element={<Products />} />
-        <Route path="/products/new" element={<OwnerRoute><ProductWorkspace /></OwnerRoute>} />
+        <Route path="/products/new" element={<PermissionRoute permission="products.manage"><ProductWorkspace /></PermissionRoute>} />
         <Route path="/products/:productId/*" element={<ProductWorkspace />} />
         <Route path="/media" element={<MediaLibrary />} />
         <Route path="/storefront/homepage" element={<OwnerRoute><HomepageWorkspace /></OwnerRoute>} />
@@ -62,7 +63,7 @@ export default function AppRoutes() {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/tasks" element={<Tasks />} />
 
-        <Route path="/suppliers" element={<OwnerRoute><Suppliers /></OwnerRoute>} />
+        <Route path="/suppliers" element={<PermissionRoute permission="suppliers.manage"><Suppliers /></PermissionRoute>} />
 
         <Route path="/orders" element={<Orders />} />
 
@@ -78,7 +79,7 @@ export default function AppRoutes() {
 
         <Route path="/settings" element={<OwnerRoute><Settings /></OwnerRoute>} />
 
-        <Route path="/enquiries" element={<OwnerRoute><Enquiries /></OwnerRoute>} />
+        <Route path="/enquiries" element={<PermissionRoute permission="enquiries.view"><Enquiries /></PermissionRoute>} />
         <Route path="/client-feedback" element={<Navigate to="/enquiries" replace />} />
 
         <Route path="/deliveries" element={<Deliveries />} />
@@ -93,7 +94,7 @@ export default function AppRoutes() {
         <Route path="/alerts" element={<Navigate to="/updates" replace />} />
         <Route path="/notifications" element={<Navigate to="/updates" replace />} />
 
-        <Route path="/reports" element={<OwnerRoute><Reports /></OwnerRoute>} />
+        <Route path="/reports" element={<PermissionRoute permission="reports.view"><Reports /></PermissionRoute>} />
 
         <Route path="/team" element={<OwnerRoute><Team /></OwnerRoute>} />
       </Route>

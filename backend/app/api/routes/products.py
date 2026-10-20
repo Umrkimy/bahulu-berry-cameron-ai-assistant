@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.db.database import get_db
 from app.schemas.pagination import PaginatedResponse
 from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.permissions import Permission, require
 from app.models.admin import Admin
 from app.models.product import Product
 from app.models.inventory import Inventory
@@ -29,7 +30,7 @@ router = APIRouter()
 
 
 @router.get("/import/template")
-async def download_product_import_template(_: Annotated[Admin, Depends(get_current_superuser)]):
+async def download_product_import_template(_: Annotated[Admin, Depends(require(Permission.MANAGE_PRODUCTS))]):
     template = ",".join(CSV_HEADERS) + "\nExample product,Bahulu,Optional internal description,12.50,0,10\n"
     return Response(
         content=template,
@@ -42,7 +43,7 @@ async def download_product_import_template(_: Annotated[Admin, Depends(get_curre
 async def preview_product_import(
     file: Annotated[UploadFile, File(...)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_superuser)],
+    _: Annotated[Admin, Depends(require(Permission.MANAGE_PRODUCTS))],
 ):
     return await read_product_import(file, db)
 
@@ -51,7 +52,7 @@ async def preview_product_import(
 async def import_products(
     file: Annotated[UploadFile, File(...)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[Admin, Depends(get_current_superuser)],
+    current_admin: Annotated[Admin, Depends(require(Permission.MANAGE_PRODUCTS))],
 ):
     preview = await read_product_import(file, db)
     if not preview.can_import:
@@ -393,7 +394,7 @@ async def create_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_superuser),
+        Depends(require(Permission.MANAGE_PRODUCTS)),
     ],
 ):
 
@@ -459,7 +460,7 @@ async def update_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_superuser),
+        Depends(require(Permission.MANAGE_PRODUCTS)),
     ],
 ):
     result = await db.execute(

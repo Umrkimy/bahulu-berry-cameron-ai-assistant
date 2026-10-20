@@ -241,7 +241,7 @@ test("Owner product workspace reaches the real storefront", async ({
   await expect(shop.locator(".shop-detail-image img:visible")).toHaveCount(1);
   await expect(shop.locator(".shop-detail-image img:visible")).toHaveAttribute(
     "src",
-    new RegExp(`/product-media/${published.id}/${published.images[1].id}$`),
+    new RegExp(`/product-media/${published.id}/${published.images[1].id}[?]v=[0-9a-f]{12}$`),
   );
   await shop.getByRole("button", { name: "Pilih bahasa: Bahasa Melayu" }).click();
   await shop.getByRole("menuitemradio", { name: "English" }).click();

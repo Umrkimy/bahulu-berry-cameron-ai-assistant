@@ -7,11 +7,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { claimSupportConversation, getSupportMessages, getWhatsAppLink, requestHumanTakeover, returnSupportConversationToAi, sendSimulatedDashboardReply } from "../../api/support";
 import { getApiError } from "../../api/errors";
 import type { SupportMessagingConversation, SupportRequest } from "../../types/support";
+import type { Role } from "../../auth/permissions";
 
 interface HumanTakeoverPanelProps {
   ticket: SupportRequest;
   conversation: SupportMessagingConversation | null;
-  currentAdmin: { id: number; role: "OWNER" | "STAFF" } | null;
+  currentAdmin: { id: number; role: Role } | null;
   onTicketChanged: (ticket: SupportRequest) => void;
   onRefresh: () => void;
 }

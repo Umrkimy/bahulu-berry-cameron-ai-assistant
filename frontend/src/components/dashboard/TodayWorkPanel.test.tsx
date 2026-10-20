@@ -18,16 +18,16 @@ const dashboard = {
 describe("TodayWorkPanel", () => {
   it("shows a Staff member only their work without duplicating live attention", () => {
     tasksState.data = [{ id: 1, title: "Pack order", priority: "HIGH", status: "OPEN", context_label: "Order #10" }];
-    renderWithProviders(<TodayWorkPanel dashboard={dashboard} role="STAFF" />);
+    renderWithProviders(<TodayWorkPanel dashboard={dashboard} />);
     expect(screen.getByText("My work")).toBeInTheDocument();
     expect(screen.queryByText("Team work")).not.toBeInTheDocument();
     expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
     expect(screen.getByText("Pack order")).toBeInTheDocument();
   });
 
-  it("shows the Owner team label and calm empty task state", () => {
+  it("shows the team label to Owners and Managers and calm empty task state", () => {
     tasksState.data = [];
-    renderWithProviders(<TodayWorkPanel dashboard={dashboard} role="OWNER" />);
+    renderWithProviders(<TodayWorkPanel dashboard={dashboard} teamView />);
     expect(screen.getByText("Team work")).toBeInTheDocument();
     expect(screen.getByText("No open tasks right now.")).toBeInTheDocument();
   });

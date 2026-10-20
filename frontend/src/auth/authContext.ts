@@ -1,11 +1,12 @@
 import { createContext } from "react";
+import type { Role } from "./permissions";
 
 export interface Admin {
   id: number;
   username: string;
   email: string;
   is_superuser: boolean;
-  role: "OWNER" | "STAFF";
+  role: Role;
   is_active: boolean;
 }
 

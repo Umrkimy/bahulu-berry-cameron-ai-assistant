@@ -10,6 +10,8 @@ import { downloadReportCsv } from "../../api/reports";
 import { useReportSummary } from "../../hooks/useReports";
 import type { ReportFilters, ReportPreset } from "../../types/reports";
 import { formatDate } from "../../utils/format";
+import { isOwner } from "../../auth/permissions";
+import useAuth from "../../auth/useAuth";
 
 const currency = new Intl.NumberFormat("en-MY", { style: "currency", currency: "MYR" });
 const presets: { value: ReportPreset; label: string }[] = [
@@ -28,6 +30,7 @@ function Metric({ title, value, detail }: { title: string; value: string; detail
 }
 
 export default function Reports() {
+  const { admin } = useAuth();
   const [preset, setPreset] = useState<ReportPreset>("LAST_30_DAYS");
   const [start, setStart] = useState<string | null>(null);
   const [end, setEnd] = useState<string | null>(null);
@@ -45,10 +48,10 @@ export default function Reports() {
   const setCustomEnd = (value: string | null) => { setEnd(value); setPreset("LAST_30_DAYS"); };
 
   return <Stack gap="lg">
-    <PageHeader title="Owner Reports" description="Decision-ready sales, promotion, inventory, and support signals from authoritative operational records." action={<Button leftSection={<IconDownload size={16} />} variant="default" loading={report.isFetching} onClick={() => downloadReportCsv(filters)}>Download CSV</Button>} />
+    <PageHeader title="Reports" description="Decision-ready sales, promotion, inventory, and support signals from authoritative operational records." action={isOwner(admin) ? <Button leftSection={<IconDownload size={16} />} variant="default" loading={report.isFetching} onClick={() => downloadReportCsv(filters)}>Download CSV</Button> : undefined} />
     <Card withBorder radius="lg"><Group align="end" wrap="wrap"><Select label="Report period" data={presets} value={start || end ? null : preset} onChange={selectPreset} w={{ base: "100%", sm: 190 }} /><DatePickerInput label="Custom start date" value={start} onChange={setCustomStart} maxDate={end ?? undefined} placeholder="Choose start" w={{ base: "100%", sm: 190 }} /><DatePickerInput label="Custom end date" value={end} onChange={setCustomEnd} minDate={start ?? undefined} placeholder="Choose end" w={{ base: "100%", sm: 190 }} /><Button variant="subtle" onClick={() => { setPreset("LAST_30_DAYS"); setStart(null); setEnd(null); }}>Reset</Button><Text size="sm" c="dimmed">Malaysia calendar dates</Text></Group></Card>
     {report.isError ? <Alert color="red" title="Could not load the report">Please refresh and try again.</Alert> : null}
-    {report.isLoading || !data ? <Card withBorder p="xl"><Text c="dimmed" ta="center">Loading owner report…</Text></Card> : <>
+    {report.isLoading || !data ? <Card withBorder p="xl"><Text c="dimmed" ta="center">Loading report…</Text></Card> : <>
       <Group justify="space-between"><Group gap="xs"><Badge color="gray" variant="light">{data.report_range.label}</Badge><Text size="sm" c="dimmed">{formatDate(data.report_range.start_date)} – {formatDate(data.report_range.end_date)}</Text></Group><Text size="sm" c="dimmed">Sales and support use this period. Inventory is live.</Text></Group>
       <Paper withBorder className="kpi-strip"><SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing={0}><Metric title="Paid revenue" value={money(data.kpis.paid_revenue)} detail="Paid, non-cancelled orders" icon={<IconTrendingUp size={19} />} /><Metric title="Paid orders" value={String(data.kpis.paid_order_count)} detail={`${data.kpis.total_orders_created} orders created`} icon={<IconReceipt2 size={19} />} /><Metric title="Average order" value={money(data.kpis.average_paid_order_value)} detail="Paid order value" icon={<IconChartBar size={19} />} /><Metric title="Discount granted" value={money(data.kpis.total_discount_granted)} detail="Non-cancelled order snapshots" icon={<IconTrendingUp size={19} />} /><Metric title="Open high priority" value={String(data.support_workload.current_open_high_priority_count)} detail="Current support workload" icon={<IconTicket size={19} />} /></SimpleGrid></Paper>
       <SimpleGrid cols={{ base: 1, lg: 2 }}><Card withBorder radius="lg"><Group justify="space-between" mb="md"><Text fw={600}>Paid sales trend</Text><Text size="xs" c="dimmed">{data.daily_sales.length > 90 ? "Monthly sales" : "Daily sales"}</Text></Group><ReportSalesChart points={data.daily_sales} /></Card><Card withBorder radius="lg"><Text fw={600} mb="md">Order outcomes</Text>{data.order_status_counts.length ? <OrderOutcomesChart items={data.order_status_counts} /> : <Text c="dimmed" size="sm" ta="center" py="xl">No orders created in this period.</Text>}</Card></SimpleGrid>

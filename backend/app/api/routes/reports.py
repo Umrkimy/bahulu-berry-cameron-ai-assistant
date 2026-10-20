@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_superuser
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.schemas.reports import ReportSummary
@@ -43,7 +44,7 @@ def _csv_rows(summary: dict) -> list[list[object]]:
 @router.get("/summary", response_model=ReportSummary)
 async def summary(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[Admin, Depends(get_current_superuser)],
+    current_admin: Annotated[Admin, Depends(require(Permission.VIEW_REPORTS))],
     preset: str | None = Query(default=None),
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),

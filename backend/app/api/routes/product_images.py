@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.dependencies import get_current_admin
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.product import Product
@@ -19,7 +20,7 @@ from app.services.product_media import MAX_UPLOAD, media_path
 
 router = APIRouter()
 DB = Annotated[AsyncSession, Depends(get_db)]
-Owner = Annotated[Admin, Depends(get_current_superuser)]
+ProductEditor = Annotated[Admin, Depends(require(Permission.MANAGE_PRODUCTS))]
 Reader = Annotated[Admin, Depends(get_current_admin)]
 
 
@@ -101,12 +102,12 @@ async def write_image(product_id, image_id, file, db, owner):
 
 
 @router.post("/{product_id}/images", response_model=ProductImageAdmin, status_code=201)
-async def upload_image(product_id: int, file: Annotated[UploadFile, File()], db: DB, owner: Owner):
+async def upload_image(product_id: int, file: Annotated[UploadFile, File()], db: DB, owner: ProductEditor):
     return await write_image(product_id, None, file, db, owner)
 
 
 @router.put("/{product_id}/images/{image_id}", response_model=ProductImageAdmin)
-async def replace_image(product_id: int, image_id: int, file: Annotated[UploadFile, File()], db: DB, owner: Owner):
+async def replace_image(product_id: int, image_id: int, file: Annotated[UploadFile, File()], db: DB, owner: ProductEditor):
     return await write_image(product_id, image_id, file, db, owner)
 
 
@@ -122,7 +123,7 @@ async def available_asset(db: AsyncSession, asset_id: int) -> MediaAsset:
 
 
 @router.post("/{product_id}/images/attach", response_model=ProductImageAdmin, status_code=201)
-async def attach_image(product_id: int, data: MediaAttachment, db: DB, owner: Owner):
+async def attach_image(product_id: int, data: MediaAttachment, db: DB, owner: ProductEditor):
     product = await locked_product(db, product_id)
     if len(product.images) >= 6:
         raise HTTPException(422, "A product can have up to six photos.")
@@ -139,7 +140,7 @@ async def attach_image(product_id: int, data: MediaAttachment, db: DB, owner: Ow
 
 
 @router.put("/{product_id}/images/{image_id}/asset", response_model=ProductImageAdmin)
-async def replace_with_asset(product_id: int, image_id: int, data: MediaAttachment, db: DB, owner: Owner):
+async def replace_with_asset(product_id: int, image_id: int, data: MediaAttachment, db: DB, owner: ProductEditor):
     product = await locked_product(db, product_id)
     image = next((item for item in product.images if item.id == image_id), None)
     if image is None:
@@ -159,7 +160,7 @@ class ImageOrder(BaseModel):
 
 
 @router.put("/{product_id}/images")
-async def reorder_images(product_id: int, order: ImageOrder, db: DB, owner: Owner):
+async def reorder_images(product_id: int, order: ImageOrder, db: DB, owner: ProductEditor):
     product = await locked_product(db, product_id)
     if len(order.image_ids) != len(set(order.image_ids)) or set(order.image_ids) != {i.id for i in product.images}:
         raise HTTPException(409, "The gallery changed. Reload it before reordering.")
@@ -171,7 +172,7 @@ async def reorder_images(product_id: int, order: ImageOrder, db: DB, owner: Owne
 
 
 @router.delete("/{product_id}/images/{image_id}", status_code=204)
-async def remove_image(product_id: int, image_id: int, db: DB, owner: Owner):
+async def remove_image(product_id: int, image_id: int, db: DB, owner: ProductEditor):
     product = await locked_product(db, product_id)
     image = next((item for item in product.images if item.id == image_id), None)
     if image is None:

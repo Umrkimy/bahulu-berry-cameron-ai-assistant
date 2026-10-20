@@ -9,10 +9,11 @@ import PageHeader from "../../components/common/PageHeader";
 import useAuth from "../../auth/useAuth";
 
 import { downloadProductImportTemplate } from "../../api/products";
+import { can } from "../../auth/permissions";
 
 export default function ProductsPage() {
   const { admin } = useAuth();
-  const isOwner = admin?.role === "OWNER";
+  const canManage = can(admin, "products.manage");
   const [importOpened, setImportOpened] = useState(false);
   const navigate = useNavigate();
   const downloadTemplate = async () => {
@@ -28,11 +29,11 @@ export default function ProductsPage() {
       <PageHeader
         title="Products"
         description="Manage products, prices, promotions, and availability."
-        action={isOwner ? <Group gap="xs"><Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>CSV template</Button><Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import CSV</Button><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
+        action={canManage ? <Group gap="xs"><Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>CSV template</Button><Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import CSV</Button><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
       />
 
       <ProductTable onEdit={(product) => navigate(`/products/${product.id}`)} />
-      <ProductImportModal opened={isOwner && importOpened} onClose={() => setImportOpened(false)} />
+      <ProductImportModal opened={canManage && importOpened} onClose={() => setImportOpened(false)} />
     </>
   );
 }

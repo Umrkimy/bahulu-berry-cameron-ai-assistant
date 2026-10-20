@@ -10,6 +10,7 @@ import type { Customer, CustomerStatus } from "../../api/customers";
 import useAuth from "../../auth/useAuth";
 import { notifications } from "@mantine/notifications";
 import { formatDate } from "../../utils/format";
+import { can } from "../../auth/permissions";
 
 interface Props {
   onEdit: (customer: Customer) => void;
@@ -21,7 +22,7 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
   const { admin } = useAuth();
   const archiveCustomer = useArchiveCustomer();
   const restoreCustomer = useRestoreCustomer();
-  const isOwner = admin?.role === "OWNER";
+  const canArchive = can(admin, "customers.archive");
   const archived = customerStatus === "archived";
 
   const changeArchiveState = useCallback(async (customer: Customer) => {
@@ -99,7 +100,7 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
                 <IconEdit size={18} />
               </ActionIcon>
             </Tooltip>}
-            {isOwner && <Tooltip label={archived ? "Restore customer" : "Archive customer"}>
+            {canArchive && <Tooltip label={archived ? "Restore customer" : "Archive customer"}>
               <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="subtle" color="gray" loading={archiveCustomer.isPending || restoreCustomer.isPending} onClick={() => void changeArchiveState(row.original)}>
                 {archived ? <IconRestore size={18} /> : <IconArchive size={18} />}
               </ActionIcon>
@@ -108,7 +109,7 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
         ),
       },
     ],
-    [onEdit, isOwner, archived, archiveCustomer.isPending, restoreCustomer.isPending, changeArchiveState],
+    [onEdit, canArchive, archived, archiveCustomer.isPending, restoreCustomer.isPending, changeArchiveState],
   );
 
   return (
@@ -122,7 +123,7 @@ export default function CustomerTable({ onEdit, customerStatus }: Props) {
         <Card withBorder radius="md" p="sm">
           <Group justify="space-between" align="flex-start" wrap="nowrap">
             <Stack gap={2} style={{ minWidth: 0 }}><Text fw={600}>{customer.full_name}</Text><Text size="sm">{customer.phone_number}</Text><Text size="sm" c="dimmed">{customer.email ?? "No email"}{customer.city || customer.state ? ` · ${[customer.city, customer.state].filter(Boolean).join(", ")}` : ""}</Text></Stack>
-            <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>{!archived && <ActionIcon color="gray" aria-label="Edit customer" variant="subtle" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>}{isOwner && <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="subtle" color="gray" onClick={() => void changeArchiveState(customer)}>{archived ? <IconRestore size={18} /> : <IconArchive size={18} />}</ActionIcon>}</Group>
+            <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>{!archived && <ActionIcon color="gray" aria-label="Edit customer" variant="subtle" onClick={() => onEdit(customer)}><IconEdit size={18} /></ActionIcon>}{canArchive && <ActionIcon aria-label={archived ? "Restore customer" : "Archive customer"} variant="subtle" color="gray" onClick={() => void changeArchiveState(customer)}>{archived ? <IconRestore size={18} /> : <IconArchive size={18} />}</ActionIcon>}</Group>
           </Group>
         </Card>
       )}

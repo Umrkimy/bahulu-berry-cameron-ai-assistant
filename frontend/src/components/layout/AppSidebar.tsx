@@ -28,6 +28,7 @@ import {
 import NavSection from "./NavSection";
 import Logo from "../brand/Logo";
 import useAuth from "../../auth/useAuth";
+import { can, isOwner } from "../../auth/permissions";
 
 export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
   const { admin } = useAuth();
@@ -107,7 +108,7 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
             icon: <IconBuildingWarehouse size={17} stroke={1.75} />,
           },
           { label: "Discounts", link: "/discounts", icon: <IconDiscount2 size={17} stroke={1.75} /> },
-          ...(admin?.role === "OWNER" ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={17} stroke={1.75} /> }] : []),
+          ...(can(admin, "suppliers.manage") ? [{ label: "Suppliers", link: "/suppliers", icon: <IconTruckLoading size={17} stroke={1.75} /> }] : []),
         ]}
       />
 
@@ -116,11 +117,11 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
         onNavigate={onNavigate}
         items={[
           { label: "Customers", link: "/customers", icon: <IconUsers size={17} stroke={1.75} /> },
-          ...(admin?.role === "OWNER" ? [{ label: "Enquiries", link: "/enquiries", icon: <IconMessageDots size={17} stroke={1.75} /> }] : []),
+          ...(can(admin, "enquiries.view") ? [{ label: "Enquiries", link: "/enquiries", icon: <IconMessageDots size={17} stroke={1.75} /> }] : []),
         ]}
       />
 
-      {admin?.role === "OWNER" ? <NavSection
+      {isOwner(admin) ? <NavSection
         title="Owner controls"
         onNavigate={onNavigate}
         items={[
@@ -129,6 +130,10 @@ export default function AppSidebar({ onNavigate }: { onNavigate: () => void }) {
           { label: "Activity", link: "/activity", icon: <IconActivity size={17} stroke={1.75} /> },
           { label: "AI Usage", link: "/ai-usage", icon: <IconGauge size={17} stroke={1.75} /> },
         ]}
+      /> : can(admin, "reports.view") ? <NavSection
+        title="Management"
+        onNavigate={onNavigate}
+        items={[{ label: "Reports", link: "/reports", icon: <IconChartBar size={17} stroke={1.75} /> }]}
       /> : null}
 
       {admin?.role === "OWNER" ? <NavSection

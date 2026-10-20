@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.permissions import ROLE_PERMISSIONS, Permission
 from app.schemas.customer import CustomerCreate
 
 from app.services.customer_services import (
@@ -606,7 +607,8 @@ async def get_shift_summary(db: AsyncSession, admin_id: int) -> dict:
     deliveries = await get_delivery_workload(db)
     support = await get_support_queue_summary(db, admin_id)
     active_task_filter = Task.status.in_(("OPEN", "IN_PROGRESS"))
-    if (await db.scalar(select(Admin.role).where(Admin.id == admin_id))) == "OWNER":
+    role = await db.scalar(select(Admin.role).where(Admin.id == admin_id))
+    if Permission.MANAGE_TASKS in ROLE_PERMISSIONS.get(role, frozenset()):
         task_rows = await db.execute(
             select(Task.status, func.count(Task.id)).where(active_task_filter).group_by(Task.status)
         )

@@ -119,3 +119,22 @@ h1 em, h2 em { color: var(--red); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition-duration: .01ms !important; } }
 .add-cart-label { display: inline-flex; align-items: center; gap: 6px; }
 .add-cart-check { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Skeleton loading */
+.skeleton { display: block; max-width: 100%; border-radius: 8px; background: color-mix(in srgb, var(--ink) 9%, transparent); animation: skeleton-pulse 1.6s ease-in-out infinite; }
+.skeleton-round { border-radius: 999px; }
+.skeleton-chip { margin-top: 14px; border-radius: 999px; }
+.skeleton-meta { margin-top: 14px; }
+.skeleton-card > .skeleton:not(.skeleton-chip) { margin-top: 12px; }
+.skeleton-card > .skeleton.skeleton-tight { margin-top: 8px; }
+.skeleton-card { pointer-events: none; }
+.skeleton-card > .skeleton { max-width: calc(100% - 20px); }
+.skeleton-card .skeleton-row { margin-top: auto; padding-top: 16px; }
+.skeleton-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.skeleton-gap { margin-top: 20px; }
+.skeleton-line { margin-top: 10px; }
+.skeleton-crumbs { display: flex; align-items: center; min-height: 72px; }
+.skeleton-page { min-height: 55vh; padding-block: 72px; }
+.shop-detail .skeleton-row .skeleton:first-child { flex: none; }
+@keyframes skeleton-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

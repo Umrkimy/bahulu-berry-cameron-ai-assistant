@@ -2,11 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Enquiries from "./Enquiries";
 import { renderWithProviders } from "../../test/render";
 import { server } from "../../test/server";
+
+const auth = vi.hoisted(() => ({ role: "OWNER" }));
+vi.mock("../../auth/useAuth", () => ({ default: () => ({ admin: { role: auth.role } }) }));
 
 const workingEnquiry = {
   id: 7, title: "Delivery question", notes: "Customer wants an approved delivery answer.", source: "WHATSAPP", contact_name: "Aina", reply_contact: "0123456789", status: "WORKING",
@@ -20,7 +23,9 @@ function renderPage(path = "/enquiries") {
 }
 
 describe("Enquiries", () => {
-  it("records an Owner-only enquiry with optional contact information", async () => {
+  beforeEach(() => { auth.role = "OWNER"; });
+
+  it("records an enquiry with optional contact information", async () => {
     let received: unknown;
     server.use(
       http.get("http://localhost:8000/api/enquiries", () => HttpResponse.json([])),
@@ -44,7 +49,7 @@ describe("Enquiries", () => {
     server.use(
       http.get("http://localhost:8000/api/enquiries", ({ request }) => new URL(request.url).searchParams.get("status") === "SPAM" ? HttpResponse.json([]) : HttpResponse.json([workingEnquiry])),
       http.get("http://localhost:8000/api/enquiries/summary", () => HttpResponse.json({ NEW: 0, WORKING: 1, RESOLVED: 0, SPAM: 2 })),
-      http.get("http://localhost:8000/api/team", () => HttpResponse.json([{ id: 3, username: "staff", email: "staff@example.test", role: "STAFF", is_active: true, is_superuser: false, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }])),
+      http.get("http://localhost:8000/api/support/assignees", () => HttpResponse.json([{ id: 3, username: "staff", role: "STAFF" }])),
       http.post("http://localhost:8000/api/enquiries/7/task", async ({ request }) => { handoff = await request.json(); return HttpResponse.json({ ...workingEnquiry, task_id: 21, task: { id: 21, title: "Confirm delivery", description: "Use the approved information.", priority: "NORMAL", status: "OPEN", due_at: null, assigned_admin_id: 3, created_by_admin_id: 1, context_type: null, context_id: null, context_label: null, completion_note: null, completed_at: null, created_at: "2026-09-10T10:00:00Z", updated_at: "2026-09-10T10:00:00Z" } }, { status: 201 }); }),
     );
     const user = userEvent.setup();
@@ -69,5 +74,19 @@ describe("Enquiries", () => {
     expect(spamOption).toBeDefined();
     await user.click(spamOption!);
     await waitFor(() => expect(screen.getByText("No spam enquiries.")).toBeInTheDocument());
+  });
+
+  it("lets Staff work enquiries without recording them or creating tasks", async () => {
+    auth.role = "STAFF";
+    server.use(
+      http.get("http://localhost:8000/api/enquiries", () => HttpResponse.json([workingEnquiry])),
+      http.get("http://localhost:8000/api/enquiries/summary", () => HttpResponse.json({ NEW: 0, WORKING: 1, RESOLVED: 0, SPAM: 0 })),
+    );
+    renderPage();
+    expect(await screen.findByText("Delivery question")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record enquiry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create task" })).not.toBeInTheDocument();
   });
 });

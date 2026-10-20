@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Spotlight, spotlight } from "@mantine/spotlight";
 import { useHotkeys } from "@mantine/hooks";
-import { IconBell, IconBox, IconBrowser, IconBuildingWarehouse, IconCash, IconChartBar, IconClipboardCheck, IconDiscount2, IconHome, IconMessageChatbot, IconPackage, IconPhoto, IconPlus, IconShoppingCart, IconTruck, IconTruckLoading, IconUsers } from "@tabler/icons-react";
+import { IconBell, IconBox, IconBrowser, IconBuildingWarehouse, IconCash, IconChartBar, IconClipboardCheck, IconDiscount2, IconHome, IconMessageDots, IconMessageChatbot, IconPackage, IconPhoto, IconPlus, IconShoppingCart, IconTruck, IconTruckLoading, IconUsers } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/useAuth";
 import type { DashboardRouteState } from "../../types/navigation";
+import { can } from "../../auth/permissions";
 
 export default function CommandPalette() {
   const navigate = useNavigate();
@@ -27,11 +28,12 @@ export default function CommandPalette() {
         { group: "Pages", actions: [
           { id: "dashboard", label: "Dashboard", onClick: () => navigate("/dashboard"), leftSection: <IconHome size={18} /> },
           { id: "customers", label: "Customers", onClick: () => navigate("/customers"), leftSection: <IconUsers size={18} /> },
+          ...(can(admin, "enquiries.view") ? [{ id: "enquiries", label: "Enquiries", onClick: () => navigate("/enquiries"), leftSection: <IconMessageDots size={18} /> }] : []),
           { id: "products", label: "Products", onClick: () => navigate("/products"), leftSection: <IconPackage size={18} /> },
           { id: "media", label: "Media Library", onClick: () => navigate("/media"), leftSection: <IconPhoto size={18} /> },
           ...(admin?.role === "OWNER" ? [{ id: "storefront-homepage", label: "Storefront Homepage", onClick: () => navigate("/storefront/homepage"), leftSection: <IconBrowser size={18} /> }] : []),
           { id: "inventory", label: "Inventory", onClick: () => navigate("/inventory"), leftSection: <IconBuildingWarehouse size={18} /> },
-          ...(admin?.role === "OWNER" ? [{ id: "suppliers", label: "Suppliers", onClick: () => navigate("/suppliers"), leftSection: <IconTruckLoading size={18} /> }] : []),
+          ...(can(admin, "suppliers.manage") ? [{ id: "suppliers", label: "Suppliers", onClick: () => navigate("/suppliers"), leftSection: <IconTruckLoading size={18} /> }] : []),
           { id: "orders", label: "Orders", onClick: () => navigate("/orders"), leftSection: <IconShoppingCart size={18} /> },
           { id: "fulfillment", label: "Fulfilment", onClick: () => navigate("/fulfillment"), leftSection: <IconClipboardCheck size={18} /> },
           { id: "deliveries", label: "Deliveries", onClick: () => navigate("/deliveries"), leftSection: <IconTruck size={18} /> },
@@ -41,13 +43,13 @@ export default function CommandPalette() {
           { id: "refund-requests", label: "Refund Requests", onClick: () => navigate("/refund-requests"), leftSection: <IconCash size={18} /> },
           { id: "assistant", label: "Operations Copilot", onClick: () => navigate("/ai-assistant"), leftSection: <IconMessageChatbot size={18} /> },
           ...(admin?.role === "OWNER" ? [{ id: "ai-usage", label: "AI Usage & Budget", onClick: () => navigate("/ai-usage"), leftSection: <IconChartBar size={18} /> }] : []),
-          ...(admin?.role === "OWNER" ? [{ id: "reports", label: "Owner Reports", onClick: () => navigate("/reports"), leftSection: <IconChartBar size={18} /> }] : []),
+          ...(can(admin, "reports.view") ? [{ id: "reports", label: "Reports", onClick: () => navigate("/reports"), leftSection: <IconChartBar size={18} /> }] : []),
         ] },
         { group: "Quick actions", actions: [
           { id: "new-order", label: "Create Order", onClick: () => navigate("/orders", { state: { dashboardAction: "CREATE_ORDER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           { id: "new-customer", label: "Add Customer", onClick: () => navigate("/customers", { state: { dashboardAction: "CREATE_CUSTOMER" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
+          ...(can(admin, "products.manage") ? [{ id: "new-product", label: "Add Product", onClick: () => navigate("/products/new"), leftSection: <IconPlus size={18} /> }] : []),
           ...(admin?.role === "OWNER" ? [
-            { id: "new-product", label: "Add Product", onClick: () => navigate("/products/new"), leftSection: <IconPlus size={18} /> },
             { id: "new-discount", label: "Create Discount", onClick: () => navigate("/discounts", { state: { dashboardAction: "CREATE_DISCOUNT" } satisfies DashboardRouteState }), leftSection: <IconPlus size={18} /> },
           ] : []),
         ] },

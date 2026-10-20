@@ -1,3 +1,3 @@
-import { StorefrontState } from "./_components/storefront-state";
+import { PageSkeleton } from "./_components/skeletons";
 
-export default function Loading() { return <StorefrontState kind="loading" />; }
+export default function Loading() { return <PageSkeleton />; }

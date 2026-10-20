@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_superuser
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.supplier import Supplier
@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[SupplierPublic])
-async def list_suppliers(db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_superuser)]):
+async def list_suppliers(db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(require(Permission.MANAGE_SUPPLIERS))]):
     return (await db.execute(select(Supplier).order_by(Supplier.is_active.desc(), Supplier.name))).scalars().all()
 
 
@@ -40,12 +40,12 @@ async def _save(item: Supplier | None, data: SupplierInput, db: AsyncSession, ad
 
 
 @router.post("", response_model=SupplierPublic)
-async def create_supplier(data: SupplierInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def create_supplier(data: SupplierInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.MANAGE_SUPPLIERS))]):
     return await _save(None, data, db, admin)
 
 
 @router.patch("/{supplier_id}", response_model=SupplierPublic)
-async def update_supplier(supplier_id: int, data: SupplierInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def update_supplier(supplier_id: int, data: SupplierInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.MANAGE_SUPPLIERS))]):
     item = await db.get(Supplier, supplier_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Supplier not found.")

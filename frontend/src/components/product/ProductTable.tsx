@@ -17,6 +17,7 @@ import { useDeleteProduct, useProducts } from "../../hooks/useProducts";
 import type { Product } from "../../types/product";
 import useAuth from "../../auth/useAuth";
 import { getApiError } from "../../api/errors";
+import { can, isOwner } from "../../auth/permissions";
 
 interface ProductTableProps {
   onEdit: (product: Product) => void;
@@ -24,7 +25,8 @@ interface ProductTableProps {
 
 export default function ProductTable({ onEdit }: ProductTableProps) {
   const { admin } = useAuth();
-  const isOwner = admin?.role === "OWNER";
+  const canEdit = can(admin, "products.manage");
+  const canDelete = isOwner(admin);
   const { data, isLoading, isError } = useProducts();
 
   const deleteMutation = useDeleteProduct();
@@ -183,7 +185,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         header: "Actions",
         enableSorting: false,
 
-        cell: ({ row }) => isOwner ? (
+        cell: ({ row }) => canEdit ? (
           <Group gap="xs">
             {/* EDIT */}
             <Tooltip label="Open product workspace" withArrow>
@@ -198,8 +200,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
               </ActionIcon>
             </Tooltip>
 
-            {/* DELETE */}
-            <Tooltip label="Delete product" withArrow>
+            {canDelete && <Tooltip label="Delete product" withArrow>
               <ActionIcon
                 size="lg"
                 variant="subtle"
@@ -210,12 +211,12 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
               >
                 <IconTrash size={20} />
               </ActionIcon>
-            </Tooltip>
+            </Tooltip>}
           </Group>
         ) : <Text c="dimmed">-</Text>,
       },
     ],
-    [deleteMutation.isPending, handleDelete, isOwner, onEdit],
+    [canDelete, canEdit, deleteMutation.isPending, handleDelete, onEdit],
   );
 
   if (isError) {
@@ -242,7 +243,7 @@ export default function ProductTable({ onEdit }: ProductTableProps) {
         searchPlaceholder="Search products..."
         emptyMessage="No products found."
         renderMobileCard={(product) => (
-          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={600}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "Active" : "Inactive"}</Badge><Badge color={product.storefront_published ? "green" : "gray"} variant="light">{product.storefront_published ? "Published" : "Draft"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={600} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{isOwner ? <Group gap="xs"><ActionIcon variant="subtle" color="gray" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon><ActionIcon variant="subtle" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon></Group> : null}</Group></Card>
+          <Card withBorder radius="md" p="sm"><Group justify="space-between" align="flex-start" wrap="nowrap"><Stack gap={3}><Anchor component={Link} to={`/products/${product.id}`} fw={600}>{product.name}</Anchor><Text size="sm" c="dimmed">{product.category ?? "Uncategorised"}</Text><Group gap="xs"><Badge color={product.is_active ? "green" : "red"} variant="light">{product.is_active ? "Active" : "Inactive"}</Badge><Badge color={product.storefront_published ? "green" : "gray"} variant="light">{product.storefront_published ? "Published" : "Draft"}</Badge><Text size="sm">{product.inventory?.quantity ?? 0} in stock</Text></Group><Text fw={600} c={getPriceDiscount(product) ? "red" : undefined}>RM {getSalePrice(product).toFixed(2)}</Text></Stack>{canEdit ? <Group gap="xs"><ActionIcon variant="subtle" color="gray" onClick={() => onEdit(product)} aria-label="Open product workspace"><IconEdit size={18} /></ActionIcon>{canDelete && <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(product)} aria-label="Delete product"><IconTrash size={18} /></ActionIcon>}</Group> : null}</Group></Card>
         )}
       />
     </Card>

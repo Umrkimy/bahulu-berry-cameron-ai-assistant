@@ -19,6 +19,7 @@ import TodayWorkPanel from "../../components/dashboard/TodayWorkPanel";
 
 import { useDashboard } from "../../hooks/useDashboard";
 import useAuth from "../../auth/useAuth";
+import { can } from "../../auth/permissions";
 
 export default function Home() {
   const { data, isLoading, error, refetch } = useDashboard();
@@ -68,7 +69,7 @@ export default function Home() {
         </SimpleGrid>
       </Paper>
 
-      <TodayWorkPanel dashboard={data} role={admin?.role} />
+      <TodayWorkPanel dashboard={data} teamView={can(admin, "tasks.manage")} />
 
       <Text fw={600} mt="xs">Business snapshot</Text>
 

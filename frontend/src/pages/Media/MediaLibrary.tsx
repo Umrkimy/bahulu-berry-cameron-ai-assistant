@@ -11,6 +11,7 @@ import { getApiError } from "../../api/errors";
 import useAuth from "../../auth/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import type { MediaAsset } from "../../types/media";
+import { can, isOwner } from "../../auth/permissions";
 
 function bytes(value: number | null) {
   if (value === null) return "Size unavailable";
@@ -19,7 +20,7 @@ function bytes(value: number | null) {
 
 export default function MediaLibrary() {
   const { admin } = useAuth();
-  const canEdit = admin?.role === "OWNER";
+  const canEdit = can(admin, "products.manage");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState(""); const [debounced] = useDebouncedValue(search, 250);
   const [status, setStatus] = useState<"active" | "archived" | "all">("active");
@@ -38,7 +39,7 @@ export default function MediaLibrary() {
   return <Stack gap="lg">
     <PageHeader title="Media Library" description="Upload approved product photos once and reuse them across product galleries." action={canEdit ? <FileButton multiple accept="image/jpeg,image/png,image/webp" onChange={(files) => files.length && upload.mutate(files)}>{(props) => <Button {...props} leftSection={<IconPhotoPlus size={16} />} loading={upload.isPending}>Upload photos</Button>}</FileButton> : undefined} />
     {uploadProgress ? <Alert color="gray" role="status">{uploadProgress}</Alert> : null}
-    {!canEdit ? <Alert color="gray" title="Read-only access">Staff can review media and product usage. Only an Owner can upload or change photos.</Alert> : null}
+    {!canEdit ? <Alert color="gray" title="Read-only access">Staff can review media and product usage. Only an Owner or Manager can upload or change photos.</Alert> : null}
     <Group align="end" justify="space-between">
       <TextInput label="Search" placeholder="Title or internal note" value={search} onChange={(event) => { setSearch(event.currentTarget.value); setPage(1); }} style={{ flex: 1, minWidth: 220 }} />
       <SegmentedControl aria-label="Media status" value={status} onChange={(value) => { setStatus(value as typeof status); setPage(1); }} data={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }, { label: "All", value: "all" }]} />
@@ -60,7 +61,7 @@ export default function MediaLibrary() {
             {canEdit ? <Group gap="xs">
               <Tooltip label="Edit details"><ActionIcon color="gray" variant="subtle" aria-label={`Edit ${asset.title}`} onClick={() => openEdit(asset)}><IconEdit size={16} /></ActionIcon></Tooltip>
               <Tooltip label={asset.is_archived ? "Restore" : "Archive"}><ActionIcon color="gray" variant="subtle" aria-label={`${asset.is_archived ? "Restore" : "Archive"} ${asset.title}`} onClick={() => confirmArchive(asset)}>{asset.is_archived ? <IconRestore size={16} /> : <IconArchive size={16} />}</ActionIcon></Tooltip>
-              {asset.is_archived ? <Tooltip label={asset.usage_count ? "Remove all product uses first" : "Delete permanently"}><ActionIcon color="red" variant="subtle" disabled={asset.usage_count > 0} aria-label={`Permanently delete ${asset.title}`} onClick={() => confirmDelete(asset)}><IconTrash size={16} /></ActionIcon></Tooltip> : null}
+              {asset.is_archived && isOwner(admin) ? <Tooltip label={asset.usage_count ? "Remove all product uses first" : "Delete permanently"}><ActionIcon color="red" variant="subtle" disabled={asset.usage_count > 0} aria-label={`Permanently delete ${asset.title}`} onClick={() => confirmDelete(asset)}><IconTrash size={16} /></ActionIcon></Tooltip> : null}
             </Group> : null}
           </Stack>
         </Group>

@@ -4,12 +4,13 @@ import { IconChevronDown, IconLogout, IconMoon, IconSearch, IconSun } from "@tab
 import useAuth from "../../auth/useAuth";
 import Logo from "../brand/Logo";
 import NotificationBell from "./NotificationBell";
+import { roleLabels } from "../../auth/permissions";
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
 export default function AppNavbar({ mobileOpened, onToggleNavigation }: { mobileOpened: boolean; onToggleNavigation: () => void }) {
   const { logout, admin } = useAuth();
-  const roleLabel = admin?.role === "OWNER" ? "Owner" : "Staff";
+  const roleLabel = admin ? roleLabels[admin.role] : "";
   const { setColorScheme } = useMantineColorScheme();
   const dark = useComputedColorScheme("light") === "dark";
   const schemeLabel = dark ? "Switch to light mode" : "Switch to dark mode";
