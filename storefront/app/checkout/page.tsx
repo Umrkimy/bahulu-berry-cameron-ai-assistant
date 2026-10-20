@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CheckoutContent } from "../_components/checkout-content";
 import type { CheckoutStatus } from "../_lib/checkout";
+import { isAccountsEnabled } from "../_lib/accounts";
 import { isCheckoutPreviewEnabled } from "../_lib/checkout-preview";
 import { apiBaseUrl } from "../_lib/server-api";
 
@@ -23,5 +24,5 @@ async function checkoutStatus(): Promise<CheckoutStatus> {
 
 export default async function CheckoutPage() {
   if (!isCheckoutPreviewEnabled()) notFound();
-  return <CheckoutContent status={await checkoutStatus()} />;
+  return <CheckoutContent status={await checkoutStatus()} accounts={isAccountsEnabled()} />;
 }

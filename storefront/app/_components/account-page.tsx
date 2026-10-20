@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { accountCopy, type AccountCopy } from "../_lib/account-copy";
 import type { CustomerAccount } from "../_lib/accounts";
+import { returnPathAfterSignIn } from "../_lib/checkout";
 import { money } from "../_lib/content";
 import { trackingDate, trackingStage, type TrackedOrder } from "../_lib/order-tracking";
 import { trackingCopy } from "../_lib/tracking-copy";
@@ -42,6 +44,7 @@ export function AccountPage() {
   const [account, setAccount] = useState<CustomerAccount | null>(null);
   const [state, setState] = useState<"loading" | "signedOut" | "signedIn" | "error">("loading");
   const [notice, setNotice] = useState<string | null>(null);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     const result = await call<CustomerAccount>("GET", "me");
@@ -72,7 +75,7 @@ export function AccountPage() {
     <section className="shell checkout-content account-content" aria-live="polite">
       {state === "loading" ? <p className="account-loading">{text.loading}</p> : null}
       {state === "error" ? <div className="cart-error" role="alert"><p>{text.failed}</p><button type="button" className="home-text-link" onClick={() => { setState("loading"); void load(); }}>{trackingCopy[locale].tryAgain}</button></div> : null}
-      {state === "signedOut" ? <SignIn text={text} notice={notice} onSignedIn={(next) => { setNotice(null); setAccount(next); setState("signedIn"); }} /> : null}
+      {state === "signedOut" ? <SignIn text={text} notice={notice} onSignedIn={(next) => { const back = returnPathAfterSignIn(window.location.search); if (back) { router.push(back); return; } setNotice(null); setAccount(next); setState("signedIn"); }} /> : null}
       {state === "signedIn" && account ? <Dashboard text={text} account={account} onChange={setAccount} onSignedOut={signedOut} /> : null}
     </section>
   </div>;

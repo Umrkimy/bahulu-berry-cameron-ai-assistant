@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { cartCopy } from "../_lib/cart-copy";
 import {
-  checkoutFailure, checkoutPayload, emptyContact, errorsForStep, firstStepWithErrors, idempotencyKeyFor, MALAYSIAN_STATES, PENDING_CHECKOUT_KEY, safePaymentUrl, serverFieldErrors, validateCheckout,
+  CHECKOUT_PATH, checkoutFailure, checkoutPayload, emptyContact, prefillContact, errorsForStep, firstStepWithErrors, idempotencyKeyFor, MALAYSIAN_STATES, PENDING_CHECKOUT_KEY, safePaymentUrl, serverFieldErrors, validateCheckout,
   type CheckoutContact, type CheckoutErrors, type CheckoutFailure, type CheckoutField, type CheckoutResult, type CheckoutStatus, type CheckoutStep,
 } from "../_lib/checkout";
 import { money } from "../_lib/content";
 import type { StorefrontQuote } from "../_lib/types";
+import type { CustomerAccount } from "../_lib/accounts";
 import { useCart } from "./cart-provider";
 import { useLocale } from "./locale-provider";
 import { ProductArtwork } from "./product-artwork";
@@ -17,7 +18,7 @@ import { useCartQuote } from "./use-cart-quote";
 
 type Copy = (typeof cartCopy)["en"] | (typeof cartCopy)["ms"];
 
-export function CheckoutContent({ status }: { status: CheckoutStatus }) {
+export function CheckoutContent({ status, accounts = false }: { status: CheckoutStatus; accounts?: boolean }) {
   const { locale } = useLocale();
   const { items, hydrated } = useCart();
   const { quote, state, retry } = useCartQuote();
@@ -31,7 +32,7 @@ export function CheckoutContent({ status }: { status: CheckoutStatus }) {
     {state === "error" ? <div className="cart-error" role="alert"><p>{text.error}</p><button type="button" className="home-text-link" onClick={retry}>{text.retry}</button></div> : null}
     {hydrated && items.length === 0 ? <div className="cart-empty"><h2>{text.empty}</h2><Link href="/products" className="home-button">{text.browse}</Link></div> : null}
     {quote && items.length > 0 ? live ? <div className="checkout-layout">
-      <CheckoutForm quote={quote} text={text} locale={locale} />
+      <CheckoutForm quote={quote} text={text} locale={locale} accounts={accounts} />
       <OrderSummary quote={quote} text={text} locale={locale} />
     </div> : <div className="checkout-grid">
       <OrderSummary quote={quote} text={text} locale={locale} />
@@ -85,7 +86,7 @@ function failureMessage(failure: CheckoutFailure, text: Copy): string {
   }[failure];
 }
 
-function CheckoutForm({ quote, text, locale }: { quote: StorefrontQuote; text: Copy; locale: "en" | "ms" }) {
+function CheckoutForm({ quote, text, locale, accounts }: { quote: StorefrontQuote; text: Copy; locale: "en" | "ms"; accounts: boolean }) {
   const { items } = useCart();
   const [contact, setContact] = useState<CheckoutContact>(emptyContact);
   const [privacy, setPrivacy] = useState(false);
@@ -97,6 +98,31 @@ function CheckoutForm({ quote, text, locale }: { quote: StorefrontQuote; text: C
   const lastRequest = useRef<{ body: string; key: string } | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const formId = useId();
+  // With accounts on, signed-in customers get their details filled in and
+  // everyone else chooses between signing in and checking out as a guest.
+  const [access, setAccess] = useState<"checking" | "choose" | "guest" | "account">(accounts ? "checking" : "guest");
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!accounts) return;
+    let cancelled = false;
+    void (async () => {
+      let account: CustomerAccount | null = null;
+      try {
+        const response = await fetch("/storefront-data/account/me", { cache: "no-store" });
+        if (response.ok) account = await response.json() as CustomerAccount;
+      } catch { /* treated as signed out */ }
+      if (cancelled) return;
+      if (account?.email) {
+        setContact((current) => prefillContact(current, account));
+        setAccountEmail(account.email);
+        setAccess("account");
+      } else {
+        setAccess("choose");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [accounts]);
 
   // Opening a step moves focus to its heading, after React has rendered it.
   // An error summary focused later in the same frame takes precedence.
@@ -193,12 +219,23 @@ function CheckoutForm({ quote, text, locale }: { quote: StorefrontQuote; text: C
 
   const cityLine = [contact.city.trim(), contact.postal_code.trim()].filter(Boolean).join(" ");
 
+  if (access === "checking") return <p className="cart-status" role="status">{text.loading}</p>;
+  if (access === "choose") return <section className="checkout-step checkout-access" data-state="open" aria-labelledby={`${formId}-access`}>
+    <h2 id={`${formId}-access`}>{text.checkoutAs}</h2>
+    <p className="checkout-hint">{text.checkoutAsBody}</p>
+    <div className="checkout-access-actions">
+      <button type="button" className="home-button" onClick={() => { setAccess("guest"); requestAnimationFrame(() => document.getElementById(`${formId}-step-1`)?.focus()); }}>{text.continueGuest}</button>
+      <Link href={`/account?next=${CHECKOUT_PATH}`} className="home-button home-button-secondary">{text.signInToCheckout}</Link>
+    </div>
+  </section>;
+
   return <form className="checkout-form" onSubmit={submit} noValidate aria-busy={submitting}>
     {failure ? <div className="cart-error" role="alert"><p>{failureMessage(failure, text)}</p>{failure === "unavailable" || failure === "closed" ? <Link href="/cart" className="home-text-link">{text.backCart}</Link> : null}</div> : null}
 
     <CheckoutStepPanel {...stepProps(1, text.yourDetails)} summary={<>
       <p>{contact.full_name.trim()}</p><p>{contact.phone_number.trim()}</p><p>{contact.email.trim() || text.noEmail}</p>
     </>}>
+      {accountEmail ? <p className="account-notice" role="status">{text.signedInAs} <strong>{accountEmail}</strong>. {text.prefilled}</p> : null}
       {errorSummary}
       {field("full_name", text.fullName, (props) => <TextInput {...props} autoComplete="name" />)}
       {field("phone_number", text.phone, (props) => <TextInput {...props} type="tel" autoComplete="tel" inputMode="tel" />, text.phoneHint)}
