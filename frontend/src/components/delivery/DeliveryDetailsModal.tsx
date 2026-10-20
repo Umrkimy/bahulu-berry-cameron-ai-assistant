@@ -3,12 +3,13 @@ import { useEffect } from "react";
 import {
   Badge,
   Button,
-  Divider,
+  Grid,
   Group,
   Modal,
-  Paper,
+  SimpleGrid,
   Stack,
   Text,
+  Timeline,
 } from "@mantine/core";
 
 import { notifications } from "@mantine/notifications";
@@ -16,6 +17,8 @@ import { notifications } from "@mantine/notifications";
 import { useOrderDelivery } from "../../hooks/useDeliveries";
 
 import type { Delivery, DeliveryStatus } from "../../types/delivery";
+import { formatCode } from "../../utils/format";
+import { DetailField, DetailSection } from "../common/DetailSection";
 
 interface Props {
   opened: boolean;
@@ -47,7 +50,7 @@ function getStatusColor(status: DeliveryStatus) {
 }
 
 function formatStatus(status: DeliveryStatus) {
-  return status.replaceAll("_", " ");
+  return formatCode(status);
 }
 
 function formatDate(date: string | null) {
@@ -111,199 +114,72 @@ export default function DeliveryDetailsModal({
     }
   }
 
+  const steps = [
+    { label: "Shipped", at: currentDelivery.shipped_at },
+    { label: "Out for delivery", at: currentDelivery.out_for_delivery_at },
+    { label: "Delivered", at: currentDelivery.delivered_at },
+    ...(currentDelivery.failed_at ? [{ label: "Failed", at: currentDelivery.failed_at }] : []),
+  ];
+  const cityLine = [currentDelivery.postal_code, currentDelivery.city].filter(Boolean).join(" ");
+
   return (
     <Modal
       opened={opened}
       onClose={onClose}
       centered
-      size="xl"
+      size="min(1000px, 100%)"
       radius="md"
       padding="xl"
       title={
-        <Stack gap={2}>
-          <Text fw={600} size="lg">
-            Delivery Details
-          </Text>
-
-          <Text size="sm" c="dimmed">
-            Order #{currentDelivery.order_id}
-          </Text>
-        </Stack>
+        <Group gap="sm" wrap="wrap">
+          <Text fw={700} size="lg">Delivery · Order #{currentDelivery.order_id}</Text>
+          <Badge color={getStatusColor(currentDelivery.status)} variant="light">{formatStatus(currentDelivery.status)}</Badge>
+        </Group>
       }
     >
-      <Stack gap="lg">
-        {/* STATUS */}
+      <Grid gap="lg">
+        <Grid.Col span={{ base: 12, md: 7 }}>
+          <Stack gap="lg">
+            <DetailSection title="Recipient">
+              <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="lg" verticalSpacing="md">
+                <DetailField label="Name">{currentDelivery.recipient_name ?? "—"}</DetailField>
+                <DetailField label="Phone">{currentDelivery.recipient_phone ?? "—"}</DetailField>
+              </SimpleGrid>
+              <DetailField label="Address">
+                {[currentDelivery.address, cityLine, currentDelivery.state, currentDelivery.country].filter(Boolean).map((line) => <div key={line}>{line}</div>)}
+              </DetailField>
+            </DetailSection>
 
-        <Paper withBorder radius="md" p="md">
-          <Group justify="space-between">
-            <div>
-              <Text size="sm" c="dimmed">
-                Delivery Status
-              </Text>
-
-              <Text fw={600} size="lg" mt={4}>
-                {formatStatus(currentDelivery.status)}
-              </Text>
-            </div>
-
-            <Badge
-              size="lg"
-              color={getStatusColor(currentDelivery.status)}
-              variant="light"
-            >
-              {formatStatus(currentDelivery.status)}
-            </Badge>
-          </Group>
-        </Paper>
-
-        {/* RECIPIENT */}
-
-        <Divider label="Recipient" labelPosition="center" />
-
-        <Paper withBorder radius="md" p="md">
-          <Stack gap="sm">
-            <Group justify="space-between">
-              <Text size="sm" c="dimmed">
-                Name
-              </Text>
-
-              <Text fw={500}>{currentDelivery.recipient_name ?? "—"}</Text>
-            </Group>
-
-            <Group justify="space-between">
-              <Text size="sm" c="dimmed">
-                Phone
-              </Text>
-
-              <Text fw={500}>{currentDelivery.recipient_phone ?? "—"}</Text>
-            </Group>
+            <DetailSection title="Shipment">
+              <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="lg" verticalSpacing="md">
+                <DetailField label="Courier">{currentDelivery.courier ?? "Not assigned"}</DetailField>
+                <DetailField label="Tracking number">
+                  <Group gap="xs" wrap="nowrap">
+                    <span>{currentDelivery.tracking_number ?? "Not assigned"}</span>
+                    {currentDelivery.tracking_number && <Button size="compact-xs" variant="default" onClick={handleCopyTrackingNumber}>Copy</Button>}
+                  </Group>
+                </DetailField>
+              </SimpleGrid>
+            </DetailSection>
           </Stack>
-        </Paper>
+        </Grid.Col>
 
-        {/* ADDRESS */}
-
-        <Divider label="Delivery Address" labelPosition="center" />
-
-        <Paper withBorder radius="md" p="md">
-          <Stack gap="xs">
-            <Text>{currentDelivery.address ?? "—"}</Text>
-
-            <Text>
-              {[currentDelivery.postal_code, currentDelivery.city]
-                .filter(Boolean)
-                .join(" ") || "—"}
-            </Text>
-
-            <Text>{currentDelivery.state ?? "—"}</Text>
-
-            <Text>{currentDelivery.country}</Text>
-          </Stack>
-        </Paper>
-
-        {/* SHIPMENT */}
-
-        <Divider label="Shipment" labelPosition="center" />
-
-        <Paper withBorder radius="md" p="md">
-          <Stack gap="md">
-            <Group justify="space-between">
-              <Text size="sm" c="dimmed">
-                Courier
-              </Text>
-
-              <Text fw={600}>{currentDelivery.courier ?? "Not assigned"}</Text>
-            </Group>
-
-            <Group justify="space-between" align="center">
-              <div>
-                <Text size="sm" c="dimmed">
-                  Tracking Number
-                </Text>
-
-                <Text fw={600}>
-                  {currentDelivery.tracking_number ?? "Not assigned"}
-                </Text>
-              </div>
-
-              {currentDelivery.tracking_number && (
-                <Button
-                  size="xs"
-                  variant="default"
-                  onClick={handleCopyTrackingNumber}
-                >
-                  Copy
-                </Button>
-              )}
-            </Group>
-          </Stack>
-        </Paper>
-
-        {/* TIMELINE */}
-
-        <Divider label="Delivery Timeline" labelPosition="center" />
-
-        <Paper withBorder radius="md" p="md">
-          {isLoadingDelivery ? (
-            <Text size="sm" c="dimmed">
-              Loading delivery timeline...
-            </Text>
-          ) : (
-            <Stack gap="md">
-              <Group justify="space-between">
-                <Text fw={500}>Shipped</Text>
-
-                <Text
-                  size="sm"
-                  c={currentDelivery.shipped_at ? undefined : "dimmed"}
-                >
-                  {formatDate(currentDelivery.shipped_at)}
-                </Text>
-              </Group>
-
-              <Group justify="space-between">
-                <Text fw={500}>Out for Delivery</Text>
-
-                <Text
-                  size="sm"
-                  c={currentDelivery.out_for_delivery_at ? undefined : "dimmed"}
-                >
-                  {formatDate(currentDelivery.out_for_delivery_at)}
-                </Text>
-              </Group>
-
-              <Group justify="space-between">
-                <Text fw={500}>Delivered</Text>
-
-                <Text
-                  size="sm"
-                  c={currentDelivery.delivered_at ? undefined : "dimmed"}
-                >
-                  {formatDate(currentDelivery.delivered_at)}
-                </Text>
-              </Group>
-
-              <Group justify="space-between">
-                <Text fw={500}>Failed</Text>
-
-                <Text
-                  size="sm"
-                  c={currentDelivery.failed_at ? undefined : "dimmed"}
-                >
-                  {formatDate(currentDelivery.failed_at)}
-                </Text>
-              </Group>
-            </Stack>
-          )}
-        </Paper>
-
-        {/* CLOSE */}
-
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
-            Close
-          </Button>
-        </Group>
-      </Stack>
+        <Grid.Col span={{ base: 12, md: 5 }}>
+          <DetailSection title="Timeline">
+            {isLoadingDelivery ? (
+              <Text size="sm" c="dimmed">Loading delivery timeline…</Text>
+            ) : (
+              <Timeline active={steps.filter((step) => step.at).length - 1} bulletSize={14} lineWidth={2}>
+                {steps.map((step) => (
+                  <Timeline.Item key={step.label} title={<Text size="sm" fw={500}>{step.label}</Text>} color={step.label === "Failed" ? "red" : undefined}>
+                    <Text size="sm" c="dimmed">{step.at ? formatDate(step.at) : "Not yet"}</Text>
+                  </Timeline.Item>
+                ))}
+              </Timeline>
+            )}
+          </DetailSection>
+        </Grid.Col>
+      </Grid>
     </Modal>
   );
 }
