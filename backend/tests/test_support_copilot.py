@@ -145,3 +145,22 @@ async def test_failed_knowledge_sync_rolls_back_existing_chunks(session, monkeyp
         select(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_id == faq_id)
     )).scalars().all()
     assert [chunk.content for chunk in chunks] == ["Previous approved knowledge."]
+
+
+def test_short_malay_questions_are_detected_as_malay():
+    for message in ("Ada pek hadiah tak?", "Kedai kat mana ya?"):
+        assert support_copilot._language(message, "AUTO") == "MS"
+    assert support_copilot._language("Where is your shop?", "AUTO") == "EN"
+
+
+@pytest.mark.asyncio
+async def test_punctuated_handoff_reply_is_never_a_draft(session, monkeypatch):
+    class Completions:
+        async def create(self, **_):
+            message = type("Message", (), {"content": "HANDOFF."})()
+            return type("Response", (), {"choices": [type("Choice", (), {"message": message})()], "usage": None})()
+
+    monkeypatch.setattr(support_copilot.client, "chat", type("Chat", (), {"completions": Completions()})())
+    chunk = RetrievedChunk(SupportDraftSource(type="FAQ", id=1, label="Pickup", similarity=.6), "Pickup details are confirmed by staff.", .6)
+    with pytest.raises(ValueError):
+        await support_copilot._draft(session, "How much is a box?", "EN", [chunk])
