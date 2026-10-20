@@ -1,4 +1,5 @@
 import api from "./axios";
+import type { Role } from "../auth/permissions";
 
 export interface LoginResponse {
   authenticated: boolean;
@@ -19,7 +20,7 @@ export interface Admin {
   username: string;
   email: string;
   is_superuser: boolean;
-  role: "OWNER" | "STAFF";
+  role: Role;
   is_active: boolean;
 }
 

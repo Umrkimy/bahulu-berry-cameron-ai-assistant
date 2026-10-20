@@ -25,6 +25,7 @@ import useAuth from "../../auth/useAuth";
 import { useNavigate } from "react-router-dom";
 
 import type { Delivery, DeliveryStatus } from "../../types/delivery";
+import { can } from "../../auth/permissions";
 
 interface Props {
   opened: boolean;
@@ -192,7 +193,7 @@ export default function EditDeliveryModal({
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="lg">
-          {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "DELIVERY", id: currentDelivery.id, label: `Delivery for Order #${currentDelivery.order_id}` } } }); }}>Create task for this delivery</Button></Group>}
+          {can(admin, "tasks.manage") && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "DELIVERY", id: currentDelivery.id, label: `Delivery for Order #${currentDelivery.order_id}` } } }); }}>Create task for this delivery</Button></Group>}
           {/* CURRENT STATUS */}
 
           <div>

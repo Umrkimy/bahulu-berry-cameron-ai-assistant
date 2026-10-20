@@ -11,6 +11,7 @@ from app.auth.dependencies import (
     get_current_admin,
     get_current_superuser,
 )
+from app.auth.permissions import Permission, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.inventory import Inventory
@@ -257,7 +258,7 @@ async def create_stock_movement(
 
 @router.post("/{inventory_id}/opening-balance", response_model=InventoryPublic)
 async def create_opening_balance(
-    inventory_id: int, data: OpeningBalanceCreate, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)],
+    inventory_id: int, data: OpeningBalanceCreate, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.SET_OPENING_STOCK))],
 ):
     await acquire_transaction_lock(db, f"opening-balance:{inventory_id}")
     await db.execute(select(Inventory.id).where(Inventory.id == inventory_id).with_for_update())

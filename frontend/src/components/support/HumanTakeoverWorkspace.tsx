@@ -6,13 +6,14 @@ import { useState } from "react";
 import { getSupportMessagingConversation, getSupportRequests } from "../../api/support";
 import type { SupportMessagingConversation, SupportRequest } from "../../types/support";
 import HumanTakeoverPanel from "./HumanTakeoverPanel";
+import type { Role } from "../../auth/permissions";
 
 interface TicketCardProps {
   ticket: SupportRequest;
   selected: SupportRequest | null;
   onOpen: () => void;
   conversation: SupportMessagingConversation | null | undefined;
-  currentAdmin: { id: number; role: "OWNER" | "STAFF" } | null;
+  currentAdmin: { id: number; role: Role } | null;
   onTicketChanged: (ticket: SupportRequest) => void;
   onRefresh: () => void;
 }
@@ -22,7 +23,7 @@ function TicketCard({ ticket, selected, onOpen, conversation, currentAdmin, onTi
   return <Card withBorder><Group justify="space-between"><Stack gap={1}><Text fw={600}>#{ticket.id} · {ticket.customer_name}</Text><Text size="sm" c="dimmed">{ticket.handoff_reason ?? "Human handoff"} · {ticket.handoff_state.replaceAll("_", " ")}</Text></Stack><Button variant={isOpen ? "filled" : "light"} rightSection={isOpen ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />} onClick={onOpen}>{isOpen ? "Close" : "Open"}</Button></Group>{isOpen ? <Stack mt="md"><HumanTakeoverPanel ticket={selected} conversation={conversation ?? null} currentAdmin={currentAdmin} onTicketChanged={onTicketChanged} onRefresh={onRefresh} /></Stack> : null}</Card>;
 }
 
-export default function HumanTakeoverWorkspace({ currentAdmin }: { currentAdmin: { id: number; role: "OWNER" | "STAFF" } | null }) {
+export default function HumanTakeoverWorkspace({ currentAdmin }: { currentAdmin: { id: number; role: Role } | null }) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<SupportRequest | null>(null);
   const tickets = useQuery({ queryKey: ["human-takeover-requests"], queryFn: () => getSupportRequests({ has_handoff: true, page_size: 100 }) });

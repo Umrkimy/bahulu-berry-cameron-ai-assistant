@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.dependencies import get_current_admin
+from app.auth.permissions import Permission, can, require
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.task import Task
@@ -44,13 +45,13 @@ async def list_tasks(db: Annotated[AsyncSession, Depends(get_db)], admin: Annota
         Task.due_at.asc(),
         Task.created_at.desc(),
     )
-    if admin.role != "OWNER":
+    if not can(admin, Permission.MANAGE_TASKS):
         query = query.where(Task.assigned_admin_id == admin.id)
     return (await db.execute(query)).scalars().all()
 
 
 @router.post("", response_model=TaskPublic)
-async def create_task(data: TaskInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def create_task(data: TaskInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(require(Permission.MANAGE_TASKS))]):
     await _active_assignee(db, data.assigned_admin_id)
     try:
         context_type, context_id, context_label = await resolve_task_context(db, data.context_type, data.context_id)
@@ -80,10 +81,11 @@ async def update_task(task_id: int, data: TaskUpdate, db: Annotated[AsyncSession
     item = await db.get(Task, task_id)
     if not item:
         raise HTTPException(404, "Task not found.")
-    if admin.role != "OWNER" and item.assigned_admin_id != admin.id:
+    manager = can(admin, Permission.MANAGE_TASKS)
+    if not manager and item.assigned_admin_id != admin.id:
         raise HTTPException(403, "You can only update tasks assigned to you.")
     changes = data.model_dump(exclude_unset=True)
-    if admin.role != "OWNER" and set(changes) - {"status", "completion_note"}:
+    if not manager and set(changes) - {"status", "completion_note"}:
         raise HTTPException(403, "Staff can only update their task status and completion note.")
     if any(changes.get(key) is None for key in ("status", "priority") if key in changes):
         raise HTTPException(400, "Status and priority cannot be empty.")

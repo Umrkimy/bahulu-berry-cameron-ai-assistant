@@ -116,7 +116,7 @@ export default function ProductPhotos({ productId, canEdit }: { productId: numbe
             <ActionIcon variant="default" disabled={mutation.isPending || index === images.length - 1} onClick={() => reorder(index, index + 1)} aria-label={`Move photo ${index + 1} later`}><IconArrowRight size={16} /></ActionIcon>
             <FileButton accept="image/jpeg,image/png,image/webp" onChange={(file) => file && mutation.mutate({ type: "replace", imageId: image.id, file })}>{(props) => <Button {...props} size="compact-xs" variant="default" disabled={mutation.isPending}>Replace</Button>}</FileButton>
             <ActionIcon color="red" variant="subtle" disabled={mutation.isPending} onClick={() => confirmRemove(image, index)} aria-label={`Remove photo ${index + 1}`}><IconTrash size={16} /></ActionIcon>
-          </Group> : <Text size="xs" c="dimmed">Owner access is required to change photos.</Text>}
+          </Group> : <Text size="xs" c="dimmed">Owner or Manager access is required to change photos.</Text>}
         </Stack>
       </Card>)}
     </SimpleGrid>

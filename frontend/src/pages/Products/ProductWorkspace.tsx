@@ -11,6 +11,7 @@ import ProductPhotos from "../../components/product/ProductPhotos";
 import { useCreateProduct, useProduct, useUpdateProduct } from "../../hooks/useProducts";
 import { useDiscounts } from "../../hooks/useDiscounts";
 import type { Product } from "../../types/product";
+import { can } from "../../auth/permissions";
 
 type Section = "details" | "storefront" | "photos";
 
@@ -21,7 +22,7 @@ export default function ProductWorkspace() {
   const invalidId = !creating && (!Number.isSafeInteger(productId) || (productId ?? 0) < 1);
   const productQuery = useProduct(invalidId ? null : productId);
   const { admin } = useAuth();
-  const canEdit = admin?.role === "OWNER";
+  const canEdit = can(admin, "products.manage");
   const location = useLocation();
   const navigate = useNavigate();
   const [dirty, setDirty] = useState(false);
@@ -80,7 +81,7 @@ export default function ProductWorkspace() {
       {!creating && product ? <Group><Badge color={product.is_active ? "green" : "gray"}>{product.is_active ? "Active for operations" : "Inactive"}</Badge><Badge color={product.storefront_published ? "bahulu" : "gray"}>{product.storefront_published ? "Published online" : "Storefront draft"}</Badge></Group> : null}
     </Group>
 
-    {!canEdit ? <Alert color="gray" title="Read-only access">Only an Owner can change product details, publication, or photos.</Alert> : null}
+    {!canEdit ? <Alert color="gray" title="Read-only access">Only an Owner or Manager can change product details, publication, or photos.</Alert> : null}
 
     {creating ? <ProductDetailsForm product={null} canEdit={canEdit} onDirtyChange={setDirty} /> : <>
       <Tabs value={section} onChange={openSection} keepMounted={false}>

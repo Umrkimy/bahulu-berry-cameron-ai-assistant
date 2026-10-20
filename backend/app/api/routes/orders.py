@@ -9,6 +9,7 @@ from app.auth.dependencies import (
     get_current_admin,
     get_current_superuser,
 )
+from app.auth.permissions import Permission, can
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.order import Order
@@ -239,8 +240,8 @@ async def update_order(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Payment status is updated only by verified payment events or refunds.",
         )
-    if current_admin.role != "OWNER" and update_data.get("status") == "CANCELLED":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners can cancel orders.")
+    if update_data.get("status") == "CANCELLED" and not can(current_admin, Permission.CANCEL_ORDERS):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owners and managers can cancel orders.")
 
     result = await service_update_order(
         db=db,

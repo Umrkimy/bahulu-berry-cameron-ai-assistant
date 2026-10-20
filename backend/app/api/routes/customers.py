@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.dependencies import get_current_admin
+from app.auth.permissions import Permission, require
 from app.models.admin import Admin
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerPrivate, CustomerUpdate
@@ -157,7 +158,7 @@ async def archive_customer(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_admin: Annotated[
         Admin,
-        Depends(get_current_superuser),
+        Depends(require(Permission.ARCHIVE_CUSTOMERS)),
     ],
 ):
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
@@ -185,7 +186,7 @@ async def archive_customer(
 async def restore_customer(
     customer_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[Admin, Depends(get_current_superuser)],
+    current_admin: Annotated[Admin, Depends(require(Permission.ARCHIVE_CUSTOMERS))],
 ):
     customer = await db.scalar(select(Customer).where(Customer.id == customer_id))
     if customer is None:

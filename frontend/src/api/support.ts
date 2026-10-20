@@ -1,6 +1,7 @@
 import api from "./axios";
 import type { HandoffRule, SupportDraftApproval, SupportDraftReview, SupportDraftReviewPage, KnowledgeArticle, MetaConnectionStatus, SimulatorInboundResult, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 import type { Activity } from "./activity";
+import type { Role } from "../auth/permissions";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
 export const getSupportRequests=async(filters: SupportRequestFilters = {})=> (await api.get<SupportRequestPage>("/support/requests", { params: filters })).data;
 export const createSupportRequest=async(data:SupportRequestInput)=>(await api.post<SupportRequest>("/support/requests",data)).data;
@@ -9,7 +10,7 @@ export const deleteSupportRequest=async(id:number)=>api.delete(`/support/request
 export const getSupportRequestNotes=async(id:number)=> (await api.get<SupportRequestNote[]>(`/support/requests/${id}/notes`)).data;
 export const getSupportRequestActivity=async(id:number)=> (await api.get<Activity[]>(`/support/requests/${id}/activity`)).data;
 export const createSupportRequestNote=async(id:number, content:string)=> (await api.post<SupportRequestNote>(`/support/requests/${id}/notes`, { content })).data;
-export const getSupportAssignees=async()=> (await api.get<{id:number;username:string;role:"OWNER"|"STAFF"}[]>("/support/assignees")).data;
+export const getSupportAssignees=async()=> (await api.get<{id:number;username:string;role:Role}[]>("/support/assignees")).data;
 export const getFAQs=async()=> (await api.get<SupportFAQ[]>("/support/faqs")).data;
 export const getTemplates=async()=> (await api.get<SupportTemplate[]>("/support/templates")).data;
 export const getRules=async()=> (await api.get<HandoffRule[]>("/support/rules")).data;

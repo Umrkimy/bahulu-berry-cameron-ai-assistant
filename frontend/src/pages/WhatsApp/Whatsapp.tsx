@@ -20,6 +20,7 @@ import MetaConnectionStatus from "../../components/support/MetaConnectionStatus"
 import PageHeader from "../../components/common/PageHeader";
 import type { HandoffRule, KnowledgeArticle, SupportDraft, SupportFAQ, SupportRequest, SupportStatus, SupportTemplate } from "../../types/support";
 import { formatCode } from "../../utils/format";
+import { roleLabels } from "../../auth/permissions";
 
 const statuses: SupportStatus[] = ["NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"];
 const priorities = ["LOW", "NORMAL", "HIGH", "URGENT"];
@@ -80,7 +81,7 @@ export default function WhatsApp() {
   const contentForm = useForm({ initialValues: { category: "", question_en: "", answer_en: "", question_ms: "", answer_ms: "", name: "", title_en: "", title_ms: "", content_en: "", content_ms: "", trigger: "", description: "", is_active: true } });
 
   const customerOptions = useMemo(() => (customers.data ?? []).map((customer: Customer) => ({ value: String(customer.id), label: `${customer.full_name} · ${customer.phone_number}` })), [customers.data]);
-  const teamOptions = useMemo(() => (team.data ?? []).map((member) => ({ value: String(member.id), label: `${member.username} (${member.role === "OWNER" ? "Owner" : "Staff"})` })), [team.data]);
+  const teamOptions = useMemo(() => (team.data ?? []).map((member) => ({ value: String(member.id), label: `${member.username} (${roleLabels[member.role]})` })), [team.data]);
   const teamNames = useMemo(() => new Map((team.data ?? []).map((member) => [member.id, member.username])), [team.data]);
   const invalidateQueue = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["support-requests"] }), queryClient.invalidateQueries({ queryKey: ["notifications"] })]);
   const refreshContent = async (kind: ContentKind) => {

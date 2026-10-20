@@ -33,6 +33,7 @@ import { useOrderRefundRequest } from "../../hooks/useRefundRequests";
 
 import type { Order } from "../../types/order";
 import { formatCode } from "../../utils/format";
+import { can } from "../../auth/permissions";
 
 interface Props {
   opened: boolean;
@@ -210,7 +211,7 @@ export default function OrderDetailsModal({ opened, onClose, order }: Props) {
       closeOnEscape={!createPaymentMutation.isPending && !renewPaymentMutation.isPending}
     >
       <Stack gap="lg">
-        {admin?.role === "OWNER" && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
+        {can(admin, "tasks.manage") && <Group justify="flex-end"><Button size="compact-sm" variant="default" onClick={() => { onClose(); navigate("/tasks", { state: { taskContext: { type: "ORDER", id: orderId, label: `Order #${orderId}` } } }); }}>Create task for this order</Button></Group>}
         {/* ORDER SUMMARY */}
 
         <Paper withBorder radius="md" p="md">

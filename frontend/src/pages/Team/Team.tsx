@@ -10,8 +10,9 @@ import { createTeamMember, getTeam, updateTeamMember, type TeamMember } from "..
 import { DataTable } from "../../components/common/DataTable";
 import PageHeader from "../../components/common/PageHeader";
 import { getApiError } from "../../api/errors";
+import { roleLabels, type Role } from "../../auth/permissions";
 
-const initialValues = { username: "", email: "", password: "", role: "STAFF" as "OWNER" | "STAFF", is_active: true };
+const initialValues = { username: "", email: "", password: "", role: "STAFF" as Role, is_active: true };
 
 export default function Team() {
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export default function Team() {
   const columns = useMemo<ColumnDef<TeamMember, unknown>[]>(() => [
     { accessorKey: "username", header: "Team member", cell: ({ row }) => <Text fw={600}>{row.original.username}</Text> },
     { accessorKey: "email", header: "Email" },
-    { accessorKey: "role", header: "Role", cell: ({ row }) => <Badge color={row.original.role === "OWNER" ? "bahulu" : "blue"} variant="light">{row.original.role === "OWNER" ? "Owner" : "Staff"}</Badge> },
+    { accessorKey: "role", header: "Role", cell: ({ row }) => <Badge color={row.original.role === "OWNER" ? "bahulu" : row.original.role === "MANAGER" ? "grape" : "blue"} variant="light">{roleLabels[row.original.role]}</Badge> },
     { accessorKey: "is_active", header: "Status", cell: ({ row }) => <Badge color={row.original.is_active ? "green" : "gray"} variant="light">{row.original.is_active ? "Active" : "Inactive"}</Badge> },
     { accessorKey: "created_at", header: "Added", cell: ({ row }) => <Text size="sm">{new Date(row.original.created_at).toLocaleDateString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}</Text> },
     { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs"><Tooltip label="Edit account"><ActionIcon color="gray" aria-label="Edit account" variant="subtle" onClick={() => openEdit(row.original)}><IconEdit size={16} /></ActionIcon></Tooltip><Tooltip label={row.original.is_active ? "Deactivate" : "Reactivate"}><ActionIcon aria-label={row.original.is_active ? "Deactivate account" : "Reactivate account"} color={row.original.is_active ? "red" : "green"} variant="subtle" onClick={() => changeActive(row.original)}>{row.original.is_active ? <IconUserOff size={16} /> : <IconUserCheck size={16} />}</ActionIcon></Tooltip></Group> },
@@ -39,7 +40,7 @@ export default function Team() {
         <TextInput label="Name" withAsterisk {...form.getInputProps("username")} />
         <TextInput label="Email" withAsterisk {...form.getInputProps("email")} />
         <PasswordInput label={editing ? "New password (optional)" : "Password"} withAsterisk={!editing} {...form.getInputProps("password")} />
-        <Select label="Role" data={[{ value: "STAFF", label: "Staff - daily operations" }, { value: "OWNER", label: "Owner - full access" }]} {...form.getInputProps("role")} />
+        <Select label="Role" data={[{ value: "STAFF", label: "Staff - daily operations" }, { value: "MANAGER", label: "Manager - runs the shop day to day" }, { value: "OWNER", label: "Owner - full access" }]} {...form.getInputProps("role")} />
         {editing ? <Switch label="Account is active" {...form.getInputProps("is_active", { type: "checkbox" })} /> : null}
         <Group justify="flex-end"><Button variant="default" onClick={() => setOpened(false)}>Cancel</Button><Button type="submit" loading={save.isPending}>Save account</Button></Group>
       </Stack></form>
