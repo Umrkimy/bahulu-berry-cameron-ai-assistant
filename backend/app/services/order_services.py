@@ -672,6 +672,9 @@ async def cancel_order(
 
     order.status = "CANCELLED"
     order.closed_at = datetime.now(UTC)
+    delivery = await db.scalar(select(Delivery).where(Delivery.order_id == order.id))
+    if delivery is not None and delivery.status != "DELIVERED":
+        delivery.status = "CANCELLED"
     await expire_pending_payments(db, order.id)
     if order.payment_status == "PAID":
         # Unpaid website orders that time out are cancelled quietly.

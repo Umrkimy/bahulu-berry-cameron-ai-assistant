@@ -31,6 +31,9 @@ function getStatusColor(status: DeliveryStatus) {
     case "FAILED":
       return "red";
 
+    case "CANCELLED":
+      return "gray";
+
     case "PENDING":
     default:
       return "yellow";
@@ -165,7 +168,7 @@ export default function DeliveriesTable() {
         enableSorting: false,
         cell: ({ row }) => <RowActions label={`delivery for order #${row.original.order_id}`} actions={[
           { label: "View delivery", icon: <IconEye size={16} />, onClick: () => handleView(row.original) },
-          { label: "Edit delivery", icon: <IconEdit size={16} />, onClick: () => handleEdit(row.original) },
+          { label: "Edit delivery", icon: <IconEdit size={16} />, onClick: () => handleEdit(row.original), hidden: row.original.status === "CANCELLED" },
         ] satisfies RowAction[]} />,
       },
     ],

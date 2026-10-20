@@ -43,6 +43,9 @@ function getStatusColor(status: DeliveryStatus) {
     case "FAILED":
       return "red";
 
+    case "CANCELLED":
+      return "gray";
+
     case "PENDING":
     default:
       return "yellow";
