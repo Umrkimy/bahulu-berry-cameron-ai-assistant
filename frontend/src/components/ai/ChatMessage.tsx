@@ -38,7 +38,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           px="md"
           radius="lg"
           bg={isUser ? "bahulu.6" : "var(--ui-subtle)"}
-          c={isUser ? "white" : "dark"}
+          c={isUser ? "white" : "var(--ui-ink)"}
         >
           {!isUser && message.outcome && message.outcome !== "ANSWER" && (
             <Badge mb="xs" color={message.outcome === "COMPLETED" ? "green" : message.outcome === "FAILED" ? "red" : "orange"} variant="light">

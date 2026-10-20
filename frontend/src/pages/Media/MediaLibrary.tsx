@@ -47,7 +47,7 @@ export default function MediaLibrary() {
     </Group>
     {query.isLoading ? <Text role="status" c="dimmed">Loading Media Library…</Text> : null}
     {query.isError ? <Alert color="red" title="Media Library could not be loaded"><Button variant="default" size="compact-sm" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
-    {query.isSuccess && query.data.items.length === 0 ? <Alert title="No photos found">{search ? "Try another search." : status === "archived" ? "There are no archived photos." : "Upload an approved product photo to get started."}</Alert> : null}
+    {query.isSuccess && query.data.items.length === 0 ? <Alert color="gray" title="No photos found">{search ? "Try another search." : status === "archived" ? "There are no archived photos." : "Upload an approved product photo to get started."}</Alert> : null}
     <SimpleGrid cols={view === "grid" ? { base: 1, sm: 2, lg: 3 } : 1}>
       {query.data?.items.map((asset) => <Card key={asset.id} withBorder radius="lg" p="sm">
         <Group align="flex-start" wrap="nowrap">
