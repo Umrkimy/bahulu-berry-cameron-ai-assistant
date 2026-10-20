@@ -12,6 +12,7 @@ import useAuth from "../../auth/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import type { MediaAsset } from "../../types/media";
 import { can, isOwner } from "../../auth/permissions";
+import { CardSkeleton } from "../../components/common/Skeletons";
 
 function bytes(value: number | null) {
   if (value === null) return "Size unavailable";
@@ -45,7 +46,7 @@ export default function MediaLibrary() {
       <SegmentedControl aria-label="Media status" value={status} onChange={(value) => { setStatus(value as typeof status); setPage(1); }} data={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }, { label: "All", value: "all" }]} />
       <SegmentedControl aria-label="Media layout" value={view} onChange={(value) => setView(value as typeof view)} data={[{ label: <IconLayoutGrid size={16} aria-label="Grid" />, value: "grid" }, { label: <IconList size={16} aria-label="List" />, value: "list" }]} />
     </Group>
-    {query.isLoading ? <Text role="status" c="dimmed">Loading Media Library…</Text> : null}
+    {query.isLoading ? <CardSkeleton lines={4} label="Loading Media Library" /> : null}
     {query.isError ? <Alert color="red" title="Media Library could not be loaded"><Button variant="default" size="compact-sm" onClick={() => void query.refetch()}>Try again</Button></Alert> : null}
     {query.isSuccess && query.data.items.length === 0 ? <Alert color="gray" title="No photos found">{search ? "Try another search." : status === "archived" ? "There are no archived photos." : "Upload an approved product photo to get started."}</Alert> : null}
     <SimpleGrid cols={view === "grid" ? { base: 1, sm: 2, lg: 3 } : 1}>

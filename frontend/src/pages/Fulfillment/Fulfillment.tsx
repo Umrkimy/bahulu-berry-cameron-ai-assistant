@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, TextInput } from "@mantine/core";
+import { Badge, Button, Card, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput } from "@mantine/core";
 import { IconArrowRight, IconSearch, IconTruck } from "@tabler/icons-react";
 import RecordWorkspace from "../../components/fulfillment/RecordWorkspace";
 
@@ -8,6 +8,7 @@ import PackingOrderModal from "../../components/fulfillment/PackingOrderModal";
 import { useFulfillmentQueue } from "../../hooks/useOrders";
 import type { FulfillmentOrder, FulfillmentStage } from "../../types/order";
 import { formatCode } from "../../utils/format";
+import { PageSkeleton } from "../../components/common/Skeletons";
 
 const SECTIONS: Array<{ stage: FulfillmentStage; title: string; description: string; color: string }> = [
   { stage: "NEEDS_ATTENTION", title: "Needs attention", description: "Payment or delivery issue", color: "red" },
@@ -36,7 +37,7 @@ export default function Fulfillment() {
     return <Button size="sm" variant="default" onClick={() => setRecord({ id: order.id, kind: "order" })}>Open order</Button>;
   }
 
-  if (isLoading) return <Group justify="center" py="xl"><Loader color="bahulu" /></Group>;
+  if (isLoading) return <PageSkeleton />;
   if (isError) return <Card withBorder><Stack align="center" py="xl"><Text fw={600}>Couldn’t load the fulfilment queue.</Text><Button variant="default" onClick={() => refetch()}>Try again</Button></Stack></Card>;
 
   return <>

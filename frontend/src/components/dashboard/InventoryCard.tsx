@@ -12,15 +12,14 @@ import { IconAlertTriangle } from "@tabler/icons-react";
 
 import { useDashboardInventory } from "../../hooks/useDashboardInventory";
 import AnimatedNumber from "../common/motion/AnimatedNumber";
+import { CardSkeleton } from "../common/Skeletons";
 
 export default function InventoryCard() {
   const { data, isLoading, error } = useDashboardInventory();
 
   if (isLoading) {
     return (
-      <Card withBorder>
-        Loading inventory...
-      </Card>
+      <CardSkeleton label="Loading inventory" />
     );
   }
 

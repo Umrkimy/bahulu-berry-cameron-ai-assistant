@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Grid, Group, Loader, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Grid, Group, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconDeviceDesktop, IconLanguage, IconRefresh, IconWorld } from "@tabler/icons-react";
@@ -7,12 +7,13 @@ import { useEffect, useState } from "react";
 
 import { getApiError } from "../../api/errors";
 import { checkStorefrontGoogleReadiness, getStorefrontHomepage, publishStorefrontHomepage, saveStorefrontHomepageDraft, type BilingualText, type HomepageAdminResponse, type HomepageContent } from "../../api/storefrontHomepage";
+import { PageSkeleton } from "../../components/common/Skeletons";
 
 const queryKey = ["storefront-homepage-settings"];
 
 export default function HomepageWorkspace() {
   const query = useQuery({ queryKey, queryFn: getStorefrontHomepage });
-  if (query.isLoading) return <Group justify="center" py="xl"><Loader /><Text>Loading homepage workspace…</Text></Group>;
+  if (query.isLoading) return <PageSkeleton />;
   if (query.isError || !query.data) return <Alert color="red" title="Homepage workspace could not be loaded"><Button mt="sm" variant="default" leftSection={<IconRefresh size={16} />} onClick={() => void query.refetch()}>Try again</Button></Alert>;
   return <HomepageEditor key={`${query.data.draft_version}-${query.data.published_version}`} initial={query.data} />;
 }

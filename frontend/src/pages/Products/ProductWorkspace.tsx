@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Card, Divider, Group, Loader, NumberInput, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Button, Card, Divider, Group, NumberInput, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconArrowLeft, IconCheck, IconExternalLink, IconLanguage, IconPhoto, IconSettings } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
@@ -12,6 +12,7 @@ import { useCreateProduct, useProduct, useUpdateProduct } from "../../hooks/useP
 import { useDiscounts } from "../../hooks/useDiscounts";
 import type { Product } from "../../types/product";
 import { can } from "../../auth/permissions";
+import { PageSkeleton } from "../../components/common/Skeletons";
 
 type Section = "details" | "storefront" | "photos";
 
@@ -66,7 +67,7 @@ export default function ProductWorkspace() {
   };
 
   if (invalidId) return <Alert color="red" title="Invalid product">Return to the product list and choose a valid product.</Alert>;
-  if (!creating && productQuery.isLoading) return <Group justify="center" py="xl"><Loader /><Text>Loading product workspace…</Text></Group>;
+  if (!creating && productQuery.isLoading) return <PageSkeleton />;
   if (!creating && productQuery.isError) return <Alert color="red" title="Product could not be loaded"><Button component={Link} to="/products" variant="default" mt="sm">Back to products</Button></Alert>;
   if (!creating && !productQuery.data) return null;
 

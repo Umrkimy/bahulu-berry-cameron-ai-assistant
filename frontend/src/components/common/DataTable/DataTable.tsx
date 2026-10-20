@@ -32,6 +32,7 @@ import {
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatedList, AnimatedListItem } from "../motion/AnimatedList";
+import { TableRowsSkeleton } from "../Skeletons";
 
 interface DataTableProps<TData extends object> {
   data: TData[];
@@ -275,16 +276,8 @@ export default function DataTable<TData extends object>({
               <tr><td colSpan={columns.length} style={{ padding: "40px", textAlign: "center" }}><Stack align="center" gap="xs"><Text c="red" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="default" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack></td></tr>
             ) : loading ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  style={{
-                    padding: "40px",
-                    textAlign: "center",
-                  }}
-                >
-                  <Text c="dimmed" role="status">
-                    Loading...
-                  </Text>
+                <td colSpan={columns.length} style={{ padding: 0 }}>
+                  <TableRowsSkeleton columns={Math.min(columns.length, 6)} />
                 </td>
               </tr>
             ) : rows.length === 0 ? (
@@ -329,7 +322,7 @@ export default function DataTable<TData extends object>({
         {error ? (
           <Stack align="center" py="xl" gap="xs"><Text c="red" ta="center" role="alert">{errorMessage}</Text>{onRetry ? <Button size="compact-xs" variant="default" leftSection={<IconRefresh size={16} />} onClick={onRetry}>Try again</Button> : null}</Stack>
         ) : loading ? (
-          <Text c="dimmed" ta="center" py="xl" role="status">Loading...</Text>
+          <TableRowsSkeleton rows={4} columns={2} />
         ) : rows.length === 0 ? (
           <Text c="dimmed" ta="center" py="xl">{emptyMessage}</Text>
         ) : (

@@ -1,12 +1,13 @@
 import { AppShell } from "@mantine/core";
 import { NavigationProgress, nprogress } from "@mantine/nprogress";
 import { Outlet, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import AppNavbar from "./AppNavbar";
 import AppSidebar from "./AppSidebar";
 import CommandPalette from "./CommandPalette";
 import PageReveal from "../common/motion/PageReveal";
+import { PageSkeleton } from "../common/Skeletons";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -56,7 +57,7 @@ export default function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main id="main-content" ref={mainContentRef} tabIndex={-1} aria-label="Admin workspace">
-        <div className="workspace-content"><PageReveal pageKey={location.pathname}><Outlet /></PageReveal></div>
+        <div className="workspace-content"><PageReveal pageKey={location.pathname}><Suspense key={location.pathname} fallback={<PageSkeleton />}><Outlet /></Suspense></PageReveal></div>
       </AppShell.Main>
       </AppShell>
     </>
