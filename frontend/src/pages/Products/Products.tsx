@@ -1,5 +1,5 @@
-import { Button, Group } from "@mantine/core";
-import { IconDownload, IconUpload } from "@tabler/icons-react";
+import { Button, Group, Menu } from "@mantine/core";
+import { IconChevronDown, IconDownload, IconUpload } from "@tabler/icons-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -29,7 +29,7 @@ export default function ProductsPage() {
       <PageHeader
         title="Products"
         description="Manage products, prices, promotions, and availability."
-        action={canManage ? <Group gap="xs"><Button variant="default" leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>CSV template</Button><Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import CSV</Button><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
+        action={canManage ? <Group gap="xs"><Menu position="bottom-end" withinPortal><Menu.Target><Button variant="default" rightSection={<IconChevronDown size={16} />}>CSV</Button></Menu.Target><Menu.Dropdown><Menu.Item leftSection={<IconUpload size={16} />} onClick={() => setImportOpened(true)}>Import products from CSV</Menu.Item><Menu.Item leftSection={<IconDownload size={16} />} onClick={() => void downloadTemplate()}>Download CSV template</Menu.Item></Menu.Dropdown></Menu><Button onClick={() => navigate("/products/new")}>Add Product</Button></Group> : undefined}
       />
 
       <ProductTable onEdit={(product) => navigate(`/products/${product.id}`)} />

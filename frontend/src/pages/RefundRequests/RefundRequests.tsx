@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { ActionIcon, Badge, Button, Group, Modal, Select, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { Badge, Button, Group, Modal, Select, Stack, Text, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -16,6 +16,7 @@ import type { RefundRequest, RefundRequestStatus } from "../../types/refundReque
 import { getApiError } from "../../api/errors";
 import type { DashboardRouteState } from "../../types/navigation";
 import { formatCode } from "../../utils/format";
+import RowActions from "../../components/common/DataTable/RowActions";
 
 const statusColor: Record<RefundRequestStatus, string> = { REQUESTED: "yellow", UNDER_REVIEW: "blue", APPROVED: "violet", REJECTED: "red", REFUNDED: "green" };
 const nextStatuses: Record<RefundRequestStatus, RefundRequestStatus[]> = { REQUESTED: ["UNDER_REVIEW", "APPROVED", "REJECTED"], UNDER_REVIEW: ["APPROVED", "REJECTED"], APPROVED: ["REJECTED"], REJECTED: [], REFUNDED: [] };
@@ -95,7 +96,7 @@ export default function RefundRequests() {
     { id: "amount", accessorFn: (row) => Number(row.order_total), header: "Amount", cell: ({ row }) => <Text fw={600}>RM {Number(row.original.order_total).toFixed(2)}</Text> },
     { id: "status", accessorKey: "status", header: "Status", cell: ({ row }) => <Badge color={statusColor[row.original.status]} variant="light">{formatCode(row.original.status)}</Badge> },
     { id: "requested", accessorKey: "created_at", header: "Requested", cell: ({ row }) => <Text size="sm">{new Date(row.original.created_at).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}</Text> },
-    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs">{admin?.role === "OWNER" && nextStatuses[row.original.status].length > 0 && <Tooltip label="Review request"><ActionIcon variant="subtle" color="gray" onClick={() => openReview(row.original)} aria-label="Review refund request"><IconChecklist size={18} /></ActionIcon></Tooltip>}{admin?.role === "OWNER" && row.original.status === "APPROVED" && <Tooltip label="Refund payment"><ActionIcon variant="subtle" color="red" onClick={() => confirmRefund(row.original)} aria-label="Refund payment" loading={refundMutation.isPending}><IconCash size={18} /></ActionIcon></Tooltip>}</Group> },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <RowActions label={`refund request for order #${row.original.order_id}`} actions={[{ label: "Review request", icon: <IconChecklist size={16} />, hidden: admin?.role !== "OWNER" || nextStatuses[row.original.status].length === 0, onClick: () => openReview(row.original) }, { label: "Refund payment", icon: <IconCash size={16} />, color: "red", hidden: admin?.role !== "OWNER" || row.original.status !== "APPROVED", disabled: refundMutation.isPending, onClick: () => confirmRefund(row.original) }]} /> },
   ], [admin?.role, confirmRefund, openReview, refundMutation.isPending]);
 
   return <>

@@ -289,7 +289,7 @@ function AccountChat() {
             <ChatInput onSend={handleSend} loading={loading} />
 
             <Text ta="center" size="sm" c="dimmed" mt={6}>
-              AI uses live dashboard data. Staff can only ask read-only
+              AI uses live dashboard data. Staff and Managers can only ask read-only
               questions; owners must confirm every change.
             </Text>
           </Box>

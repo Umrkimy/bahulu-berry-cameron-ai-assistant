@@ -55,6 +55,12 @@ interface DataTableProps<TData extends object> {
   };
   renderMobileCard?: (record: TData) => ReactNode;
   tableLabel?: string;
+  onRowClick?: (record: TData) => void;
+}
+
+// Row clicks are a mouse shortcut; every action stays reachable from the row's own controls.
+function isInteractive(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("button, a, input, select, textarea, [role='menuitem'], [role='menu']"));
 }
 
 export default function DataTable<TData extends object>({
@@ -73,6 +79,7 @@ export default function DataTable<TData extends object>({
   manualPagination,
   renderMobileCard,
   tableLabel = "Records",
+  onRowClick,
 }: DataTableProps<TData>) {
   const scrollGuidanceId = useId();
   const [globalFilter, setGlobalFilter] = useState("");
@@ -298,7 +305,7 @@ export default function DataTable<TData extends object>({
             ) : (
               /* ROWS */
               rows.map((row) => (
-                <tr key={row.id} className="data-table-row">
+                <tr key={row.id} className="data-table-row" data-clickable={onRowClick ? true : undefined} onClick={onRowClick ? (event) => { if (!isInteractive(event.target)) onRowClick(row.original); } : undefined}>
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
@@ -328,7 +335,7 @@ export default function DataTable<TData extends object>({
         ) : (
           <Stack gap="sm">
             <AnimatedList>{rows.map((row) => renderMobileCard ? (
-              <AnimatedListItem key={row.id} itemKey={row.id}><Box>{renderMobileCard(row.original)}</Box></AnimatedListItem>
+              <AnimatedListItem key={row.id} itemKey={row.id}><Box className="data-table-mobile-item" data-clickable={onRowClick ? true : undefined} onClick={onRowClick ? (event) => { if (!isInteractive(event.target)) onRowClick(row.original); } : undefined}>{renderMobileCard(row.original)}</Box></AnimatedListItem>
             ) : (
               <AnimatedListItem key={row.id} itemKey={row.id}><Card withBorder radius="md" p="sm" className="data-table-mobile-card">
                 <Stack gap="xs">

@@ -13,7 +13,7 @@ const prompts = [
 ];
 
 export default function StaffQuickPrompts({ onSelect }: { onSelect: (message: string) => void }) {
-  return <Stack gap="md" w="100%" maw={760}><Stack gap={2} ta="center"><Text fw={600} size="lg">Operations Copilot</Text><Text size="sm" c="dimmed">Use live data for daily work. Staff access is read-only.</Text></Stack><SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">{prompts.map(({ label, description, message, href, icon: Icon }) => {
+  return <Stack gap="md" w="100%" maw={760}><Text size="sm" c="dimmed" ta="center">Start with one of these, or type your own question below.</Text><SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">{prompts.map(({ label, description, message, href, icon: Icon }) => {
     const body = <><span className="list-row-icon"><Icon size={16} stroke={1.75} /></span><span><Text fw={500} size="sm">{label}</Text><Text size="sm" c="dimmed">{description}</Text></span></>;
     return href
       ? <UnstyledButton key={label} component={Link} to={href} className="prompt-tile" aria-label={`Open Support Queue: ${label}`}>{body}</UnstyledButton>

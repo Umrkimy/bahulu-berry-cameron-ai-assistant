@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ActionIcon, Badge, Card, Group, Text, Tooltip } from "@mantine/core";
+import { Badge, Card, Text } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "../common/DataTable";
+import RowActions, { type RowAction } from "../common/DataTable/RowActions";
 
 import { useDeliveries } from "../../hooks/useDeliveries";
 
@@ -162,33 +163,10 @@ export default function DeliveriesTable() {
         id: "actions",
         header: "Actions",
         enableSorting: false,
-        cell: ({ row }) => (
-          <Group gap="xs">
-            <Tooltip label="View delivery" withArrow>
-              <ActionIcon
-                size="lg"
-                variant="subtle"
-                color="gray"
-                onClick={() => handleView(row.original)}
-                aria-label="View delivery"
-              >
-                <IconEye size={20} />
-              </ActionIcon>
-            </Tooltip>
-
-            <Tooltip label="Edit delivery" withArrow>
-              <ActionIcon
-                size="lg"
-                variant="subtle"
-                color="gray"
-                onClick={() => handleEdit(row.original)}
-                aria-label="Edit delivery"
-              >
-                <IconEdit size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        ),
+        cell: ({ row }) => <RowActions label={`delivery for order #${row.original.order_id}`} actions={[
+          { label: "View delivery", icon: <IconEye size={16} />, onClick: () => handleView(row.original) },
+          { label: "Edit delivery", icon: <IconEdit size={16} />, onClick: () => handleEdit(row.original) },
+        ] satisfies RowAction[]} />,
       },
     ],
     [],
@@ -213,6 +191,7 @@ export default function DeliveriesTable() {
           onRetry={() => void refetch()}
           searchPlaceholder="Search deliveries..."
           emptyMessage="No deliveries found."
+          onRowClick={handleView}
         />
       </Card>
 

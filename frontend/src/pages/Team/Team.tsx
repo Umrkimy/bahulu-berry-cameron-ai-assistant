@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, Group, Modal, PasswordInput, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { Badge, Button, Group, Modal, PasswordInput, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
@@ -11,6 +11,7 @@ import { DataTable } from "../../components/common/DataTable";
 import PageHeader from "../../components/common/PageHeader";
 import { getApiError } from "../../api/errors";
 import { roleLabels, type Role } from "../../auth/permissions";
+import RowActions from "../../components/common/DataTable/RowActions";
 
 const initialValues = { username: "", email: "", password: "", role: "STAFF" as Role, is_active: true };
 
@@ -30,11 +31,11 @@ export default function Team() {
     { accessorKey: "role", header: "Role", cell: ({ row }) => <Badge color={row.original.role === "OWNER" ? "bahulu" : row.original.role === "MANAGER" ? "grape" : "blue"} variant="light">{roleLabels[row.original.role]}</Badge> },
     { accessorKey: "is_active", header: "Status", cell: ({ row }) => <Badge color={row.original.is_active ? "green" : "gray"} variant="light">{row.original.is_active ? "Active" : "Inactive"}</Badge> },
     { accessorKey: "created_at", header: "Added", cell: ({ row }) => <Text size="sm">{new Date(row.original.created_at).toLocaleDateString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}</Text> },
-    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <Group gap="xs"><Tooltip label="Edit account"><ActionIcon color="gray" aria-label="Edit account" variant="subtle" onClick={() => openEdit(row.original)}><IconEdit size={16} /></ActionIcon></Tooltip><Tooltip label={row.original.is_active ? "Deactivate" : "Reactivate"}><ActionIcon aria-label={row.original.is_active ? "Deactivate account" : "Reactivate account"} color={row.original.is_active ? "red" : "green"} variant="subtle" onClick={() => changeActive(row.original)}>{row.original.is_active ? <IconUserOff size={16} /> : <IconUserCheck size={16} />}</ActionIcon></Tooltip></Group> },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <RowActions label={row.original.username} actions={[{ label: "Edit account", icon: <IconEdit size={16} />, onClick: () => openEdit(row.original) }, { label: row.original.is_active ? "Deactivate account" : "Reactivate account", icon: row.original.is_active ? <IconUserOff size={16} /> : <IconUserCheck size={16} />, color: row.original.is_active ? "red" : undefined, onClick: () => changeActive(row.original) }]} /> },
   ], [changeActive, openEdit]);
   return <>
-    <PageHeader title="Team & Roles" description="Manage owner and staff access to the dashboard." action={<Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Add team member</Button>} />
-    <DataTable data={data} columns={columns} loading={isLoading} error={isError} errorMessage="We couldn't load team members." onRetry={() => void refetch()} searchPlaceholder="Search team members..." emptyMessage="No team members found." />
+    <PageHeader title="Team & Roles" description="Choose who can use the dashboard and whether they are an Owner, Manager or Staff." action={<Button leftSection={<IconPlus size={16} />} onClick={openCreate}>Add team member</Button>} />
+    <DataTable data={data} columns={columns} loading={isLoading} onRowClick={openEdit} error={isError} errorMessage="We couldn't load team members." onRetry={() => void refetch()} searchPlaceholder="Search team members..." emptyMessage="No team members found." />
     <Modal opened={opened} onClose={() => !save.isPending && setOpened(false)} title={editing ? "Edit team member" : "Add team member"} centered>
       <form onSubmit={form.onSubmit(() => save.mutate())}><Stack>
         <TextInput label="Name" withAsterisk {...form.getInputProps("username")} />
