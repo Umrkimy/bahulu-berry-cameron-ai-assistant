@@ -7,7 +7,8 @@ import { getCatalogueProducts, getProduct } from "../app/_lib/api.ts";
 afterEach(() => mock.restoreAll());
 test("media URLs only address product image records", () => {
   assert.equal(productMediaUrl("/api/storefront/products/1/images/2/content"), "/product-media/1/2");
-  for (const path of [null, "https://example.test/private", "/api/auth", "/static/product_images/x.jpg", "/api/storefront/products/../images/2/content"]) assert.equal(productMediaUrl(path), null);
+  assert.equal(productMediaUrl("/api/storefront/products/1/images/2/content?v=0a1b2c3d4e5f"), "/product-media/1/2?v=0a1b2c3d4e5f");
+  for (const path of [null, "https://example.test/private", "/api/auth", "/static/product_images/x.jpg", "/api/storefront/products/../images/2/content", "/api/storefront/products/1/images/2/content?v=x", "/api/storefront/products/1/images/2/content?v=7"]) assert.equal(productMediaUrl(path), null);
 });
 test("media proxy rejects invalid IDs without contacting another host", async () => {
   const fetch = mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected fetch"); });
@@ -21,6 +22,13 @@ test("media proxy rejects non-image content and does not cache failures", async 
   assert.equal(response.status, 502);
   assert.equal(await response.text(), "");
   assert.equal(response.headers.get("cache-control"), "no-store");
+});
+test("only versioned photos may be cached", async () => {
+  mock.method(globalThis, "fetch", async () => new Response("img", { headers: { "Content-Type": "image/webp" } }));
+  const cacheFor = async (url) => (await GET(new Request(url), { params: Promise.resolve({ productId: "1", imageId: "2" }) })).headers.get("cache-control");
+  assert.equal(await cacheFor("http://localhost/product-media/1/2?v=0a1b2c3d4e5f"), "public, max-age=86400");
+  assert.equal(await cacheFor("http://localhost/product-media/1/2"), "no-store");
+  assert.equal(await cacheFor("http://localhost/product-media/1/2?v=abc"), "no-store");
 });
 test("all product data reads are fresh, including detail", async () => {
   const fetch = mock.method(globalThis, "fetch", async () => Response.json({ items: [], pages: 0 }));

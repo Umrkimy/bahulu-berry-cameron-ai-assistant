@@ -75,8 +75,15 @@ async def test_full_gallery_publish_and_reload_workflow(client, session):
     assert Image.open(BytesIO(original)).format == "WEBP"
     assert (await client.put(f"/api/products/{pid}/images", json={"image_ids": [second['id'], first['id']]})).status_code == 200
     assert (await client.get(f"/api/storefront/products/{pid}")).json()["images"][0]["id"] == second["id"]
+    def public_path(product, image_id):
+        return next(image["image_path"] for image in product["images"] if image["id"] == image_id)
+
+    versioned = public_path((await client.get(f"/api/storefront/products/{pid}")).json(), first["id"])
+    assert versioned.startswith(f"{public_first}?v=")
+    assert (await client.get(versioned)).status_code == 200
     assert (await client.put(f"/api/products/{pid}/images/{first['id']}", files={"file": ("replacement.jpg", photo("green", "JPEG"))})).status_code == 200
     assert (await client.get(public_first)).content != original
+    assert public_path((await client.get(f"/api/storefront/products/{pid}")).json(), first["id"]) != versioned
     assert (await client.patch(f"/api/products/{pid}", json={"price": "18.00", "description": "Fictional updated description"})).status_code == 200
     inventory = await session.scalar(select(Inventory).where(Inventory.product_id == pid))
     inventory.quantity = 0

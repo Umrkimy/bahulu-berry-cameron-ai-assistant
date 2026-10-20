@@ -13,6 +13,7 @@ import { AddToCartButton } from "./add-to-cart-button";
 import { secondPhoto } from "./product-card";
 import { productCopy } from "../_lib/product-view";
 import { Stagger, StaggerItem } from "./motion";
+import { HomeProductsSkeleton } from "./skeletons";
 
 export function HomeCollection({ products, state }: { products: StorefrontProduct[]; state: "ready" | "loading" | "error" }) {
   const { locale } = useLocale();
@@ -21,8 +22,9 @@ export function HomeCollection({ products, state }: { products: StorefrontProduc
   const router = useRouter();
   const [retrying, startTransition] = useTransition();
 
+  if (state === "loading") return <HomeProductsSkeleton />;
   if (state !== "ready" || products.length === 0) {
-    const loading = state === "loading" || retrying;
+    const loading = retrying;
     return <div className="collection-state" aria-busy={loading}>
       <div role="status"><h3>{loading ? text.loading : state === "error" ? text.errorTitle : text.emptyTitle}</h3>{state === "error" && !loading ? <p>{text.errorBody}</p> : null}</div>
       {state === "error" ? <button type="button" className="home-text-link" disabled={retrying} onClick={() => startTransition(() => router.refresh())}>{retrying ? text.loading : text.retry}</button> : null}

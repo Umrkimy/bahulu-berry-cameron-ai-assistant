@@ -1,3 +1,4 @@
+import hashlib
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Annotated
 
@@ -117,6 +118,11 @@ def _promotion_label(discount) -> str:
     return f"Buy {discount.bundle_quantity} for RM {_money(Decimal(str(discount.discount_value)))}"
 
 
+def _photo_version(image) -> str:
+    # Changes when the photo is replaced, without exposing media asset IDs.
+    return hashlib.sha256(image.asset.storage_key.encode()).hexdigest()[:12]
+
+
 def _serialize_product(product: Product) -> StorefrontProduct:
     promotions = [
         StorefrontPromotion(
@@ -129,7 +135,7 @@ def _serialize_product(product: Product) -> StorefrontProduct:
     ]
     unit_price = _money(Decimal(str(product.price)))
     images = [ProductImagePublic(id=image.id, position=image.position,
-        image_path=f"/api/storefront/products/{product.id}/images/{image.id}/content") for image in product.images]
+        image_path=f"/api/storefront/products/{product.id}/images/{image.id}/content?v={_photo_version(image)}") for image in product.images]
 
     return StorefrontProduct(
         id=product.id,
