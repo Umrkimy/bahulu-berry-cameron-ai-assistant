@@ -9,6 +9,7 @@ import {
   type LookupErrors, type TrackedOrder,
 } from "../_lib/order-tracking";
 import { trackingCopy, type TrackingCopy } from "../_lib/tracking-copy";
+import { whatsAppNumber, whatsAppUrl } from "../_lib/whatsapp";
 import { useLocale } from "./locale-provider";
 
 type TrackedOrderResult = { state: "found"; order: TrackedOrder } | { state: "missing" } | { state: "error" };
@@ -80,8 +81,20 @@ export function TrackedOrderView({ order }: { order: TrackedOrder }) {
       </> : null}
       <p className="checkout-total"><span>{text.total}</span><strong>{money(order.total_amount)}</strong></p>
     </section>
-    <p className="tracking-note">{text.help}</p>
+    <OrderHelp orderNumber={order.order_number} text={text} />
   </article>;
+}
+
+function OrderHelp({ orderNumber, text }: { orderNumber: number; text: TrackingCopy }) {
+  const number = whatsAppNumber();
+  return <section className="checkout-panel tracking-help" aria-labelledby="tracking-help">
+    <h3 id="tracking-help">{text.helpTitle}</h3>
+    <p>{text.helpBody}</p>
+    <div className="tracking-help-actions">
+      {number ? <a className="home-button" href={whatsAppUrl(number, `${text.helpMessage}${orderNumber}`)} target="_blank" rel="noreferrer">{text.helpWhatsApp}<span aria-hidden="true">↗</span></a> : null}
+      <Link href="/policies/refunds" className="home-text-link">{text.helpPolicy}</Link>
+    </div>
+  </section>;
 }
 
 export function FindOrder() {

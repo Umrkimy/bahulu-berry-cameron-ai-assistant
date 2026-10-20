@@ -77,3 +77,12 @@ class OrderPrivate(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+
+class OrderLineSummary(BaseModel):
+    product_name: str
+    quantity: int
+
+
+class OrderListPrivate(OrderPrivate):
+    items: list[OrderLineSummary] = []

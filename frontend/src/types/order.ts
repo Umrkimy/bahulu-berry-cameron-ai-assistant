@@ -29,6 +29,12 @@ export interface Order {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  items?: OrderLineSummary[];
+}
+
+export interface OrderLineSummary {
+  product_name: string;
+  quantity: number;
 }
 
 export interface OrderItem {
