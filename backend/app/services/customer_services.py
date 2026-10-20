@@ -32,26 +32,27 @@ async def find_customer(
         pass
     normalized_email = normalize_email(identifier) if "@" in identifier else None
 
+    exact_matches = [
+        func.lower(Customer.full_name) == identifier.lower(),
+        Customer.phone_number == identifier,
+        func.lower(Customer.email) == (normalized_email or identifier.lower()),
+    ]
+    if normalized_phone:
+        exact_matches.append(Customer.canonical_phone_number == normalized_phone)
+    if normalized_email:
+        exact_matches.append(Customer.canonical_email == normalized_email)
+
     result = await db.execute(
         select(Customer).where(
             Customer.is_archived.is_(False),
-            or_(
-                func.lower(
-                    Customer.full_name
-                ) == identifier.lower(),
-
-                Customer.canonical_phone_number == normalized_phone,
-                Customer.phone_number == identifier,
-
-                Customer.canonical_email == normalized_email,
-                func.lower(Customer.email) == (normalized_email or identifier.lower()),
-            )
+            or_(*exact_matches),
         )
     )
 
-    customer = result.scalar_one_or_none()
+    exact_customers = result.scalars().all()
 
-    if customer is not None:
+    if len(exact_customers) == 1:
+        customer = exact_customers[0]
 
         return {
             "success": True,

@@ -41,7 +41,7 @@ class RetrievedChunk:
 
 def _language(message: str, requested: str) -> str:
     if requested in {"EN", "MS"}: return requested
-    markers = {"saya", "boleh", "berapa", "harga", "penghantaran", "pesanan", "tolong", "nak", "adakah"}
+    markers = {"saya", "boleh", "berapa", "harga", "penghantaran", "pesanan", "tolong", "nak", "adakah", "ada", "tak", "kat", "mana", "kedai", "beli", "bila", "apa", "bagaimana", "macam", "ni", "dah", "sudah"}
     return "MS" if markers & set(re.findall(r"[a-zA-Z0-9]+", message.lower())) else "EN"
 
 def _handoff_reason(message: str, rules: list[HandoffRule]) -> str | None:
@@ -127,7 +127,7 @@ async def _draft(db: AsyncSession, message: str, language: str, chunks: list[Ret
     await settle_ai_usage(db, usage, input_tokens=provider_usage.prompt_tokens if provider_usage else 0, output_tokens=provider_usage.completion_tokens if provider_usage else 0, outcome="COMPLETED")
     _add_draft_cost(usage)
     reply = (response.choices[0].message.content or "").strip()
-    if not reply or reply.upper() == "HANDOFF": raise ValueError("Unsupported answer")
+    if not reply or re.fullmatch(r"\W*handoff\W*", reply, re.IGNORECASE): raise ValueError("Unsupported answer")
     return reply
 
 def _split(content: str, size: int = 1800, overlap: int = 250) -> list[str]:
