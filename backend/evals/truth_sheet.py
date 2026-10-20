@@ -21,7 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).parent
-MALAY_MARKERS = {"anda", "ini", "hari", "ada", "tiada", "pesanan", "stok", "untuk", "yang", "dan", "tidak", "boleh", "sila", "kami", "saya", "akan", "dengan", "belum", "sudah", "telah", "masa", "staf", "tak", "pelanggan"}
+MALAY_MARKERS = {"anda", "ini", "hari", "ada", "tiada", "pesanan", "stok", "untuk", "yang", "dan", "tidak", "boleh", "sila", "kami", "saya", "akan", "dengan", "belum", "sudah", "telah", "masa", "staf", "tak", "pelanggan", "dalam", "adalah", "ialah", "maaf", "pembantu", "kita", "jika", "atau", "perlu"}
 
 
 def looks_malay(text: str) -> bool:

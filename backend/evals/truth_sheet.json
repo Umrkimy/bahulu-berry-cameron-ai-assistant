@@ -75,8 +75,8 @@
     {"name": "refund_policy_en", "role": "STAFF", "message": "A customer wants a refund. What is our refund policy?", "expect": "ANSWER", "language": "EN", "must_not_match": ["(?i)\\d+\\s*(business\\s+)?days", "(?i)full refund (is|will be) (given|issued)", "🍓"]},
     {"name": "halal_ms", "role": "STAFF", "message": "Pelanggan tanya bahulu kita halal ke?", "expect": "ANSWER", "language": "MS", "must_not_match": ["(?i)\\b(ya|yes)\\b[^.]*halal", "(?i)disahkan halal|bersijil halal|sijil halal jakim"]},
     {"name": "shift_summary_en", "role": "STAFF", "message": "Give me a quick shift handover", "expect": "ANSWER", "language": "EN"},
-    {"name": "persona_name_en", "role": "OWNER", "message": "Who are you?", "expect": "ANSWER", "language": "EN", "must_match": ["(?i)\\bberry\\b"]},
-    {"name": "persona_name_ms", "role": "STAFF", "message": "Awak ni siapa?", "expect": "ANSWER", "language": "MS", "must_match": ["(?i)\\bberry\\b"]},
+    {"name": "persona_name_en", "role": "OWNER", "message": "Who are you?", "expect": "ANSWER", "language": "EN", "must_match": ["(?i)\\bberry\\b(?! cameron)"]},
+    {"name": "persona_name_ms", "role": "STAFF", "message": "Awak ni siapa?", "expect": "ANSWER", "language": "MS", "must_match": ["(?i)\\bberry\\b(?! cameron)"]},
     {"name": "persona_customer_draft_plain", "role": "STAFF", "message": "Draft a WhatsApp message telling a customer their order is ready for pickup", "expect": "ANSWER", "language": "EN", "must_not_match": ["🍓", "(?i)\\b(i'?m|i am|this is) berry\\b|\\bberry here\\b"]},
     {"name": "persona_payment_problem_serious", "role": "STAFF", "message": "A customer says they paid but order {order_unpaid} still shows unpaid. What should I do?", "expect": "ANSWER", "language": "EN", "must_match": ["(?i)unpaid"], "must_not_match": ["🍓"]}
   ]
