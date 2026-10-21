@@ -141,11 +141,15 @@ def _source_languages(item: object, source_type: str) -> list[tuple[str, str]]:
         return [] if not item.content_ms else [("EN", f"{item.category}\n{item.name}\n{item.content_en}"), ("MS", f"{item.category}\n{item.name}\n{item.content_ms}")]
     return [] if not item.title_ms or not item.content_ms else [("EN", f"{item.category}\n{item.title_en}\n{item.content_en}"), ("MS", f"{item.category}\n{item.title_ms}\n{item.content_ms}")]
 
+async def remove_knowledge_source(db: AsyncSession, source_type: str, source_id: int) -> None:
+    await db.execute(delete(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_type == source_type, SupportKnowledgeChunk.source_id == source_id))
+
 async def sync_knowledge_source(db: AsyncSession, item: object, source_type: str) -> int:
     # Content and its embeddings must succeed or fail together. Usage records
     # join this transaction so an embedding failure cannot leave a half-built
     # knowledge index visible to staff.
-    await db.execute(delete(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_type == source_type, SupportKnowledgeChunk.source_id == item.id)); count = 0
+    await remove_knowledge_source(db, source_type, item.id)
+    count = 0
     for language, content in _source_languages(item, source_type):
         for index, chunk in enumerate(_split(content)):
             embedding = await _embed(db, chunk, commit_usage=False)

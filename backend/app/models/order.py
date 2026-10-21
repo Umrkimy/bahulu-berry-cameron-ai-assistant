@@ -10,7 +10,6 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
-    Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

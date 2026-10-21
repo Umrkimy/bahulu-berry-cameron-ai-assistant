@@ -171,7 +171,7 @@ async def seed_demo() -> None:
             order_id=order.id,
             product_id=product.id,
         )
-        payment = await first_or_create(
+        await first_or_create(
             session,
             Payment,
             {
