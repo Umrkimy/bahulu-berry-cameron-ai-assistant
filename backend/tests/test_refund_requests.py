@@ -23,7 +23,7 @@ def staff_request() -> Request:
 async def setup_paid_order(session, order_status="PROCESSING"):
     staff = Admin(username="staff", email="staff@example.com", password_hash="x", role="STAFF", is_superuser=False, is_active=True)
     owner = Admin(username="owner", email="owner@example.com", password_hash="x", role="OWNER", is_superuser=True, is_active=True)
-    customer = Customer(full_name="Umar", phone_number="0123456789")
+    customer = Customer(full_name="Umar", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add_all([staff, owner, customer])
     await session.flush()
     order = Order(

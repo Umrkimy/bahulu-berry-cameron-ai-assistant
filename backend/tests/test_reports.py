@@ -31,7 +31,7 @@ def test_report_range_validation_and_presets():
 @pytest.mark.asyncio
 async def test_owner_report_uses_historical_snapshots_and_safe_csv(session):
     owner = Admin(username="owner", email="owner@example.test", password_hash="test", role="OWNER", is_active=True)
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     product = Product(name="Fictional Berry Box", price=Decimal("20.00"), is_active=True)
     inactive_product = Product(name="Inactive", price=Decimal("20.00"), is_active=False)
     session.add_all([owner, customer, product, inactive_product])

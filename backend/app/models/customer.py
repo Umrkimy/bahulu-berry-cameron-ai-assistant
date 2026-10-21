@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -14,6 +14,10 @@ if TYPE_CHECKING:
 
 class Customer(Base):
     __tablename__ = "customers"
+    __table_args__ = (
+        Index("uq_customers_canonical_phone_number", "canonical_phone_number", unique=True),
+        Index("uq_customers_canonical_email", "canonical_email", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -52,12 +56,8 @@ class Customer(Base):
         String(100),
         default="Malaysia",
     )
-    canonical_phone_number: Mapped[str | None] = mapped_column(
-        String(20), unique=True, nullable=True, index=True
-    )
-    canonical_email: Mapped[str | None] = mapped_column(
-        String(255), unique=True, nullable=True, index=True
-    )
+    canonical_phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    canonical_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_archived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, index=True
     )

@@ -194,7 +194,7 @@ async def test_percentage_can_stack_when_admin_enables_it(session):
 
 async def test_order_keeps_discount_snapshot_after_promotion_changes(session):
     product = await create_product(session, "Original Bahulu", "10.00")
-    customer = Customer(full_name="Umar", phone_number="0123456789")
+    customer = Customer(full_name="Umar", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add(customer)
     await session.flush()
     now = datetime.now(UTC)

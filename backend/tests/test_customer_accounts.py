@@ -159,7 +159,8 @@ async def test_profile_validates_phone_numbers(client):
 
 
 async def fictional_order(session, *, email: str | None, customer_email: str | None = None, source: str = "STOREFRONT") -> Order:
-    customer = Customer(full_name="Fictional Buyer", phone_number=f"012{next(phones)}", canonical_email=customer_email)
+    phone = f"012{next(phones)}"
+    customer = Customer(full_name="Fictional Buyer", phone_number=phone, canonical_phone_number=phone, canonical_email=customer_email)
     session.add(customer)
     await session.flush()
     order = Order(

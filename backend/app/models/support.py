@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from pgvector.sqlalchemy import Vector
 
@@ -45,7 +45,10 @@ class KnowledgeArticle(Base):
 
 class SupportKnowledgeChunk(Base):
     __tablename__ = "support_knowledge_chunks"
-    __table_args__ = (UniqueConstraint("source_type", "source_id", "language", "chunk_index", name="uq_support_knowledge_chunk_source"),)
+    __table_args__ = (
+        UniqueConstraint("source_type", "source_id", "language", "chunk_index", name="uq_support_knowledge_chunk_source"),
+        Index("ix_support_knowledge_chunks_embedding_hnsw", "embedding", postgresql_using="hnsw", postgresql_ops={"embedding": "vector_cosine_ops"}),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)

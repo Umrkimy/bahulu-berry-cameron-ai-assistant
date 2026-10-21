@@ -12,7 +12,7 @@ from app.models.order import Order
 @pytest.mark.asyncio
 async def test_dashboard_sales_chart_returns_twelve_months_and_excludes_cancelled_orders(session):
     admin = Admin(username="owner", email="owner@example.test", password_hash="test", role="OWNER", is_active=True)
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add_all([admin, customer])
     await session.flush()
     now = datetime.now(UTC)

@@ -27,7 +27,7 @@ async def create_owner(session):
 @pytest.mark.asyncio
 async def test_customer_with_orders_is_archived_and_restored_without_losing_history(session):
     owner = await create_owner(session)
-    customer = Customer(full_name="Fictional customer", phone_number="0000000000")
+    customer = Customer(full_name="Fictional customer", phone_number="0000000000", canonical_phone_number="0000000000")
     session.add(customer)
     await session.flush()
     session.add(Order(customer_id=customer.id, total_amount=Decimal("10.00")))
@@ -49,7 +49,7 @@ async def test_customer_with_orders_is_archived_and_restored_without_losing_hist
 @pytest.mark.asyncio
 async def test_product_with_order_or_stock_history_cannot_be_deleted(session):
     owner = await create_owner(session)
-    customer = Customer(full_name="Fictional customer", phone_number="0000000000")
+    customer = Customer(full_name="Fictional customer", phone_number="0000000000", canonical_phone_number="0000000000")
     product = Product(name="Fictional product", price=Decimal("10.00"))
     session.add_all([customer, product])
     await session.flush()

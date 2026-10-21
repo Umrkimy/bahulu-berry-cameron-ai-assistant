@@ -38,7 +38,7 @@ async def actors(db):
 
 
 async def paid_order(db):
-    customer = Customer(full_name="Fictional Customer", phone_number="0000000000")
+    customer = Customer(full_name="Fictional Customer", phone_number="0000000000", canonical_phone_number="0000000000")
     db.add(customer)
     await db.flush()
     order = Order(customer_id=customer.id, status="PROCESSING", payment_status="PAID", total_amount=Decimal("10.00"))
