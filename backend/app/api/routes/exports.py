@@ -45,35 +45,58 @@ async def export_csv(
     rows = [["No data"]]
     if resource == "customers":
         query = select(Customer).order_by(Customer.id)
-        if ids: query = query.where(Customer.id.in_(ids))
+        if ids:
+            query = query.where(Customer.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
         rows = [["ID", "Name", "Phone", "Email", "City", "State", "Created"]] + [[x.id, x.full_name, x.phone_number, x.email or "", x.city or "", x.state or "", _malaysia_time(x.created_at)] for x in data]
     elif resource == "orders":
         query = select(Order).order_by(Order.created_at.desc())
-        if ids: query = query.where(Order.id.in_(ids))
+        if ids:
+            query = query.where(Order.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
-        rows = [["ID", "Customer ID", "Status", "Payment", "Subtotal", "Discount", "Total", "Created"]] + [[x.id, x.customer_id, x.status, x.payment_status, x.subtotal, x.discount_amount, x.total_amount, _malaysia_time(x.created_at)] for x in data]
+        rows = [["ID", "Customer ID", "Status", "Payment", "Subtotal", "Discount", "Total", "Created"]] + [
+            [x.id, x.customer_id, x.status, x.payment_status, x.subtotal, x.discount_amount, x.total_amount, _malaysia_time(x.created_at)] for x in data
+        ]
     elif resource == "products":
         query = select(Product).order_by(Product.id)
-        if ids: query = query.where(Product.id.in_(ids))
+        if ids:
+            query = query.where(Product.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
         rows = [["ID", "Name", "Category", "Price", "Active", "Created"]] + [[x.id, x.name, x.category or "", x.price, x.is_active, _malaysia_time(x.created_at)] for x in data]
     elif resource == "inventory":
         query = select(Inventory).order_by(Inventory.id)
-        if ids: query = query.where(Inventory.id.in_(ids))
+        if ids:
+            query = query.where(Inventory.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
         rows = [["ID", "Product ID", "Quantity", "Low Stock Threshold", "Updated"]] + [[x.id, x.product_id, x.quantity, x.low_stock_threshold, _malaysia_time(x.updated_at)] for x in data]
     elif resource == "discounts":
         query = select(Discount).order_by(Discount.id)
-        if ids: query = query.where(Discount.id.in_(ids))
+        if ids:
+            query = query.where(Discount.id.in_(ids))
         data = (await db.execute(query)).scalars().all()
-        rows = [["ID", "Product ID", "Name", "Type", "Value", "Active", "Starts", "Ends"]] + [[x.id, x.product_id, x.name, x.discount_type, x.discount_value, x.is_active, _malaysia_time(x.start_at), _malaysia_time(x.end_at)] for x in data]
+        rows = [["ID", "Product ID", "Name", "Type", "Value", "Active", "Starts", "Ends"]] + [
+            [x.id, x.product_id, x.name, x.discount_type, x.discount_value, x.is_active, _malaysia_time(x.start_at), _malaysia_time(x.end_at)] for x in data
+        ]
     elif resource == "stock-movements":
         query = select(StockMovement, Product.name, Supplier.name).join(Product).outerjoin(Supplier).order_by(StockMovement.created_at.desc())
         if ids:
             query = query.where(StockMovement.id.in_(ids))
         data = (await db.execute(query)).all()
-        rows = [["ID", "Product", "Type", "Change", "Before", "After", "Supplier", "Reference", "Reason", "Created"]] + [[movement.id, product_name, movement.movement_type, movement.quantity_change, movement.quantity_before, movement.quantity_after, supplier_name or "", movement.reference or "", movement.reason or "", _malaysia_time(movement.created_at)] for movement, product_name, supplier_name in data]
+        rows = [["ID", "Product", "Type", "Change", "Before", "After", "Supplier", "Reference", "Reason", "Created"]] + [
+            [
+                movement.id,
+                product_name,
+                movement.movement_type,
+                movement.quantity_change,
+                movement.quantity_before,
+                movement.quantity_after,
+                supplier_name or "",
+                movement.reference or "",
+                movement.reason or "",
+                _malaysia_time(movement.created_at),
+            ]
+            for movement, product_name, supplier_name in data
+        ]
     else:
         raise HTTPException(status_code=404, detail="Export type not found.")
 
