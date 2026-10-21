@@ -9,7 +9,7 @@ from app.db.database import Base
 class StockMovement(Base):
     __tablename__ = "stock_movements"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     inventory_id: Mapped[int] = mapped_column(ForeignKey("inventories.id"), nullable=False, index=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False, index=True)
     supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"), nullable=True, index=True)

@@ -49,7 +49,7 @@ def request() -> Request:
 
 async def order_with_link(session) -> tuple[Order, Admin]:
     admin = Admin(username="fictional-owner", email="owner@example.com", password_hash="x", role="OWNER")
-    customer = Customer(full_name="Fictional Customer", phone_number="012-000 0000")
+    customer = Customer(full_name="Fictional Customer", phone_number="012-000 0000", canonical_phone_number="012-000 0000")
     session.add_all([admin, customer])
     await session.flush()
     order = Order(customer_id=customer.id, total_amount=Decimal("40.00"), status="PENDING", payment_status="UNPAID")

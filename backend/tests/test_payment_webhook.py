@@ -58,7 +58,7 @@ def paid_session(payment: Payment, **overrides) -> dict:
 
 async def create_pending_payment(session, *, order_status: str = "PENDING"):
     session.add(Admin(username="Fictional Owner", email="owner@example.invalid", password_hash="x", role="OWNER"))
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add(customer)
     await session.flush()
     order = Order(customer_id=customer.id, status=order_status, total_amount=Decimal("25.00"), payment_status="UNPAID")

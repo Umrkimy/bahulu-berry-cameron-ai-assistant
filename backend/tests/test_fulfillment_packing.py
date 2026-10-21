@@ -21,7 +21,7 @@ from app.services.order_services import update_order
 async def create_paid_order(session):
     owner = Admin(username="packing-owner", email="packing-owner@example.test", password_hash="unused", role="OWNER", is_active=True)
     staff = Admin(username="packing-staff", email="packing-staff@example.test", password_hash="unused", role="STAFF", is_active=True)
-    customer = Customer(full_name="Fictional Packing Customer", phone_number="0000000000")
+    customer = Customer(full_name="Fictional Packing Customer", phone_number="0000000000", canonical_phone_number="0000000000")
     product = Product(name="Fictional Bahulu", price=Decimal("8.00"))
     session.add_all([owner, staff, customer, product])
     await session.flush()

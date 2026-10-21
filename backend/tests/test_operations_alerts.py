@@ -16,7 +16,7 @@ from app.services.operations_services import get_operation_alerts
 async def test_operations_alerts_use_live_state_and_hide_owner_refunds_from_staff(session):
     owner = Admin(username="owner", email="owner@example.test", password_hash="test", role="OWNER", is_active=True)
     staff = Admin(username="staff", email="staff@example.test", password_hash="test", role="STAFF", is_active=True)
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     out_of_stock = Product(name="Fictional Out", price=Decimal("10.00"), is_active=True)
     low_stock = Product(name="Fictional Low", price=Decimal("10.00"), is_active=True)
     inactive_product = Product(name="Inactive Product", price=Decimal("10.00"), is_active=False)

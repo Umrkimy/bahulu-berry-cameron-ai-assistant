@@ -11,7 +11,7 @@ from app.services.order_services import update_order
 
 @pytest.mark.asyncio
 async def test_fulfillment_queue_groups_only_actionable_orders(session):
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add(customer)
     await session.flush()
     pending_paid = Order(customer_id=customer.id, total_amount=Decimal("10.00"), status="PENDING", payment_status="PAID")
@@ -32,7 +32,7 @@ async def test_fulfillment_queue_groups_only_actionable_orders(session):
 
 @pytest.mark.asyncio
 async def test_unpaid_order_cannot_begin_preparation(session):
-    customer = Customer(full_name="Fictional Customer", phone_number="0123456789")
+    customer = Customer(full_name="Fictional Customer", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add(customer)
     await session.flush()
     order = Order(customer_id=customer.id, total_amount=Decimal("10.00"), status="PENDING", payment_status="UNPAID")

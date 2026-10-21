@@ -9,7 +9,7 @@ from app.db.database import Base
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     admin_id: Mapped[int] = mapped_column(ForeignKey("admins.id"), nullable=False, index=True)
     notification_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(160), nullable=False)

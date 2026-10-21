@@ -19,7 +19,7 @@ class PendingStripeProvider:
 
 
 async def create_paid_payment(session):
-    customer = Customer(full_name="Umar", phone_number="0123456789")
+    customer = Customer(full_name="Umar", phone_number="0123456789", canonical_phone_number="0123456789")
     session.add(customer)
     await session.flush()
     order = Order(customer_id=customer.id, total_amount=Decimal("25.00"), payment_status="PAID")

@@ -23,7 +23,7 @@ def test_ordinary_values_are_unchanged(value):
 @pytest.mark.asyncio
 async def test_customer_export_cannot_inject_spreadsheet_formulas(session):
     owner = Admin(username="Fictional Owner", email="owner@example.invalid", password_hash="x", role="OWNER")
-    customer = Customer(full_name='=HYPERLINK("https://example.invalid","Open")', phone_number="0123456789")
+    customer = Customer(full_name='=HYPERLINK("https://example.invalid","Open")', phone_number="0123456789", canonical_phone_number="0123456789")
     session.add_all([owner, customer])
     await session.commit()
 
