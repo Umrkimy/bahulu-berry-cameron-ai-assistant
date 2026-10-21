@@ -94,6 +94,26 @@ async def test_staff_ai_uses_read_only_tools_and_omits_none_reasoning_effort(ses
     assert captured["max_completion_tokens"] == settings.AI_MAX_COMPLETION_TOKENS
 
 
+@pytest.mark.asyncio
+async def test_malay_question_gets_a_malay_reply_hint(session, monkeypatch):
+    captured = []
+
+    async def fake_create(**kwargs):
+        captured.append(kwargs["messages"])
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(tool_calls=[], content="Baik."))],
+            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=20),
+        )
+
+    monkeypatch.setattr(ai_assistant_services.client.chat.completions, "create", fake_create)
+    for message in ("Cari pesanan untuk Aminah", "Find the order for Aminah"):
+        await ai_assistant_services.generate_ai_result(session, message, str(uuid4()), 1, [], True)
+
+    hint = "Reply in Bahasa Melayu."
+    assert any(hint in item["content"] for item in captured[0] if item["role"] == "system")
+    assert not any(hint in item["content"] for item in captured[1] if item["role"] == "system")
+
+
 def test_operation_cards_contain_only_tool_backed_data_and_safe_routes():
     cards = ai_assistant_services._operation_cards(
         "get_low_stock_summary",
