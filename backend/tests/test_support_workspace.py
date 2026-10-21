@@ -2,13 +2,14 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.api.routes.support import claim_conversation, create_request, create_request_note, dashboard_reply, requests, return_conversation_to_ai, update_request
+from app.api.routes.support import claim_conversation, create_faq, create_request, delete_faq, create_request_note, dashboard_reply, requests, return_conversation_to_ai, update_request
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
 from app.models.messaging import MessagingConversation
-from app.models.support import SupportRequest
+from app.models.support import SupportFAQ, SupportKnowledgeChunk, SupportRequest
 from app.schemas.messaging import DashboardReplyInput
-from app.schemas.support import SupportRequestInput, SupportRequestNoteCreate
+from app.schemas.support import FAQInput, SupportRequestInput, SupportRequestNoteCreate
+from app.services import support_copilot
 
 
 async def _admin(session, *, username: str, active: bool = True) -> Admin:
@@ -107,3 +108,22 @@ async def test_human_takeover_requires_claim_and_releases_assignment(session):
     returned = await return_conversation_to_ai(ticket.id, session, owner)
     assert returned.handoff_state == "AI_ACTIVE"
     assert returned.assigned_admin_id is None
+
+
+@pytest.mark.asyncio
+async def test_deleting_an_faq_removes_its_knowledge_chunks(session, monkeypatch):
+    async def fake_embed(_, value, **__):
+        return [0.0] * 1536
+
+    monkeypatch.setattr(support_copilot, "_embed", fake_embed)
+    owner = Admin(username="faq-owner", email="faq-owner@example.test", password_hash="test", role="OWNER", is_active=True)
+    session.add(owner)
+    await session.commit()
+    faq = await create_faq(FAQInput(category="Pickup", question_en="Can I pick up?", answer_en="Ask us on WhatsApp.", question_ms="Boleh ambil sendiri?", answer_ms="Tanya kami di WhatsApp."), session, owner)
+    assert len((await session.execute(select(SupportKnowledgeChunk).where(SupportKnowledgeChunk.source_id == faq.id))).scalars().all()) == 2
+
+    await delete_faq(faq.id, session, owner)
+
+    assert await session.get(SupportFAQ, faq.id) is None
+    assert (await session.execute(select(SupportKnowledgeChunk))).scalars().all() == []
+    assert (await session.execute(select(ActivityLog).where(ActivityLog.action == "deleted", ActivityLog.entity_type == "support_faq"))).scalar_one()

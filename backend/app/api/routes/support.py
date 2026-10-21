@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from typing import Annotated, Type
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_admin, get_current_superuser
@@ -17,7 +17,7 @@ from app.schemas.pagination import PaginatedResponse
 from app.schemas.activity import ActivityPublic
 from app.schemas.support import FAQInput, FAQPublic, KnowledgeArticleInput, KnowledgeArticlePublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftApprovalPublic, SupportDraftApproveInput, SupportDraftInput, SupportDraftPublic, SupportDraftReviewPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
 from app.services.activity_services import record_activity
-from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, sync_knowledge_source
+from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
 from app.services.notification_services import add_notification, notify_owners
 from app.services.support_drafts import review_public, save_draft, whatsapp_number, whatsapp_url
@@ -32,18 +32,44 @@ HUMAN_HANDOFF_STATES = {"HUMAN_REQUESTED", "HUMAN_HANDLING"}
 def _as_utc(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
-async def list_records(db: AsyncSession, model: Type): return (await db.execute(select(model).order_by(model.updated_at.desc()))).scalars().all()
+
+DB = Annotated[AsyncSession, Depends(get_db)]
+CurrentAdmin = Annotated[Admin, Depends(get_current_admin)]
+Owner = Annotated[Admin, Depends(get_current_superuser)]
+KNOWLEDGE_SOURCE_TYPES = {SupportFAQ: "FAQ", SupportTemplate: "TEMPLATE", KnowledgeArticle: "ARTICLE"}
+
+
 async def owner_save(db: AsyncSession, admin: Admin, model: Type, data, item_id: int | None, entity: str):
-    item = await db.get(model, item_id) if item_id else model(**data.model_dump())
-    if item is None: raise HTTPException(404, detail="Support record not found.")
     if item_id:
-        for key, value in data.model_dump().items(): setattr(item, key, value)
-    else: db.add(item); await db.flush()
-    source_type = {SupportFAQ: "FAQ", SupportTemplate: "TEMPLATE", KnowledgeArticle: "ARTICLE"}.get(model)
+        item = await db.get(model, item_id)
+        if item is None:
+            raise HTTPException(404, detail="Support record not found.")
+        for key, value in data.model_dump().items():
+            setattr(item, key, value)
+    else:
+        item = model(**data.model_dump())
+        db.add(item)
+        await db.flush()
+    source_type = KNOWLEDGE_SOURCE_TYPES.get(model)
     if source_type:
         await sync_knowledge_source(db, item, source_type)
     await record_activity(db, admin=admin, action="updated" if item_id else "created", entity_type=entity, entity_id=item.id, description=f"{'Updated' if item_id else 'Created'} support {entity.replace('_', ' ')}.")
-    await db.commit(); await db.refresh(item); return item
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def owner_delete(db: AsyncSession, admin: Admin, model: Type, item_id: int, entity: str, description: str) -> None:
+    item = await db.get(model, item_id)
+    if item is None:
+        raise HTTPException(404, detail="Support record not found.")
+    source_type = KNOWLEDGE_SOURCE_TYPES.get(model)
+    if source_type:
+        await remove_knowledge_source(db, source_type, item.id)
+    await record_activity(db, admin=admin, action="deleted", entity_type=entity, entity_id=item.id, description=description)
+    await db.delete(item)
+    await db.commit()
+
 
 async def _approved_or_owner_records(db: AsyncSession, admin: Admin, model: Type):
     statement = select(model).order_by(model.updated_at.desc())
@@ -53,66 +79,98 @@ async def _approved_or_owner_records(db: AsyncSession, admin: Admin, model: Type
 
 
 @router.get("/faqs", response_model=list[FAQPublic])
-async def faqs(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, SupportFAQ)
+async def faqs(db: DB, admin: CurrentAdmin):
+    return await _approved_or_owner_records(db, admin, SupportFAQ)
+
+
 @router.post("/faqs", response_model=FAQPublic)
-async def create_faq(data: FAQInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, SupportFAQ, data, None, "support_faq")
+async def create_faq(data: FAQInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, SupportFAQ, data, None, "support_faq")
+
+
 @router.patch("/faqs/{item_id}", response_model=FAQPublic)
-async def update_faq(item_id:int, data: FAQInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, SupportFAQ, data, item_id, "support_faq")
+async def update_faq(item_id: int, data: FAQInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, SupportFAQ, data, item_id, "support_faq")
+
+
 @router.delete("/faqs/{item_id}", status_code=204)
-async def delete_faq(item_id:int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
-    item=await db.get(SupportFAQ,item_id)
-    if not item: raise HTTPException(404,detail="Support record not found.")
-    await record_activity(db,admin=admin,action="deleted",entity_type="support_faq",entity_id=item.id,description="Deleted support FAQ."); await db.delete(item); await db.commit()
+async def delete_faq(item_id: int, db: DB, admin: Owner):
+    await owner_delete(db, admin, SupportFAQ, item_id, "support_faq", "Deleted support FAQ.")
+
 
 @router.get("/templates", response_model=list[TemplatePublic])
-async def templates(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, SupportTemplate)
+async def templates(db: DB, admin: CurrentAdmin):
+    return await _approved_or_owner_records(db, admin, SupportTemplate)
+
+
 @router.post("/templates", response_model=TemplatePublic)
-async def create_template(data:TemplateInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]): return await owner_save(db,admin,SupportTemplate,data,None,"support_template")
-@router.patch("/templates/{item_id}",response_model=TemplatePublic)
-async def update_template(item_id:int,data:TemplateInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]): return await owner_save(db,admin,SupportTemplate,data,item_id,"support_template")
-@router.delete("/templates/{item_id}",status_code=204)
-async def delete_template(item_id:int,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]):
-    item=await db.get(SupportTemplate,item_id)
-    if not item: raise HTTPException(404,detail="Support record not found.")
-    await record_activity(db,admin=admin,action="deleted",entity_type="support_template",entity_id=item.id,description="Deleted support template.");await db.delete(item);await db.commit()
+async def create_template(data: TemplateInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, SupportTemplate, data, None, "support_template")
+
+
+@router.patch("/templates/{item_id}", response_model=TemplatePublic)
+async def update_template(item_id: int, data: TemplateInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, SupportTemplate, data, item_id, "support_template")
+
+
+@router.delete("/templates/{item_id}", status_code=204)
+async def delete_template(item_id: int, db: DB, admin: Owner):
+    await owner_delete(db, admin, SupportTemplate, item_id, "support_template", "Deleted support template.")
+
 
 @router.get("/knowledge-articles", response_model=list[KnowledgeArticlePublic])
-async def knowledge_articles(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, KnowledgeArticle)
+async def knowledge_articles(db: DB, admin: CurrentAdmin):
+    return await _approved_or_owner_records(db, admin, KnowledgeArticle)
+
+
 @router.post("/knowledge-articles", response_model=KnowledgeArticlePublic)
-async def create_knowledge_article(data: KnowledgeArticleInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, KnowledgeArticle, data, None, "knowledge_article")
+async def create_knowledge_article(data: KnowledgeArticleInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, KnowledgeArticle, data, None, "knowledge_article")
+
+
 @router.patch("/knowledge-articles/{item_id}", response_model=KnowledgeArticlePublic)
-async def update_knowledge_article(item_id: int, data: KnowledgeArticleInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]): return await owner_save(db, admin, KnowledgeArticle, data, item_id, "knowledge_article")
+async def update_knowledge_article(item_id: int, data: KnowledgeArticleInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, KnowledgeArticle, data, item_id, "knowledge_article")
+
+
 @router.delete("/knowledge-articles/{item_id}", status_code=204)
-async def delete_knowledge_article(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
-    item = await db.get(KnowledgeArticle, item_id)
-    if not item: raise HTTPException(404, detail="Support record not found.")
-    await record_activity(db, admin=admin, action="deleted", entity_type="knowledge_article", entity_id=item.id, description="Deleted knowledge article."); await db.delete(item); await db.commit()
+async def delete_knowledge_article(item_id: int, db: DB, admin: Owner):
+    await owner_delete(db, admin, KnowledgeArticle, item_id, "knowledge_article", "Deleted knowledge article.")
+
 
 @router.post("/knowledge/reindex")
-async def reindex_knowledge(db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_superuser)]):
+async def reindex_knowledge(db: DB, admin: Owner):
     count = await rebuild_knowledge_index(db)
     await record_activity(db, admin=admin, action="reindexed", entity_type="support_knowledge", entity_id=None, description="Rebuilt semantic support knowledge embeddings.", metadata={"chunks": count})
     await db.commit()
     return {"chunks": count}
 
-@router.get("/rules",response_model=list[RulePublic])
-async def rules(db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]): return await _approved_or_owner_records(db, admin, HandoffRule)
-@router.post("/rules",response_model=RulePublic)
-async def create_rule(data:RuleInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]): return await owner_save(db,admin,HandoffRule,data,None,"handoff_rule")
-@router.patch("/rules/{item_id}",response_model=RulePublic)
-async def update_rule(item_id:int,data:RuleInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]): return await owner_save(db,admin,HandoffRule,data,item_id,"handoff_rule")
-@router.delete("/rules/{item_id}",status_code=204)
-async def delete_rule(item_id:int,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]):
-    item=await db.get(HandoffRule,item_id)
-    if not item: raise HTTPException(404,detail="Support record not found.")
-    await record_activity(db,admin=admin,action="deleted",entity_type="handoff_rule",entity_id=item.id,description="Deleted handoff rule.");await db.delete(item);await db.commit()
+
+@router.get("/rules", response_model=list[RulePublic])
+async def rules(db: DB, admin: CurrentAdmin):
+    return await _approved_or_owner_records(db, admin, HandoffRule)
+
+
+@router.post("/rules", response_model=RulePublic)
+async def create_rule(data: RuleInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, HandoffRule, data, None, "handoff_rule")
+
+
+@router.patch("/rules/{item_id}", response_model=RulePublic)
+async def update_rule(item_id: int, data: RuleInput, db: DB, admin: Owner):
+    return await owner_save(db, admin, HandoffRule, data, item_id, "handoff_rule")
+
+
+@router.delete("/rules/{item_id}", status_code=204)
+async def delete_rule(item_id: int, db: DB, admin: Owner):
+    await owner_delete(db, admin, HandoffRule, item_id, "handoff_rule", "Deleted handoff rule.")
 
 
 @router.post("/copilot/draft", response_model=SupportDraftPublic)
 async def create_support_draft(
     data: SupportDraftInput,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    admin: Annotated[Admin, Depends(get_current_admin)],
+    db: DB,
+    admin: CurrentAdmin,
 ):
     if data.support_request_id is not None:
         ticket = await db.get(SupportRequest, data.support_request_id)
@@ -157,8 +215,8 @@ async def create_support_draft(
 @router.post("/simulator/inbound", response_model=SimulatorInboundPublic)
 async def simulate_inbound_message(
     data: SimulatorInboundInput,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    admin: Annotated[Admin, Depends(get_current_superuser)],
+    db: DB,
+    admin: Owner,
 ):
     adapter = SimulatorAdapter()
     if not adapter.verify_inbound(data):
@@ -168,8 +226,8 @@ async def simulate_inbound_message(
 
 @router.get("/assignees", response_model=list[SupportAssigneePublic])
 async def support_assignees(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_admin)],
+    db: DB,
+    _: CurrentAdmin,
 ):
     return (await db.execute(select(Admin).where(Admin.is_active.is_(True)).order_by(Admin.username))).scalars().all()
 
@@ -177,8 +235,8 @@ async def support_assignees(
 @router.get("/requests/{request_id}/activity", response_model=list[ActivityPublic])
 async def request_activity(
     request_id: int,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_admin)],
+    db: DB,
+    _: CurrentAdmin,
 ):
     if await db.get(SupportRequest, request_id) is None:
         raise HTTPException(404, detail="Support request not found.")
@@ -192,8 +250,8 @@ async def request_activity(
 
 @router.get("/requests", response_model=PaginatedResponse[SupportRequestPublic])
 async def requests(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_admin)],
+    db: DB,
+    _: CurrentAdmin,
     search: str | None = None,
     status_filter: str | None = None,
     priority: str | None = None,
@@ -239,7 +297,7 @@ async def requests(
     result = await db.execute(select(SupportRequest).where(*filters).order_by(SupportRequest.updated_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return PaginatedResponse.create(items=result.scalars().all(), page=page, page_size=page_size, total=total or 0)
 @router.post("/requests",response_model=SupportRequestPublic)
-async def create_request(data:SupportRequestInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]):
+async def create_request(data:SupportRequestInput,db:DB,admin:CurrentAdmin):
     if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
     if data.customer_id is not None:
         customer = await db.get(Customer, data.customer_id)
@@ -254,7 +312,7 @@ async def create_request(data:SupportRequestInput,db:Annotated[AsyncSession,Depe
         await notify_owners(db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id)
     await record_activity(db,admin=admin,action="created",entity_type="support_request",entity_id=item.id,description=f"Created support request #{item.id}.");await db.commit();await db.refresh(item);return item
 @router.patch("/requests/{item_id}",response_model=SupportRequestPublic)
-async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_admin)]):
+async def update_request(item_id:int,data:SupportRequestInput,db:DB,admin:CurrentAdmin):
     if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
     if data.customer_id is not None:
         customer = await db.get(Customer, data.customer_id)
@@ -298,7 +356,7 @@ async def update_request(item_id:int,data:SupportRequestInput,db:Annotated[Async
 
 
 @router.get("/requests/{item_id}/notes", response_model=list[SupportRequestNotePublic])
-async def request_notes(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
+async def request_notes(item_id: int, db: DB, _: CurrentAdmin):
     if await db.get(SupportRequest, item_id) is None:
         raise HTTPException(404, detail="Support request not found.")
     result = await db.execute(select(SupportRequestNote).where(SupportRequestNote.support_request_id == item_id).order_by(SupportRequestNote.created_at.asc()))
@@ -306,7 +364,7 @@ async def request_notes(item_id: int, db: Annotated[AsyncSession, Depends(get_db
 
 
 @router.get("/requests/{item_id}/messaging-conversation", response_model=SupportMessagingConversationPublic | None)
-async def request_messaging_conversation(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
+async def request_messaging_conversation(item_id: int, db: DB, _: CurrentAdmin):
     if await db.get(SupportRequest, item_id) is None:
         raise HTTPException(404, detail="Support request not found.")
     conversation = await db.scalar(select(MessagingConversation).where(MessagingConversation.support_request_id == item_id).order_by(MessagingConversation.id.desc()))
@@ -330,7 +388,7 @@ def _can_manage_handoff(ticket: SupportRequest, admin: Admin) -> bool:
 
 
 @router.get("/requests/{item_id}/messages", response_model=list[SupportMessagePublic])
-async def request_messages(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], _: Annotated[Admin, Depends(get_current_admin)]):
+async def request_messages(item_id: int, db: DB, _: CurrentAdmin):
     _, conversation = await _ticket_conversation(db, item_id)
     await purge_expired_message_content(db)
     result = await db.execute(select(MessagingEvent).where(MessagingEvent.conversation_id == conversation.id).order_by(MessagingEvent.processed_at.asc()))
@@ -338,7 +396,7 @@ async def request_messages(item_id: int, db: Annotated[AsyncSession, Depends(get
 
 
 @router.post("/requests/{item_id}/claim", response_model=SupportRequestPublic)
-async def claim_conversation(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def claim_conversation(item_id: int, db: DB, admin: CurrentAdmin):
     await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_REQUESTED" or ticket.assigned_admin_id is not None:
@@ -352,7 +410,7 @@ async def claim_conversation(item_id: int, db: Annotated[AsyncSession, Depends(g
 
 
 @router.post("/requests/{item_id}/return-to-ai", response_model=SupportRequestPublic)
-async def return_conversation_to_ai(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def return_conversation_to_ai(item_id: int, db: DB, admin: CurrentAdmin):
     await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_HANDLING":
@@ -367,7 +425,7 @@ async def return_conversation_to_ai(item_id: int, db: Annotated[AsyncSession, De
 
 
 @router.post("/requests/{item_id}/request-human-takeover", response_model=SupportRequestPublic)
-async def request_human_takeover(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def request_human_takeover(item_id: int, db: DB, admin: CurrentAdmin):
     await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
     ticket, _ = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "AI_ACTIVE":
@@ -384,7 +442,7 @@ async def request_human_takeover(item_id: int, db: Annotated[AsyncSession, Depen
 
 
 @router.post("/requests/{item_id}/dashboard-replies", response_model=SupportMessagePublic)
-async def dashboard_reply(item_id: int, data: DashboardReplyInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def dashboard_reply(item_id: int, data: DashboardReplyInput, db: DB, admin: CurrentAdmin):
     ticket, conversation = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_HANDLING":
         raise HTTPException(409, detail="Claim this conversation before sending a dashboard reply.")
@@ -394,7 +452,7 @@ async def dashboard_reply(item_id: int, data: DashboardReplyInput, db: Annotated
 
 
 @router.get("/requests/{item_id}/whatsapp-link", response_model=WhatsAppLinkPublic)
-async def whatsapp_link(item_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def whatsapp_link(item_id: int, db: DB, admin: CurrentAdmin):
     ticket, conversation = await _ticket_conversation(db, item_id)
     if not _can_manage_handoff(ticket, admin):
         raise HTTPException(403, detail="Only the assigned staff member or an Owner can open this WhatsApp conversation.")
@@ -412,8 +470,8 @@ async def _draft_contact(db: AsyncSession, draft: SupportDraft) -> tuple[Support
 
 @router.get("/drafts", response_model=PaginatedResponse[SupportDraftReviewPublic])
 async def support_drafts(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Admin, Depends(get_current_admin)],
+    db: DB,
+    _: CurrentAdmin,
     status_filter: str | None = "PENDING_REVIEW",
     support_request_id: int | None = None,
     page: int = 1,
@@ -466,7 +524,7 @@ async def _record_draft_review(db: AsyncSession, admin: Admin, draft: SupportDra
 
 
 @router.post("/drafts/{draft_id}/approve", response_model=SupportDraftApprovalPublic)
-async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, db: DB, admin: CurrentAdmin):
     draft, _, number = await _pending_draft_for_review(db, draft_id, admin)
     if draft.body is None:
         raise HTTPException(409, detail="This draft has expired.")
@@ -483,7 +541,7 @@ async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, d
 
 
 @router.post("/drafts/{draft_id}/reject", response_model=SupportDraftReviewPublic)
-async def reject_support_draft(draft_id: int, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def reject_support_draft(draft_id: int, db: DB, admin: CurrentAdmin):
     draft, _, number = await _pending_draft_for_review(db, draft_id, admin)
     draft.status = "REJECTED"
     draft.reviewed_by_admin_id = admin.id
@@ -495,7 +553,7 @@ async def reject_support_draft(draft_id: int, db: Annotated[AsyncSession, Depend
 
 
 @router.post("/requests/{item_id}/notes", response_model=SupportRequestNotePublic)
-async def create_request_note(item_id: int, data: SupportRequestNoteCreate, db: Annotated[AsyncSession, Depends(get_db)], admin: Annotated[Admin, Depends(get_current_admin)]):
+async def create_request_note(item_id: int, data: SupportRequestNoteCreate, db: DB, admin: CurrentAdmin):
     if await db.get(SupportRequest, item_id) is None:
         raise HTTPException(404, detail="Support request not found.")
     note = SupportRequestNote(support_request_id=item_id, author_admin_id=admin.id, content=data.content.strip())
@@ -506,7 +564,7 @@ async def create_request_note(item_id: int, data: SupportRequestNoteCreate, db: 
     await db.refresh(note)
     return note
 @router.delete("/requests/{item_id}",status_code=204)
-async def delete_request(item_id:int,db:Annotated[AsyncSession,Depends(get_db)],admin:Annotated[Admin,Depends(get_current_superuser)]):
+async def delete_request(item_id:int,db:DB,admin:Owner):
     item=await db.get(SupportRequest,item_id)
     if not item: raise HTTPException(404,detail="Support request not found.")
     await record_activity(db,admin=admin,action="deleted",entity_type="support_request",entity_id=item.id,description=f"Deleted support request #{item.id}.");await db.delete(item);await db.commit()

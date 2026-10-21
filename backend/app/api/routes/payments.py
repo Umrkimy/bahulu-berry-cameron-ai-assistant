@@ -13,7 +13,7 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_admin, get_current_superuser
+from app.auth.dependencies import get_current_admin
 from app.core.config import settings
 from app.core.rate_limit import PAYMENT_LIMIT, rate_limiter
 from app.db.database import get_db

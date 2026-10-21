@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.constants.payment import PAYMENT_STATUS
 
 
 class PaymentCreate(BaseModel):

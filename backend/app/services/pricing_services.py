@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy import select

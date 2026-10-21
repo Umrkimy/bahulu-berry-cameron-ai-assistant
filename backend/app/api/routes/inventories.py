@@ -31,7 +31,6 @@ from app.schemas.inventory import (
 from app.schemas.pagination import PaginatedResponse
 from app.services.inventory_services import (
     adjust_inventory,
-    set_inventory_quantity,
 )
 from app.services.activity_services import record_activity
 from app.services.transaction_lock import acquire_transaction_lock

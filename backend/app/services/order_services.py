@@ -1,5 +1,4 @@
 from datetime import UTC, date, datetime, time, timedelta
-from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
