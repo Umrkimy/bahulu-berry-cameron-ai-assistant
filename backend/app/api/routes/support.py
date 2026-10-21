@@ -15,7 +15,26 @@ from app.models.support_draft import DRAFT_STATUSES, SupportDraft
 from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.activity import ActivityPublic
-from app.schemas.support import FAQInput, FAQPublic, KnowledgeArticleInput, KnowledgeArticlePublic, RuleInput, RulePublic, SupportAssigneePublic, SupportDraftApprovalPublic, SupportDraftApproveInput, SupportDraftInput, SupportDraftPublic, SupportDraftReviewPublic, SupportRequestInput, SupportRequestNoteCreate, SupportRequestNotePublic, SupportRequestPublic, TemplateInput, TemplatePublic
+from app.schemas.support import (
+    FAQInput,
+    FAQPublic,
+    KnowledgeArticleInput,
+    KnowledgeArticlePublic,
+    RuleInput,
+    RulePublic,
+    SupportAssigneePublic,
+    SupportDraftApprovalPublic,
+    SupportDraftApproveInput,
+    SupportDraftInput,
+    SupportDraftPublic,
+    SupportDraftReviewPublic,
+    SupportRequestInput,
+    SupportRequestNoteCreate,
+    SupportRequestNotePublic,
+    SupportRequestPublic,
+    TemplateInput,
+    TemplatePublic,
+)
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
@@ -248,6 +267,7 @@ async def request_activity(
     )
     return [ActivityPublic.model_validate(activity).model_copy(update={"admin_username": username}) for activity, username in rows.all()]
 
+
 @router.get("/requests", response_model=PaginatedResponse[SupportRequestPublic])
 async def requests(
     db: DB,
@@ -296,32 +316,52 @@ async def requests(
     total = await db.scalar(select(func.count()).select_from(SupportRequest).where(*filters))
     result = await db.execute(select(SupportRequest).where(*filters).order_by(SupportRequest.updated_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return PaginatedResponse.create(items=result.scalars().all(), page=page, page_size=page_size, total=total or 0)
-@router.post("/requests",response_model=SupportRequestPublic)
-async def create_request(data:SupportRequestInput,db:DB,admin:CurrentAdmin):
-    if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
+
+
+@router.post("/requests", response_model=SupportRequestPublic)
+async def create_request(data: SupportRequestInput, db: DB, admin: CurrentAdmin):
+    if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES:
+        raise HTTPException(422, detail="Invalid support status, priority, or source.")
     if data.customer_id is not None:
         customer = await db.get(Customer, data.customer_id)
-        if customer is None or customer.is_archived: raise HTTPException(404,detail="Active customer not found.")
+        if customer is None or customer.is_archived:
+            raise HTTPException(404, detail="Active customer not found.")
     if data.assigned_admin_id is not None:
         assignee = await db.get(Admin, data.assigned_admin_id)
-        if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")
-    item=SupportRequest(**data.model_dump());db.add(item);await db.flush()
+        if assignee is None or not assignee.is_active:
+            raise HTTPException(422, detail="Assigned team member is not active.")
+    item = SupportRequest(**data.model_dump())
+    db.add(item)
+    await db.flush()
     if item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
-        add_notification(db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id)
+        add_notification(
+            db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id
+        )
     elif item.priority in {"HIGH", "URGENT"} or item.handoff_reason:
-        await notify_owners(db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id)
-    await record_activity(db,admin=admin,action="created",entity_type="support_request",entity_id=item.id,description=f"Created support request #{item.id}.");await db.commit();await db.refresh(item);return item
-@router.patch("/requests/{item_id}",response_model=SupportRequestPublic)
-async def update_request(item_id:int,data:SupportRequestInput,db:DB,admin:CurrentAdmin):
-    if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES: raise HTTPException(422,detail="Invalid support status, priority, or source.")
+        await notify_owners(
+            db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id
+        )
+    await record_activity(db, admin=admin, action="created", entity_type="support_request", entity_id=item.id, description=f"Created support request #{item.id}.")
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.patch("/requests/{item_id}", response_model=SupportRequestPublic)
+async def update_request(item_id: int, data: SupportRequestInput, db: DB, admin: CurrentAdmin):
+    if data.status not in VALID_STATUS or data.priority not in VALID_PRIORITY or data.source not in VALID_SOURCES:
+        raise HTTPException(422, detail="Invalid support status, priority, or source.")
     if data.customer_id is not None:
         customer = await db.get(Customer, data.customer_id)
-        if customer is None or customer.is_archived: raise HTTPException(404,detail="Active customer not found.")
+        if customer is None or customer.is_archived:
+            raise HTTPException(404, detail="Active customer not found.")
     if data.assigned_admin_id is not None:
         assignee = await db.get(Admin, data.assigned_admin_id)
-        if assignee is None or not assignee.is_active: raise HTTPException(422,detail="Assigned team member is not active.")
-    item=await db.get(SupportRequest,item_id)
-    if not item: raise HTTPException(404,detail="Support request not found.")
+        if assignee is None or not assignee.is_active:
+            raise HTTPException(422, detail="Assigned team member is not active.")
+    item = await db.get(SupportRequest, item_id)
+    if not item:
+        raise HTTPException(404, detail="Support request not found.")
     if item.handoff_state == "HUMAN_REQUESTED" and admin.role != "OWNER":
         raise HTTPException(403, detail="Claim this conversation before updating it.")
     if item.handoff_state == "HUMAN_REQUESTED" and data.assigned_admin_id != item.assigned_admin_id:
@@ -331,12 +371,22 @@ async def update_request(item_id:int,data:SupportRequestInput,db:DB,admin:Curren
     if item.handoff_state == "HUMAN_HANDLING" and admin.role != "OWNER" and data.assigned_admin_id != item.assigned_admin_id:
         raise HTTPException(403, detail="Only an Owner can reassign a human-handled conversation.")
     changes = {key: value for key, value in data.model_dump().items() if getattr(item, key) != value}
-    for key, value in changes.items(): setattr(item, key, value)
+    for key, value in changes.items():
+        setattr(item, key, value)
     if changes:
         if "assigned_admin_id" in changes and item.assigned_admin_id is not None and item.assigned_admin_id != admin.id:
-            add_notification(db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id)
+            add_notification(
+                db, recipient_id=item.assigned_admin_id, notification_type="SUPPORT", title="Support ticket assigned", description="A support ticket was assigned to you.", entity_type="support_request", entity_id=item.id
+            )
         if item.assigned_admin_id is None and ("priority" in changes or "handoff_reason" in changes) and (item.priority in {"HIGH", "URGENT"} or item.handoff_reason):
-            await notify_owners(db, notification_type="SUPPORT", title="Support ticket needs attention", description="A high-priority or handoff support ticket is waiting for assignment.", entity_type="support_request", entity_id=item.id)
+            await notify_owners(
+                db,
+                notification_type="SUPPORT",
+                title="Support ticket needs attention",
+                description="A high-priority or handoff support ticket is waiting for assignment.",
+                entity_type="support_request",
+                entity_id=item.id,
+            )
         if "assigned_admin_id" in changes:
             description = f"Assigned support request #{item.id}."
             action = "assigned"
@@ -405,7 +455,8 @@ async def claim_conversation(item_id: int, db: DB, admin: CurrentAdmin):
     ticket.handoff_state = "HUMAN_HANDLING"
     ticket.status = "IN_PROGRESS"
     await record_activity(db, admin=admin, action="claimed", entity_type="support_request", entity_id=ticket.id, description=f"Claimed human handling for support request #{ticket.id}.")
-    await db.commit(); await db.refresh(ticket)
+    await db.commit()
+    await db.refresh(ticket)
     return ticket
 
 
@@ -420,7 +471,8 @@ async def return_conversation_to_ai(item_id: int, db: DB, admin: CurrentAdmin):
     ticket.handoff_state = "AI_ACTIVE"
     ticket.assigned_admin_id = None
     await record_activity(db, admin=admin, action="returned_to_ai", entity_type="support_request", entity_id=ticket.id, description=f"Returned support request #{ticket.id} to AI handling.")
-    await db.commit(); await db.refresh(ticket)
+    await db.commit()
+    await db.refresh(ticket)
     return ticket
 
 
@@ -435,9 +487,12 @@ async def request_human_takeover(item_id: int, db: DB, admin: CurrentAdmin):
     ticket.status = "NEW"
     ticket.priority = "HIGH"
     ticket.handoff_reason = ticket.handoff_reason or "Human takeover requested by staff"
-    await notify_owners(db, notification_type="SUPPORT", title="Human takeover requested", description="A support conversation is waiting for a team member to claim it.", entity_type="support_request", entity_id=ticket.id)
+    await notify_owners(
+        db, notification_type="SUPPORT", title="Human takeover requested", description="A support conversation is waiting for a team member to claim it.", entity_type="support_request", entity_id=ticket.id
+    )
     await record_activity(db, admin=admin, action="human_takeover_requested", entity_type="support_request", entity_id=ticket.id, description=f"Requested human handling for support request #{ticket.id}.")
-    await db.commit(); await db.refresh(ticket)
+    await db.commit()
+    await db.refresh(ticket)
     return ticket
 
 
@@ -563,8 +618,13 @@ async def create_request_note(item_id: int, data: SupportRequestNoteCreate, db: 
     await db.commit()
     await db.refresh(note)
     return note
-@router.delete("/requests/{item_id}",status_code=204)
-async def delete_request(item_id:int,db:DB,admin:Owner):
-    item=await db.get(SupportRequest,item_id)
-    if not item: raise HTTPException(404,detail="Support request not found.")
-    await record_activity(db,admin=admin,action="deleted",entity_type="support_request",entity_id=item.id,description=f"Deleted support request #{item.id}.");await db.delete(item);await db.commit()
+
+
+@router.delete("/requests/{item_id}", status_code=204)
+async def delete_request(item_id: int, db: DB, admin: Owner):
+    item = await db.get(SupportRequest, item_id)
+    if not item:
+        raise HTTPException(404, detail="Support request not found.")
+    await record_activity(db, admin=admin, action="deleted", entity_type="support_request", entity_id=item.id, description=f"Deleted support request #{item.id}.")
+    await db.delete(item)
+    await db.commit()
