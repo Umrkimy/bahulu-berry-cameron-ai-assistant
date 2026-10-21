@@ -14,6 +14,7 @@ from app.models.ai_action_confirmation import AIActionConfirmation
 from app.models.admin import Admin
 from app.services.activity_services import record_activity
 from app.services.ai_usage_services import AIBudgetExceeded, reserve_ai_usage, settle_ai_usage
+from app.services.support_copilot import detect_language
 
 from app.services.ai_tools import (
     adjust_product_stock,
@@ -1115,6 +1116,9 @@ async def generate_ai_result(
                 "content": "The current user is Staff. You may provide read-only operational help using read-only tools. Do not suggest, preview, or attempt changes to customers, inventory, orders, or any other records.",
             }
         )
+
+    if detect_language(message, "AUTO") == "MS":
+        messages.append({"role": "system", "content": "The latest staff message is in Bahasa Melayu. Reply in Bahasa Melayu."})
 
     recent_history = conversation_history[
         -MAX_HISTORY_MESSAGES:

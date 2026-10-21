@@ -39,9 +39,9 @@ class RetrievedChunk:
     content: str
     similarity: float
 
-def _language(message: str, requested: str) -> str:
+def detect_language(message: str, requested: str) -> str:
     if requested in {"EN", "MS"}: return requested
-    markers = {"saya", "boleh", "berapa", "harga", "penghantaran", "pesanan", "tolong", "nak", "adakah", "ada", "tak", "kat", "mana", "kedai", "beli", "bila", "apa", "bagaimana", "macam", "ni", "dah", "sudah"}
+    markers = {"saya", "boleh", "berapa", "harga", "penghantaran", "pesanan", "tolong", "nak", "adakah", "ada", "tak", "kat", "mana", "kedai", "beli", "bila", "apa", "cari", "untuk", "ke", "tanya", "pelanggan", "ini", "siapa", "awak", "bagaimana", "macam", "ni", "dah", "sudah"}
     return "MS" if markers & set(re.findall(r"[a-zA-Z0-9]+", message.lower())) else "EN"
 
 def _handoff_reason(message: str, rules: list[HandoffRule]) -> str | None:
@@ -65,7 +65,7 @@ async def create_grounded_draft(db: AsyncSession, *, message: str, requested_lan
         _draft_cost_usd.reset(token)
 
 async def _create_grounded_draft(db: AsyncSession, *, message: str, requested_language: str) -> SupportDraftPublic:
-    started = time.perf_counter(); language = _language(message, requested_language)
+    started = time.perf_counter(); language = detect_language(message, requested_language)
     rules = (await db.execute(select(HandoffRule).where(HandoffRule.is_active.is_(True)))).scalars().all()
     reason = _handoff_reason(message, rules)
     if reason: return _handoff(language=language, reason=reason, started=started)

@@ -148,9 +148,9 @@ async def test_failed_knowledge_sync_rolls_back_existing_chunks(session, monkeyp
 
 
 def test_short_malay_questions_are_detected_as_malay():
-    for message in ("Ada pek hadiah tak?", "Kedai kat mana ya?"):
-        assert support_copilot._language(message, "AUTO") == "MS"
-    assert support_copilot._language("Where is your shop?", "AUTO") == "EN"
+    for message in ("Ada pek hadiah tak?", "Kedai kat mana ya?", "Cari order untuk Aminah", "Pelanggan tanya bahulu kita halal ke?"):
+        assert support_copilot.detect_language(message, "AUTO") == "MS"
+    assert support_copilot.detect_language("Where is your shop?", "AUTO") == "EN"
 
 
 @pytest.mark.asyncio
