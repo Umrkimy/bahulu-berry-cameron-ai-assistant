@@ -57,8 +57,10 @@ Visitors ──► Cloudflare (DNS, TLS, WAF, rate rules)
   the API directly.
 - The admin nginx proxies `/api/` to the API, so Stripe webhooks use
   `https://admin.<domain>/api/payments/webhook`.
-- WhatsApp's `/webhooks/meta/whatsapp` is not proxied yet. Add an nginx
-  `location /webhooks/` block when live WhatsApp is approved.
+- The admin nginx also proxies `/webhooks/meta/whatsapp`. The API answers it
+  with 404 until `WHATSAPP_META_INBOUND_ENABLED=true`. Meta cannot pass
+  Cloudflare Access, so live WhatsApp also needs an Access Bypass policy for
+  that path only.
 
 ## 1. Prepare the server (about 20 minutes)
 
