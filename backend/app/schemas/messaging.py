@@ -29,6 +29,20 @@ class SupportMessagingConversationPublic(BaseModel):
     support_request_id: int
 
 
+class SupportConversationPublic(BaseModel):
+    id: int
+    provider: str
+    contact_reference: str | None
+    language: str | None
+    support_request_id: int | None
+    handoff_state: str
+    assigned_admin_id: int | None
+    last_message: str | None
+    last_direction: str
+    last_at: datetime
+    pending_drafts: int
+
+
 class SupportMessagePublic(BaseModel):
     model_config = {"from_attributes": True}
     id: int

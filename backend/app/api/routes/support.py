@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin, get_current_superuser
@@ -15,7 +15,7 @@ from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
 from app.models.support_draft import DRAFT_STATUSES, SupportDraft
 from app.schemas.activity import ActivityPublic
-from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
+from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportConversationPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.support import (
     FAQInput,
@@ -412,6 +412,51 @@ async def request_notes(item_id: int, db: DB, _: CurrentAdmin):
     if await db.get(SupportRequest, item_id) is None:
         raise HTTPException(404, detail="Support request not found.")
     result = await db.execute(select(SupportRequestNote).where(SupportRequestNote.support_request_id == item_id).order_by(SupportRequestNote.created_at.asc()))
+    return result.scalars().all()
+
+
+@router.get("/conversations", response_model=PaginatedResponse[SupportConversationPublic])
+async def conversations(db: DB, _: CurrentAdmin, needs_attention: bool = False, page: int = 1, page_size: int = 30):
+    if page < 1 or not 1 <= page_size <= 100:
+        raise HTTPException(422, detail="Invalid pagination settings.")
+    await purge_expired_message_content(db)
+    last_at = select(MessagingEvent.conversation_id, func.max(MessagingEvent.processed_at).label("last_at")).group_by(MessagingEvent.conversation_id).subquery()
+    pending = select(SupportDraft.conversation_id, func.count().label("pending")).where(SupportDraft.status == "PENDING_REVIEW").group_by(SupportDraft.conversation_id).subquery()
+    query = (
+        select(MessagingConversation, SupportRequest, last_at.c.last_at, func.coalesce(pending.c.pending, 0))
+        .join(last_at, last_at.c.conversation_id == MessagingConversation.id)
+        .outerjoin(SupportRequest, SupportRequest.id == MessagingConversation.support_request_id)
+        .outerjoin(pending, pending.c.conversation_id == MessagingConversation.id)
+    )
+    if needs_attention:
+        query = query.where(or_(SupportRequest.handoff_state.in_(HUMAN_HANDOFF_STATES), pending.c.pending > 0))
+    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+    rows = (await db.execute(query.order_by(last_at.c.last_at.desc(), MessagingConversation.id.desc()).offset((page - 1) * page_size).limit(page_size))).all()
+    items = []
+    for conversation, ticket, last_message_at, pending_drafts in rows:
+        last = await db.scalar(select(MessagingEvent).where(MessagingEvent.conversation_id == conversation.id).order_by(MessagingEvent.processed_at.desc(), MessagingEvent.id.desc()).limit(1))
+        items.append(SupportConversationPublic(
+            id=conversation.id,
+            provider=conversation.provider,
+            contact_reference=conversation.contact_reference,
+            language=conversation.menu_language,
+            support_request_id=ticket.id if ticket else None,
+            handoff_state=ticket.handoff_state if ticket else "AI_ACTIVE",
+            assigned_admin_id=ticket.assigned_admin_id if ticket else None,
+            last_message=last.content[:160] if last and last.content else None,
+            last_direction=last.direction if last else "INBOUND",
+            last_at=last_message_at,
+            pending_drafts=pending_drafts,
+        ))
+    return PaginatedResponse.create(items=items, page=page, page_size=page_size, total=total or 0)
+
+
+@router.get("/conversations/{conversation_id}/messages", response_model=list[SupportMessagePublic])
+async def conversation_messages(conversation_id: int, db: DB, _: CurrentAdmin):
+    if await db.get(MessagingConversation, conversation_id) is None:
+        raise HTTPException(404, detail="Conversation not found.")
+    await purge_expired_message_content(db)
+    result = await db.execute(select(MessagingEvent).where(MessagingEvent.conversation_id == conversation_id).order_by(MessagingEvent.processed_at.asc(), MessagingEvent.id.asc()))
     return result.scalars().all()
 
 
