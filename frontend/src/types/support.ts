@@ -19,3 +19,6 @@ export interface SupportMessagingConversation { id: number; provider: string; su
 export interface SupportMessage { id:number; direction:"INBOUND"|"OUTBOUND"; outcome:string; content:string|null; author_admin_id:number|null; delivery_error?:string|null; processed_at:string; expires_at:string|null; }
 export interface SupportConversation { id:number; provider:string; contact_reference:string|null; language:"EN"|"MS"|null; support_request_id:number|null; handoff_state:HandoffState; assigned_admin_id:number|null; last_message:string|null; last_direction:"INBOUND"|"OUTBOUND"; last_at:string; pending_drafts:number; }
 export interface SupportConversationPage { items: SupportConversation[]; page: number; page_size: number; total: number; total_pages: number; }
+export interface StaffRatingSummary { admin_id:number; username:string; role:string; ratings:number; average:number|null; low:number; }
+export interface SupportRating { id:number; admin_id:number; username:string; score:number; comment:string|null; flagged:boolean; rated_at:string; support_request_id:number|null; }
+export interface SupportRatingPage { items: SupportRating[]; page: number; page_size: number; total: number; total_pages: number; }

@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { HandoffRule, SupportDraftApproval, SupportDraftReview, SupportDraftReviewPage, KnowledgeArticle, MetaConnectionStatus, SupportConversationPage, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
+import type { HandoffRule, SupportDraftApproval, SupportDraftReview, SupportDraftReviewPage, KnowledgeArticle, MetaConnectionStatus, StaffRatingSummary, SupportRatingPage, SupportConversationPage, SupportDraft, SupportFAQ, SupportMessage, SupportMessagingConversation, SupportRequest, SupportRequestInput, SupportRequestNote, SupportRequestPage, SupportTemplate } from "../types/support";
 import type { Activity } from "./activity";
 import type { Role } from "../auth/permissions";
 export interface SupportRequestFilters { search?: string; status_filter?: string; priority?: string; assigned_admin_id?: number; source?: string; has_handoff?: boolean; start_at?: string; end_at?: string; page?: number; page_size?: number; }
@@ -30,6 +30,8 @@ export const updateRule=async(id:number,data:Omit<HandoffRule,"id"|"updated_at">
 export const deleteRule=async(id:number)=>api.delete(`/support/rules/${id}`);
 export const createSupportDraft=async(data:{message:string;language:"AUTO"|"EN"|"MS";support_request_id?:number})=>(await api.post<SupportDraft>("/support/copilot/draft",data)).data;
 export const getMetaConnectionStatus=async()=> (await api.get<MetaConnectionStatus>("/support/meta/status")).data;
+export const getRatingSummary=async(days:number)=> (await api.get<StaffRatingSummary[]>("/support/ratings/summary", { params: { days } })).data;
+export const getRatings=async(params:{days:number;admin_id?:number;low_only?:boolean;page?:number;page_size?:number})=> (await api.get<SupportRatingPage>("/support/ratings", { params })).data;
 export const getSupportConversations=async(params:{needs_attention?:boolean;page?:number;page_size?:number}={})=> (await api.get<SupportConversationPage>("/support/conversations", { params })).data;
 export const getConversationMessages=async(id:number)=> (await api.get<SupportMessage[]>(`/support/conversations/${id}/messages`)).data;
 export const getSupportMessagingConversation=async(id:number)=> (await api.get<SupportMessagingConversation | null>(`/support/requests/${id}/messaging-conversation`)).data;
