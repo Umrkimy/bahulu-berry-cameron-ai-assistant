@@ -40,3 +40,6 @@ quote-style = "preserve"
 
 [tool.ruff.lint]
 ignore = ["BLE001", "B008", "SIM102", "TRY004", "UP046"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
