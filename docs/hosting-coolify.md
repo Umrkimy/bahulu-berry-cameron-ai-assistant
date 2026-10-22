@@ -242,6 +242,23 @@ With `STOREFRONT_COMING_SOON=true`:
   The cron line assumes the server clock is UTC (18:00 UTC is 02:00 KL).
   Copy the files off-site (Cloudflare R2 or Backblaze B2 in the client's
   account). The age private key stays offline with the client.
+- Deploy with a fresh backup: `ops/deploy/coolify-deploy.sh` backs up, then
+  starts the Coolify deploy only if the backup worked, and waits for it.
+  Coolify's own pre-deployment command runs inside an app container, which
+  cannot run the backup. Once per server, after the backup is set up:
+  ```bash
+  # from your PC
+  scp ops/deploy/coolify-deploy.sh <user>@<server-ip>:/tmp/
+  # on the server
+  sudo sed -i 's/$//' /tmp/coolify-deploy.sh
+  sudo install -m 700 /tmp/coolify-deploy.sh /usr/local/bin/bahulu-deploy && rm /tmp/coolify-deploy.sh
+  sudo install -m 600 /dev/null /etc/bahulu-deploy.env
+  sudo nano /etc/bahulu-deploy.env   # COOLIFY_TOKEN=... and APP_UUID=...
+  sudo bahulu-deploy
+  ```
+  The token comes from Coolify, Keys & Tokens, API tokens, with the deploy
+  and read permissions (API access must be on in Coolify's settings). The
+  application UUID is in its Coolify URL.
 - Rehearse a restore before launch: put the `AGE-SECRET-KEY-1...` line in
   `/dev/shm/bahulu-age-key.txt` (`chown 999`, `chmod 400`), run
   `sudo bahulu-backup restore-test <file>.tar.age`, then delete the key file.
