@@ -36,7 +36,7 @@ from app.schemas.storefront_place import StorefrontMap, StorefrontPlace
 from app.services.google_place import GooglePlaceUnavailable, fetch_google_place, google_map_embed_url
 from app.services.order_tracking import find_order_by_phone, find_order_by_token, tracking_view
 from app.services.pricing_services import calculate_order_pricing
-from app.services.product_services import product_sale_price
+from app.services.product_services import product_sale_price, storefront_published_filters
 from app.services.storefront_checkout import CheckoutError, place_storefront_order
 from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 
@@ -152,15 +152,6 @@ def _serialize_product(product: Product) -> StorefrontProduct:
     )
 
 
-def _published_filters():
-    return (
-        Product.is_active.is_(True),
-        Product.storefront_published.is_(True),
-        Product.name_ms.is_not(None),
-        func.trim(Product.name_ms) != "",
-    )
-
-
 @router.get("/products", response_model=PaginatedResponse[StorefrontProduct])
 async def list_storefront_products(
     request: Request,
@@ -173,7 +164,7 @@ async def list_storefront_products(
 ):
     await rate_limiter.check(request, "storefront-products", STOREFRONT_READ_LIMIT)
     response.headers["Cache-Control"] = "no-store"
-    filters = list(_published_filters())
+    filters = list(storefront_published_filters())
     if search:
         filters.append(
             func.lower(Product.name).contains(search.lower())
@@ -211,7 +202,7 @@ async def get_storefront_product(
     result = await db.execute(
         select(Product)
         .options(selectinload(Product.inventory), selectinload(Product.discounts))
-        .where(Product.id == product_id, *_published_filters())
+        .where(Product.id == product_id, *storefront_published_filters())
     )
     product = result.scalar_one_or_none()
     if product is None:
@@ -238,7 +229,7 @@ async def quote_storefront_cart(
             selectinload(Product.discounts),
             selectinload(Product.images),
         )
-        .where(Product.id.in_(requested), *_published_filters())
+        .where(Product.id.in_(requested), *storefront_published_filters())
     )
     products = {product.id: product for product in result.scalars().all()}
     valid_items: list[dict[str, int]] = []
@@ -330,7 +321,7 @@ async def storefront_checkout(
 
     product_ids = [item.product_id for item in checkout_data.items]
     published = set((await db.scalars(
-        select(Product.id).where(Product.id.in_(product_ids), *_published_filters())
+        select(Product.id).where(Product.id.in_(product_ids), *storefront_published_filters())
     )).all())
     if published != set(product_ids):
         raise HTTPException(
@@ -389,7 +380,7 @@ async def lookup_storefront_order(
 
 @router.get("/products/{product_id}/images/{image_id}/content")
 async def public_image(product_id: int, image_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    image = await db.scalar(select(ProductImage).join(Product, Product.id == ProductImage.product_id).where(ProductImage.id == image_id, Product.id == product_id, *_published_filters()))
+    image = await db.scalar(select(ProductImage).join(Product, Product.id == ProductImage.product_id).where(ProductImage.id == image_id, Product.id == product_id, *storefront_published_filters()))
     if image is None:
         raise HTTPException(404, "Product image not found.")
     return image_response(image)

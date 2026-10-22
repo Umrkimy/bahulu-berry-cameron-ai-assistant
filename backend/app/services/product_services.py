@@ -7,6 +7,15 @@ from sqlalchemy.orm import selectinload
 from app.models.product import Product
 
 
+def storefront_published_filters():
+    return (
+        Product.is_active.is_(True),
+        Product.storefront_published.is_(True),
+        Product.name_ms.is_not(None),
+        func.trim(Product.name_ms) != "",
+    )
+
+
 def product_sale_price(product: Product) -> Decimal | None:
     def money(value):
         return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

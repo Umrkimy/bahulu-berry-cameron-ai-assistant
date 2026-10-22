@@ -50,7 +50,7 @@ def test_meta_adapter_normalizes_only_valid_text_messages(meta_settings):
         "entry": [{"changes": [{"value": {"metadata": {"phone_number_id": "test-phone-id"}, "messages": [
             {"id": "message-1", "from": "60100000001", "type": "text", "text": {"body": "  Hello  "}},
             {"id": "message-2", "from": "60100000001", "type": "image"},
-            {"id": "message-3", "from": "60100000001", "type": "text", "text": {"body": "x"}},
+            {"id": "message-3", "from": "60100000001", "type": "text", "text": {"body": "   "}},
         ]}}]}]
     }
     messages = MetaWhatsAppAdapter().normalize_inbound(payload)

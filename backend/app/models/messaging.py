@@ -15,6 +15,8 @@ class MessagingConversation(Base):
     external_conversation_id: Mapped[str] = mapped_column(String(160), nullable=False)
     contact_reference: Mapped[str | None] = mapped_column(String(160), nullable=True)
     support_request_id: Mapped[int | None] = mapped_column(ForeignKey("support_requests.id"), nullable=True, index=True)
+    menu_language: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    menu_step: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
