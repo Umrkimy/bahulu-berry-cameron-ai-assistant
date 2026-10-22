@@ -223,11 +223,30 @@ With `STOREFRONT_COMING_SOON=true`:
 
 ## 5. Backups and monitoring
 
-- Backups: the `backup` compose profile writes age-encrypted dumps (see
-  `operations.md`). Add a Coolify **Scheduled task** at 02:00 Asia/Kuala_Lumpur
-  that runs it, and copy the files off-site (Cloudflare R2 or Backblaze B2 in
-  the client's account). The age private key stays offline with the client.
-- Rehearse a restore with `ops/backup/restore-test.sh` before launch.
+- Backups: Coolify does not build or start the `backup` profile service, and
+  its scheduled tasks only run inside running containers, so backups run from
+  host cron through `ops/backup/coolify-backup.sh`. Once per server:
+  ```bash
+  # from your PC
+  scp -r ops/backup <user>@<server-ip>:/tmp/bahulu-backup
+  # on the server
+  sudo mkdir -p /opt/bahulu-backup /srv/bahulu-backups
+  sudo cp /tmp/bahulu-backup/* /opt/bahulu-backup/ && rm -rf /tmp/bahulu-backup
+  sudo sed -i 's/\r$//' /opt/bahulu-backup/*.sh
+  sudo install -m 700 /opt/bahulu-backup/coolify-backup.sh /usr/local/bin/bahulu-backup
+  sudo chown 999:999 /srv/bahulu-backups
+  sudo nano /usr/local/bin/bahulu-backup   # set APP (folder under /data/coolify/applications) and AGE_RECIPIENT
+  sudo /usr/local/bin/bahulu-backup        # first backup
+  echo '0 18 * * * root /usr/local/bin/bahulu-backup >> /var/log/bahulu-backup.log 2>&1' | sudo tee /etc/cron.d/bahulu-backup
+  ```
+  The cron line assumes the server clock is UTC (18:00 UTC is 02:00 KL).
+  Copy the files off-site (Cloudflare R2 or Backblaze B2 in the client's
+  account). The age private key stays offline with the client.
+- Rehearse a restore before launch: put the `AGE-SECRET-KEY-1...` line in
+  `/dev/shm/bahulu-age-key.txt` (`chown 999`, `chmod 400`), run
+  `sudo bahulu-backup restore-test <file>.tar.age`, then delete the key file.
+- Hetzner Backups (whole-server snapshots) are worth enabling as well; they
+  do not replace these database backups.
 - Uptime: a free monitor (UptimeRobot or Better Stack) on
   `https://<domain>/` and `https://admin.<domain>/api/health`, alerting
   the client and Umar. Cloudflare Access blocks the monitor on `admin.`, so
