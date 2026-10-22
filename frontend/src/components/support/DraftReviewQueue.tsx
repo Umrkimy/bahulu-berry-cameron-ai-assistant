@@ -32,7 +32,7 @@ const STATUS_LABELS: Partial<Record<SupportDraftStatus, { label: string; color: 
 
 const draftTitle = (draft: SupportDraftReview) => draft.support_request_id ? `Ticket #${draft.support_request_id}` : "WhatsApp message";
 
-function DraftCard({ draft, onApproved, onReject }: { draft: SupportDraftReview; onApproved: (approval: SupportDraftApproval) => void; onReject: (draft: SupportDraftReview) => void }) {
+export function DraftCard({ draft, onApproved, onReject }: { draft: SupportDraftReview; onApproved: (approval: SupportDraftApproval) => void; onReject: (draft: SupportDraftReview) => void }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(draft.body ?? "");
