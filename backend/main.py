@@ -109,12 +109,12 @@ settings.validate_runtime_security()
 settings.validate_payment_safety()
 
 
-@app.get("/health", include_in_schema=False)
+@app.api_route("/health", methods=["GET", "HEAD"], include_in_schema=False)
 async def health_check():
     return {"status": "ok"}
 
 
-@app.get("/ready", include_in_schema=False)
+@app.api_route("/ready", methods=["GET", "HEAD"], include_in_schema=False)
 async def readiness_check():
     # Ready only when the database answers and is on this build's migration.
     ready, body = await check_readiness()

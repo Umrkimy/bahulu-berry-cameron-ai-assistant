@@ -77,3 +77,13 @@ async def test_ready_fails_without_leaking_details_when_database_is_down(monkeyp
 
     assert response.status_code == 503
     assert response.json() == {"status": "unavailable"}
+
+
+async def test_health_and_ready_answer_head_for_uptime_monitors(sqlite_engine):
+    async with sqlite_engine.begin() as connection:
+        await connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(64) NOT NULL)"))
+        await connection.execute(text("INSERT INTO alembic_version VALUES (:rev)"), {"rev": readiness.expected_head()})
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
+        assert (await client.head("/health")).status_code == 200
+        assert (await client.head("/ready")).status_code == 200
