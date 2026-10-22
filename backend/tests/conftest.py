@@ -1,9 +1,20 @@
 import os
 
+import pytest
 import pytest_asyncio
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.core.config import settings
 from app.db.database import Base
+
+
+@pytest.fixture(autouse=True)
+def whatsapp_off(monkeypatch):
+    # A developer's backend/.env may hold real Meta values; tests never use them.
+    monkeypatch.setattr(settings, "WHATSAPP_MENU_ENABLED", False)
+    monkeypatch.setattr(settings, "WHATSAPP_META_OUTBOUND_ENABLED", False)
+    monkeypatch.setattr(settings, "WHATSAPP_META_ACCESS_TOKEN", SecretStr(""))
 
 
 @pytest_asyncio.fixture

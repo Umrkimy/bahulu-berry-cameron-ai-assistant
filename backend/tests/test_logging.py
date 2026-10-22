@@ -55,6 +55,7 @@ def _lines(stream: io.StringIO) -> list[dict]:
         "secret whsec_abcdefghijk123",
         "GET /reset?token=abc123&x=1",
         "GET /callback?code=abc123",
+        "GET /webhooks/meta/whatsapp?hub.mode=subscribe&hub.verify_token=abc123&hub_verify_token=abc123",
     ],
 )
 def test_redact_text_masks_personal_data_and_secrets(raw):

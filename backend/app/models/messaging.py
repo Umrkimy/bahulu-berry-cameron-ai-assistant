@@ -35,5 +35,6 @@ class MessagingEvent(Base):
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     author_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admins.id"), nullable=True)
+    delivery_error: Mapped[str | None] = mapped_column(String(160), nullable=True)
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)

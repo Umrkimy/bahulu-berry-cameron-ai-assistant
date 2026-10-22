@@ -44,6 +44,23 @@ describe("WhatsAppInbox", () => {
     expect(screen.getAllByText("Waiting for staff").length).toBeGreaterThan(0);
   });
 
+  it("shows whether each reply was delivered", async () => {
+    server.use(
+      http.get(`${API}/conversations`, () => HttpResponse.json(page([waiting]))),
+      http.get(`${API}/conversations/7/messages`, () => HttpResponse.json([
+        { ...messages[1], id: 4, outcome: "READ" },
+        { ...messages[1], id: 5, outcome: "SEND_FAILED", delivery_error: "131031 Business Account locked" },
+      ])),
+      http.get(`${API}/drafts`, () => HttpResponse.json(page([]))),
+    );
+    const user = userEvent.setup();
+    renderInbox();
+
+    await user.click(await screen.findByText("+60100000002"));
+    expect(await screen.findByText("Read")).toBeInTheDocument();
+    expect(screen.getByText(/Not delivered \(131031 Business Account locked\)/)).toBeInTheDocument();
+  });
+
   it("lets staff take a waiting chat", async () => {
     let claimed = false;
     server.use(

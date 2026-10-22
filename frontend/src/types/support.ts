@@ -16,6 +16,6 @@ export interface SupportDraftReviewPage { items: SupportDraftReview[]; page: num
 export interface SupportDraftApproval { draft: SupportDraftReview; text: string; whatsapp_url: string | null; sent: boolean | null; }
 export interface MetaConnectionStatus { provider: "META_WHATSAPP_CLOUD_API"; inbound_enabled: boolean; webhook_url: string; app_secret_configured: boolean; verify_token_configured: boolean; phone_number_configured: boolean; access_token_configured: boolean; menu_enabled: boolean; outbound_enabled: boolean; mode: "SENDING" | "RECORD_ONLY"; }
 export interface SupportMessagingConversation { id: number; provider: string; support_request_id: number; }
-export interface SupportMessage { id:number; direction:"INBOUND"|"OUTBOUND"; outcome:string; content:string|null; author_admin_id:number|null; processed_at:string; expires_at:string|null; }
+export interface SupportMessage { id:number; direction:"INBOUND"|"OUTBOUND"; outcome:string; content:string|null; author_admin_id:number|null; delivery_error?:string|null; processed_at:string; expires_at:string|null; }
 export interface SupportConversation { id:number; provider:string; contact_reference:string|null; language:"EN"|"MS"|null; support_request_id:number|null; handoff_state:HandoffState; assigned_admin_id:number|null; last_message:string|null; last_direction:"INBOUND"|"OUTBOUND"; last_at:string; pending_drafts:number; }
 export interface SupportConversationPage { items: SupportConversation[]; page: number; page_size: number; total: number; total_pages: number; }

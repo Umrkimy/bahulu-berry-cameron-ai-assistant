@@ -42,6 +42,7 @@ class SupportMessagePublic(BaseModel):
     outcome: str
     content: str | None
     author_admin_id: int | None
+    delivery_error: str | None = None
     processed_at: datetime
     expires_at: datetime | None
 

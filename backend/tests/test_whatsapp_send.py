@@ -18,7 +18,7 @@ from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support_draft import SupportDraft
 from app.schemas.messaging import DashboardReplyInput
 from app.schemas.support import SupportDraftApproveInput
-from app.services.messaging import MetaWhatsAppAdapter, NormalizedInboundMessage, OutboundSendError, process_inbound_message
+from app.services.messaging import MetaWhatsAppAdapter, NormalizedInboundMessage, OutboundSendError, apply_delivery_statuses, process_inbound_message
 
 message_ids = itertools.count(1)
 SENDER = "60100000009"
@@ -173,3 +173,39 @@ async def test_approving_a_draft_sends_it(session, sent):
 
     assert approval.sent is True
     assert sent[-1] == (SENDER, "Fictional approved answer.")
+
+
+def status_payload(message_id: str, status: str, errors: list | None = None) -> dict:
+    item = {"id": message_id, "status": status, "recipient_id": SENDER}
+    if errors is not None:
+        item["errors"] = errors
+    return {"entry": [{"changes": [{"value": {"metadata": {"phone_number_id": "fictional-phone-id"}, "statuses": [item]}}]}]}
+
+
+@pytest.mark.asyncio
+async def test_delivery_statuses_move_forward_and_keep_failure_reason(session, sent):
+    await inbound(session, "hi")
+    adapter = MetaWhatsAppAdapter()
+
+    await apply_delivery_statuses(session, adapter.delivery_statuses(status_payload("wamid.fictional-1", "read")))
+    await apply_delivery_statuses(session, adapter.delivery_statuses(status_payload("wamid.fictional-1", "delivered")))
+    [event] = await outbound_events(session)
+    assert event.outcome == "READ"
+
+    await apply_delivery_statuses(session, adapter.delivery_statuses(status_payload("wamid.fictional-1", "failed", [{"code": 131031, "title": "Business Account locked"}])))
+    await session.refresh(event)
+    assert event.outcome == "SEND_FAILED"
+    assert event.delivery_error == "131031 Business Account locked"
+
+
+@pytest.mark.asyncio
+async def test_delivery_statuses_ignore_unknown_messages_and_other_numbers(session, sent):
+    await inbound(session, "hi")
+    adapter = MetaWhatsAppAdapter()
+    other_number = status_payload("wamid.fictional-1", "read")
+    other_number["entry"][0]["changes"][0]["value"]["metadata"]["phone_number_id"] = "someone-else"
+
+    assert adapter.delivery_statuses(other_number) == []
+    assert await apply_delivery_statuses(session, adapter.delivery_statuses(status_payload("wamid.unknown", "read"))) == 0
+    [event] = await outbound_events(session)
+    assert event.outcome == "SENT"

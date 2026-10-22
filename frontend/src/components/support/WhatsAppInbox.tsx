@@ -30,6 +30,14 @@ function senderLabel(message: SupportMessage, names: Map<number, string>) {
   return names.get(message.author_admin_id) ?? "Staff";
 }
 
+const DELIVERY_LABELS: Record<string, string> = { PENDING_SEND: "Sending…", SENT: "Sent", DELIVERED: "Delivered", READ: "Read", SIMULATED_SENT: "Saved here only, sending is off", AUTO_REPLY: "Saved here only, sending is off" };
+
+function DeliveryNote({ message }: { message: SupportMessage }) {
+  if (message.outcome === "SEND_FAILED") return <Text size="xs" c="red" mt={4}>Not delivered{message.delivery_error ? ` (${message.delivery_error})` : ""}. Send it with Open WhatsApp.</Text>;
+  const label = DELIVERY_LABELS[message.outcome];
+  return label ? <Text size="xs" c="dimmed" mt={4} ta="right">{label}</Text> : null;
+}
+
 function MessageBubble({ message, names }: { message: SupportMessage; names: Map<number, string> }) {
   const outbound = message.direction === "OUTBOUND";
   return (
@@ -37,7 +45,7 @@ function MessageBubble({ message, names }: { message: SupportMessage; names: Map
       <Box maw="80%" p="sm" style={{ borderRadius: 12, background: outbound ? "var(--ui-accent-soft)" : "var(--ui-subtle)", border: "1px solid var(--ui-border)" }}>
         <Text size="xs" fw={600} c="dimmed">{senderLabel(message, names)} · {formatTime(message.processed_at)}</Text>
         <Text size="sm" mt={4} style={{ whiteSpace: "pre-wrap" }}>{message.content ?? "Message text was removed after 30 days."}</Text>
-        {message.outcome === "SEND_FAILED" ? <Text size="xs" c="red" mt={4}>Not delivered. Send it with Open WhatsApp.</Text> : message.outcome === "SIMULATED_SENT" || message.outcome === "AUTO_REPLY" ? <Text size="xs" c="dimmed" mt={4}>Saved here only, sending is off</Text> : null}
+        {outbound ? <DeliveryNote message={message} /> : null}
       </Box>
     </Group>
   );
