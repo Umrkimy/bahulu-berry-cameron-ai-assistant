@@ -14,7 +14,9 @@
   screenshots out of Git, logs, prompts, and public sharing.
 - Authorise and validate admin mutations server-side. Verify and deduplicate
   webhooks. Keep AI least-privileged, structured, audited, and human-approved
-  for consequential actions; WhatsApp remains draft-only until approved.
+  for consequential actions. On WhatsApp only Berry's fixed menu replies and
+  backend data go out automatically; AI answers and staff replies are sent
+  only after a person approves or writes them.
 - Checkout stays disabled. Public checkout, live payments, customer intake,
   and unapproved content require Umar's and the client's explicit approval.
 - Inspect before editing, preserve unrelated changes, and use `apply_patch` for

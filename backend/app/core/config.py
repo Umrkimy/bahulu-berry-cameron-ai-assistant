@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     WHATSAPP_META_VERIFY_TOKEN: SecretStr = SecretStr("")
     WHATSAPP_META_PHONE_NUMBER_ID: str = ""
     WHATSAPP_MENU_ENABLED: bool = False
+    WHATSAPP_META_OUTBOUND_ENABLED: bool = False
+    WHATSAPP_META_ACCESS_TOKEN: SecretStr = SecretStr("")
+    WHATSAPP_META_GRAPH_VERSION: str = "v23.0"
 
     STRIPE_SECRET_KEY: SecretStr
     STRIPE_WEBHOOK_SECRET: SecretStr

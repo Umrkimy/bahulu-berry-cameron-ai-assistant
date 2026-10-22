@@ -38,8 +38,9 @@ ingredients, awards) needs the client's approval before it appears anywhere.
 
 ## Operating Context
 
-- Orders are taken on WhatsApp by staff today. The website's own AI and
-  WhatsApp tooling is draft-only and human-approved.
+- Orders are taken on WhatsApp by staff today. Berry answers a fixed WhatsApp
+  menu automatically; its AI answers are drafts that staff approve before they
+  are sent.
 - Until online payment is live, the cart ends by opening WhatsApp with the
   order pre-filled as a draft that the customer sends themselves (decided
   29 September 2026). The number comes from environment configuration, never

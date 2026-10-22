@@ -222,11 +222,11 @@ async def test_purge_clears_expired_draft_text_but_keeps_the_audit_row(session, 
 
 
 @pytest.mark.asyncio
-async def test_outbound_sending_stays_disabled():
+async def test_outbound_sending_is_off_by_default():
     with pytest.raises(RuntimeError):
         await messaging.MetaWhatsAppAdapter().send_template(recipient="60123456789", template_name="any", variables={})
-    with pytest.raises(RuntimeError):
-        await messaging.SimulatorAdapter().send_template(recipient="60123456789", template_name="any", variables={})
+    with pytest.raises(messaging.OutboundSendError):
+        await messaging.MetaWhatsAppAdapter().send_text(recipient="60123456789", body="any")
 
 
 @pytest.mark.asyncio

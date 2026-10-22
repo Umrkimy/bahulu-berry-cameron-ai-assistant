@@ -42,7 +42,8 @@ export function DraftCard({ draft, onApproved, onReject }: { draft: SupportDraft
     mutationFn: () => approveSupportDraft(draft.id, edited ? trimmed : undefined),
     onSuccess: async (approval) => {
       onApproved(approval);
-      await copyText(approval.text);
+      if (approval.sent) notifications.show({ color: "green", title: "Reply sent", message: "The customer has it on WhatsApp." });
+      else await copyText(approval.text);
       void queryClient.invalidateQueries({ queryKey: ["support-drafts"] });
     },
     onError: (error) => notifications.show({ color: "red", title: "Draft not approved", message: getApiError(error).message }),
@@ -68,7 +69,7 @@ export function DraftCard({ draft, onApproved, onReject }: { draft: SupportDraft
         {draft.sources.length ? <Text size="sm" c="dimmed">Based on: {draft.sources.map((source) => `${source.label} (${source.type.toLowerCase()})`).join(", ")}</Text> : null}
         <Group gap="xs">
           <Button variant="default" leftSection={<IconEdit size={15} />} onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit"}</Button>
-          <Button leftSection={<IconCheck size={15} />} loading={approve.isPending} disabled={trimmed.length < 2 || !draft.body} onClick={() => approve.mutate()}>Approve and copy</Button>
+          <Button leftSection={<IconCheck size={15} />} loading={approve.isPending} disabled={trimmed.length < 2 || !draft.body} onClick={() => approve.mutate()}>Approve</Button>
           <Button variant="subtle" color="red" leftSection={<IconX size={15} />} onClick={() => onReject(draft)}>Reject</Button>
         </Group>
       </Stack>
@@ -145,7 +146,7 @@ export default function DraftReviewQueue() {
   return (
     <Stack gap="md">
       <Card withBorder bg="var(--ui-subtle)">
-        <Group gap="xs"><IconInbox size={20} /><Stack gap={0}><Text fw={600}>Drafts to review</Text><Text size="sm" c="dimmed">The AI suggests replies from approved content. Nothing is sent automatically: approve a reply to copy it, then send it yourself in WhatsApp.</Text></Stack></Group>
+        <Group gap="xs"><IconInbox size={20} /><Stack gap={0}><Text fw={600}>Drafts to review</Text><Text size="sm" c="dimmed">The AI suggests replies from approved content. Nothing goes out until you approve it. Approved replies are sent on WhatsApp, or copied for you to send when sending is off.</Text></Stack></Group>
       </Card>
       <SegmentedControl aria-label="Draft status" value={view} onChange={(value) => setView(value as DraftView)} data={[{ label: "To review", value: "review" }, { label: "Approved", value: "approved" }, { label: "Rejected", value: "rejected" }]} />
       {view !== "review" ? <DraftHistory key={view} view={view} /> : null}

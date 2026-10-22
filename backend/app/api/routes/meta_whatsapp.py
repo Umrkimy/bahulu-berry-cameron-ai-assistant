@@ -76,6 +76,8 @@ async def meta_connection_status(admin: Annotated[Admin, Depends(get_current_sup
         "app_secret_configured": app_secret_configured,
         "verify_token_configured": verify_token_configured,
         "phone_number_configured": phone_number_configured,
-        "outbound_enabled": False,
-        "mode": "DRAFT_ONLY",
+        "access_token_configured": bool(settings.WHATSAPP_META_ACCESS_TOKEN.get_secret_value()),
+        "menu_enabled": settings.WHATSAPP_MENU_ENABLED,
+        "outbound_enabled": settings.WHATSAPP_META_OUTBOUND_ENABLED,
+        "mode": "SENDING" if settings.WHATSAPP_META_OUTBOUND_ENABLED else "RECORD_ONLY",
     }

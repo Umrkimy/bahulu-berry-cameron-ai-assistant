@@ -1,7 +1,7 @@
 # WhatsApp assistant scope
 
-Status: draft, agreed with Umar on 22 October 2026. Automatic sending needs the
-client's approval before it goes live.
+Status: agreed with Umar on 22 October 2026; the client has broadly approved
+and will send feedback after testing.
 
 ## Shape
 
@@ -118,27 +118,18 @@ the conversation.
 
 - Free replies are allowed only within 24 hours of the customer's last message.
   After that only approved Meta templates can be sent, and only by staff.
-- Only the menu flows above are automatic. A setting turns automatic sending
-  off, which falls back to draft-only.
+- Only the menu flows above are automatic. `WHATSAPP_META_OUTBOUND_ENABLED`
+  turns sending off; replies are then saved in the inbox only.
 
-## Change to the project rule
+## Settings
 
-AGENTS.md currently says "WhatsApp remains draft-only until approved". Once the
-client approves this scope it becomes: "On WhatsApp, only fixed menu replies and
-backend data are sent automatically; AI answers and anything else stay
-staff-approved."
-
-## Build order
-
-1. Backend menu flow on `MessagingConversation` (current step, language),
-   menu text in the admin, outbound sending in `MetaWhatsAppAdapter` behind a
-   setting that is off by default. Reuses `process_inbound_message`,
-   `create_grounded_draft`, the handoff states and `record_activity`. Tested
-   with the simulator adapter and fictional numbers.
-2. Local test with the Meta test number and Umar's own phone (tunnel needs
-   Umar's yes for that session).
-3. Admin redesign: inbox first (conversations, thread, draft approve or edit,
-   take over and hand back), with menu text, FAQs and rules under settings.
+| Setting | What it does |
+| --- | --- |
+| `WHATSAPP_META_INBOUND_ENABLED` | Accept Meta's webhook |
+| `WHATSAPP_MENU_ENABLED` | Berry answers the menu |
+| `WHATSAPP_META_OUTBOUND_ENABLED` | Replies are sent through Meta |
+| `WHATSAPP_META_ACCESS_TOKEN` | Token for sending |
+| `WHATSAPP_META_PHONE_NUMBER_ID`, `WHATSAPP_META_APP_SECRET`, `WHATSAPP_META_VERIFY_TOKEN` | Meta app values |
 
 ## Open questions
 

@@ -1,23 +1,32 @@
 import hmac
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Protocol
 from uuid import uuid4
 
-from sqlalchemy import select, update
+import httpx
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.admin import Admin
 from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import SupportRequest
-from app.schemas.messaging import SimulatorInboundInput, SimulatorInboundPublic
+from app.schemas.messaging import InboundMessageResult
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
 from app.services.support_drafts import purge_expired_drafts, save_draft
 from app.services.transaction_lock import acquire_transaction_lock
 from app.services.whatsapp_menu import handoff_message, menu_reply
+
+logger = logging.getLogger("bahulu.whatsapp")
+CUSTOMER_WINDOW = timedelta(hours=24)
+
+
+class OutboundSendError(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -36,28 +45,11 @@ class MessagingAdapter(Protocol):
     async def send_template(self, *, recipient: str, template_name: str, variables: dict[str, str]) -> str: ...
 
 
-class SimulatorAdapter:
-    provider = "SIMULATOR"
-
-    def normalize_inbound(self, payload: SimulatorInboundInput) -> NormalizedInboundMessage:
-        return NormalizedInboundMessage(
-            provider=self.provider,
-            external_message_id=payload.message_id.strip(),
-            external_conversation_id=payload.conversation_id.strip(),
-            sender_reference=payload.sender_reference.strip(),
-            message=payload.message.strip(),
-            language=payload.language,
-        )
-
-    def verify_inbound(self, payload: object) -> bool:
-        return isinstance(payload, SimulatorInboundInput)
-
-    async def send_template(self, *, recipient: str, template_name: str, variables: dict[str, str]) -> str:
-        raise RuntimeError("Outbound messaging is not enabled.")
-
-
 class MetaWhatsAppAdapter:
     provider = "META_WHATSAPP"
+
+    def __init__(self, transport: httpx.AsyncBaseTransport | None = None) -> None:
+        self._transport = transport
 
     def normalize_inbound(self, payload: dict[str, Any]) -> list[NormalizedInboundMessage]:
         messages: list[NormalizedInboundMessage] = []
@@ -89,7 +81,51 @@ class MetaWhatsAppAdapter:
         return isinstance(payload, dict)
 
     async def send_template(self, *, recipient: str, template_name: str, variables: dict[str, str]) -> str:
-        raise RuntimeError("Outbound messaging is not enabled in draft-only mode.")
+        raise RuntimeError("Template messages are not enabled.")
+
+    async def send_text(self, *, recipient: str, body: str) -> str:
+        token = settings.WHATSAPP_META_ACCESS_TOKEN.get_secret_value()
+        if not outbound_enabled(self.provider) or not token or not settings.WHATSAPP_META_PHONE_NUMBER_ID:
+            raise OutboundSendError("WhatsApp sending is not enabled.")
+        url = f"https://graph.facebook.com/{settings.WHATSAPP_META_GRAPH_VERSION}/{settings.WHATSAPP_META_PHONE_NUMBER_ID}/messages"
+        payload = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": recipient, "type": "text", "text": {"preview_url": False, "body": body}}
+        try:
+            async with httpx.AsyncClient(timeout=10, transport=self._transport, follow_redirects=False) as client:
+                response = await client.post(url, json=payload, headers={"Authorization": f"Bearer {token}"})
+            response.raise_for_status()
+            message_id = response.json()["messages"][0]["id"]
+        except httpx.HTTPStatusError as error:
+            logger.warning("WhatsApp send was rejected with status %s.", error.response.status_code)
+            raise OutboundSendError("WhatsApp did not accept the message.") from error
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as error:
+            logger.warning("WhatsApp send failed: %s.", type(error).__name__)
+            raise OutboundSendError("WhatsApp did not accept the message.") from error
+        if not isinstance(message_id, str):
+            raise OutboundSendError("WhatsApp did not accept the message.")
+        return message_id
+
+
+def outbound_enabled(provider: str) -> bool:
+    return provider == MetaWhatsAppAdapter.provider and settings.WHATSAPP_META_OUTBOUND_ENABLED
+
+
+async def within_customer_window(db: AsyncSession, conversation: MessagingConversation) -> bool:
+    last = await db.scalar(select(func.max(MessagingEvent.processed_at)).where(MessagingEvent.conversation_id == conversation.id, MessagingEvent.direction == "INBOUND"))
+    if last is None:
+        return False
+    last = last if last.tzinfo else last.replace(tzinfo=UTC)
+    return datetime.now(UTC) - last < CUSTOMER_WINDOW
+
+
+async def deliver_outbound(db: AsyncSession, event: MessagingEvent, conversation: MessagingConversation) -> None:
+    if not outbound_enabled(conversation.provider) or not conversation.contact_reference or not event.content:
+        return
+    try:
+        event.external_message_id = await MetaWhatsAppAdapter().send_text(recipient=conversation.contact_reference, body=event.content)
+        event.outcome = "SENT"
+    except OutboundSendError:
+        event.outcome = "SEND_FAILED"
+    await db.commit()
 
 
 def _payload_hash(message: str) -> str:
@@ -110,21 +146,22 @@ async def purge_expired_message_content(db: AsyncSession) -> None:
     await db.commit()
 
 
-async def create_simulated_dashboard_reply(
+async def create_dashboard_reply(
     db: AsyncSession,
     *,
     conversation: MessagingConversation,
-    support_request: SupportRequest,
+    support_request: SupportRequest | None,
     admin: Admin,
     content: str,
 ) -> MessagingEvent:
+    sending = outbound_enabled(conversation.provider)
     event = MessagingEvent(
         provider=conversation.provider,
         external_message_id=f"local-outbound-{uuid4()}",
         conversation_id=conversation.id,
-        support_request_id=support_request.id,
+        support_request_id=support_request.id if support_request else None,
         direction="OUTBOUND",
-        outcome="SIMULATED_SENT",
+        outcome="PENDING_SEND" if sending else "SIMULATED_SENT",
         payload_hash=_payload_hash(content),
         content=content,
         author_admin_id=admin.id,
@@ -136,12 +173,13 @@ async def create_simulated_dashboard_reply(
         db,
         admin=admin,
         action="replied",
-        entity_type="support_request",
-        entity_id=support_request.id,
-        description=f"Sent a dashboard reply for support request #{support_request.id}.",
-        metadata={"provider": conversation.provider, "mode": "SIMULATED"},
+        entity_type="support_request" if support_request else "messaging_event",
+        entity_id=support_request.id if support_request else event.id,
+        description=f"Sent a dashboard reply for support request #{support_request.id}." if support_request else "Sent a dashboard reply.",
+        metadata={"provider": conversation.provider, "mode": "META" if sending else "SIMULATED"},
     )
     await db.commit()
+    await deliver_outbound(db, event, conversation)
     await db.refresh(event)
     return event
 
@@ -183,11 +221,11 @@ _OUTCOME_DESCRIPTIONS = {
 }
 
 
-async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin | None = None) -> SimulatorInboundPublic:
+async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboundMessage, actor: Admin | None = None) -> InboundMessageResult:
     await acquire_transaction_lock(db, "messaging-intake")
     existing = await db.scalar(select(MessagingEvent).where(MessagingEvent.provider == message.provider, MessagingEvent.external_message_id == message.external_message_id))
     if existing is not None:
-        return SimulatorInboundPublic(outcome="DUPLICATE", duplicate=True, support_request_id=existing.support_request_id)
+        return InboundMessageResult(outcome="DUPLICATE", duplicate=True, support_request_id=existing.support_request_id)
 
     conversation = await db.scalar(select(MessagingConversation).where(MessagingConversation.provider == message.provider, MessagingConversation.external_conversation_id == message.external_conversation_id))
     first_contact = conversation is None
@@ -233,18 +271,20 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
     reply = None
     if menu_enabled:
         reply = handoff_message(conversation.menu_language or "EN") if outcome == "HANDOFF" else (menu.text if menu is not None else None)
+    outbound = None
     if reply is not None:
-        db.add(MessagingEvent(
+        outbound = MessagingEvent(
             provider=message.provider,
             external_message_id=f"local-outbound-{uuid4()}",
             conversation_id=conversation.id,
             support_request_id=support_request_id,
             direction="OUTBOUND",
-            outcome="AUTO_REPLY",
+            outcome="PENDING_SEND" if outbound_enabled(message.provider) else "AUTO_REPLY",
             payload_hash=_payload_hash(reply),
             content=reply,
             expires_at=_message_expiry(),
-        ))
+        )
+        db.add(outbound)
     await record_activity(
         db,
         admin=actor,
@@ -255,4 +295,6 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
         metadata={"provider": message.provider, "outcome": outcome, "support_request_id": support_request_id},
     )
     await db.commit()
-    return SimulatorInboundPublic(outcome=outcome, duplicate=False, support_request_id=support_request_id, ticket_created=ticket_created, draft=draft, reply=reply)
+    if outbound is not None:
+        await deliver_outbound(db, outbound, conversation)
+    return InboundMessageResult(outcome=outcome, duplicate=False, support_request_id=support_request_id, ticket_created=ticket_created, draft=draft, reply=reply)
