@@ -38,7 +38,7 @@ from app.schemas.support import (
     TemplatePublic,
 )
 from app.services.activity_services import record_activity
-from app.services.messaging import create_dashboard_reply, outbound_enabled, purge_expired_message_content, within_customer_window
+from app.services.messaging import ask_for_rating, create_dashboard_reply, outbound_enabled, purge_expired_message_content, within_customer_window
 from app.services.notification_services import add_notification, notify_owners
 from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.support_drafts import review_public, save_draft, whatsapp_number, whatsapp_url
@@ -499,15 +499,18 @@ async def claim_conversation(item_id: int, db: DB, admin: CurrentAdmin):
 @router.post("/requests/{item_id}/return-to-ai", response_model=SupportRequestPublic)
 async def return_conversation_to_ai(item_id: int, db: DB, admin: CurrentAdmin):
     await db.execute(select(SupportRequest).where(SupportRequest.id == item_id).with_for_update().execution_options(populate_existing=True))
-    ticket, _ = await _ticket_conversation(db, item_id)
+    ticket, conversation = await _ticket_conversation(db, item_id)
     if ticket.handoff_state != "HUMAN_HANDLING":
         raise HTTPException(409, detail="This conversation is not being handled by a person.")
     if not _can_manage_handoff(ticket, admin):
         raise HTTPException(403, detail="Only the assigned staff member or an Owner can return this conversation to AI.")
+    handled_by = ticket.assigned_admin_id
     ticket.handoff_state = "AI_ACTIVE"
     ticket.assigned_admin_id = None
     await record_activity(db, admin=admin, action="returned_to_ai", entity_type="support_request", entity_id=ticket.id, description=f"Returned support request #{ticket.id} to AI handling.")
     await db.commit()
+    if handled_by is not None:
+        await ask_for_rating(db, conversation, admin_id=handled_by, support_request_id=ticket.id)
     await db.refresh(ticket)
     return ticket
 

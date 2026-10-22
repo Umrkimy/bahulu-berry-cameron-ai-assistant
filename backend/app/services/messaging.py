@@ -14,12 +14,13 @@ from app.core.config import settings
 from app.models.admin import Admin
 from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import SupportRequest
+from app.models.support_rating import SupportRating
 from app.schemas.messaging import InboundMessageResult
 from app.services.activity_services import record_activity
 from app.services.support_copilot import create_grounded_draft
 from app.services.support_drafts import purge_expired_drafts, save_draft
 from app.services.transaction_lock import acquire_transaction_lock
-from app.services.whatsapp_menu import handoff_message, menu_reply
+from app.services.whatsapp_menu import RATING_STEP, handoff_message, menu_reply, rating_question
 
 logger = logging.getLogger("bahulu.whatsapp")
 CUSTOMER_WINDOW = timedelta(hours=24)
@@ -192,6 +193,31 @@ async def purge_expired_message_content(db: AsyncSession) -> None:
     )
     await purge_expired_drafts(db)
     await db.commit()
+
+
+async def ask_for_rating(db: AsyncSession, conversation: MessagingConversation, *, admin_id: int, support_request_id: int | None) -> bool:
+    if not settings.WHATSAPP_MENU_ENABLED:
+        return False
+    if outbound_enabled(conversation.provider) and not await within_customer_window(db, conversation):
+        return False
+    db.add(SupportRating(conversation_id=conversation.id, support_request_id=support_request_id, admin_id=admin_id))
+    conversation.menu_step = RATING_STEP
+    question = rating_question(conversation.menu_language or "EN")
+    event = MessagingEvent(
+        provider=conversation.provider,
+        external_message_id=f"local-outbound-{uuid4()}",
+        conversation_id=conversation.id,
+        support_request_id=support_request_id,
+        direction="OUTBOUND",
+        outcome="PENDING_SEND" if outbound_enabled(conversation.provider) else "AUTO_REPLY",
+        payload_hash=_payload_hash(question),
+        content=question,
+        expires_at=_message_expiry(),
+    )
+    db.add(event)
+    await db.commit()
+    await deliver_outbound(db, event, conversation)
+    return True
 
 
 async def create_dashboard_reply(
