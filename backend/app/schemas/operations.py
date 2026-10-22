@@ -3,7 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-
 AlertCategory = Literal["INVENTORY", "ORDER", "SUPPORT", "REFUND"]
 AlertSeverity = Literal["CRITICAL", "WARNING"]
 

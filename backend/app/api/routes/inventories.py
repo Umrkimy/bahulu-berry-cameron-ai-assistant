@@ -1,6 +1,5 @@
-from typing import Annotated
-
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
@@ -16,26 +15,25 @@ from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.inventory import Inventory
 from app.models.product import Product
-from app.models.supplier import Supplier
 from app.models.stock_movement import StockMovement
+from app.models.supplier import Supplier
 from app.schemas.inventory import (
+    BatchStockReceiptCreate,
+    BatchStockReceiptResult,
     InventoryAdjustment,
     InventoryPublic,
     InventoryUpdate,
     OpeningBalanceCreate,
-    BatchStockReceiptCreate,
-    BatchStockReceiptResult,
     StockMovementCreate,
     StockMovementPublic,
 )
 from app.schemas.pagination import PaginatedResponse
+from app.services.activity_services import record_activity
 from app.services.inventory_services import (
     adjust_inventory,
 )
-from app.services.activity_services import record_activity
-from app.services.transaction_lock import acquire_transaction_lock
 from app.services.notification_services import notify_owners_with_email
-
+from app.services.transaction_lock import acquire_transaction_lock
 
 router = APIRouter()
 
@@ -575,4 +573,3 @@ async def delete_inventory(
     await db.delete(inventory)
     await db.commit()
 
-    return None

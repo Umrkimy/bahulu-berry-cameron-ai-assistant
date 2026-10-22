@@ -1,5 +1,8 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+
+
 class TaskInput(BaseModel):
     title: str = Field(min_length=2, max_length=200)
     description: str | None = Field(default=None, max_length=2000)

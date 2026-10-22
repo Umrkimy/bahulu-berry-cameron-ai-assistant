@@ -30,4 +30,4 @@ class Inventory(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    product: Mapped["Product"] = relationship(back_populates="inventory")
+    product: Mapped[Product] = relationship(back_populates="inventory")

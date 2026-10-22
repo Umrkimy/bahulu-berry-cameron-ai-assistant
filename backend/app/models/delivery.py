@@ -126,6 +126,6 @@ class Delivery(Base):
         nullable=False,
     )
 
-    order: Mapped["Order"] = relationship(
+    order: Mapped[Order] = relationship(
         back_populates="delivery",
     )

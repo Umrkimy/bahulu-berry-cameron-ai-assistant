@@ -1,20 +1,22 @@
 from datetime import UTC, datetime
-from typing import Annotated, Type
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.core.config import settings
 from app.db.database import get_db
-from app.models.admin import Admin
 from app.models.activity_log import ActivityLog
+from app.models.admin import Admin
 from app.models.customer import Customer
 from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
 from app.models.support_draft import DRAFT_STATUSES, SupportDraft
+from app.schemas.activity import ActivityPublic
 from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.activity import ActivityPublic
 from app.schemas.support import (
     FAQInput,
     FAQPublic,
@@ -36,9 +38,9 @@ from app.schemas.support import (
     TemplatePublic,
 )
 from app.services.activity_services import record_activity
-from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
 from app.services.notification_services import add_notification, notify_owners
+from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.support_drafts import review_public, save_draft, whatsapp_number, whatsapp_url
 
 router = APIRouter()
@@ -58,7 +60,7 @@ Owner = Annotated[Admin, Depends(get_current_superuser)]
 KNOWLEDGE_SOURCE_TYPES = {SupportFAQ: "FAQ", SupportTemplate: "TEMPLATE", KnowledgeArticle: "ARTICLE"}
 
 
-async def owner_save(db: AsyncSession, admin: Admin, model: Type, data, item_id: int | None, entity: str):
+async def owner_save(db: AsyncSession, admin: Admin, model: type, data, item_id: int | None, entity: str):
     if item_id:
         item = await db.get(model, item_id)
         if item is None:
@@ -78,7 +80,7 @@ async def owner_save(db: AsyncSession, admin: Admin, model: Type, data, item_id:
     return item
 
 
-async def owner_delete(db: AsyncSession, admin: Admin, model: Type, item_id: int, entity: str, description: str) -> None:
+async def owner_delete(db: AsyncSession, admin: Admin, model: type, item_id: int, entity: str, description: str) -> None:
     item = await db.get(model, item_id)
     if item is None:
         raise HTTPException(404, detail="Support record not found.")
@@ -90,7 +92,7 @@ async def owner_delete(db: AsyncSession, admin: Admin, model: Type, item_id: int
     await db.commit()
 
 
-async def _approved_or_owner_records(db: AsyncSession, admin: Admin, model: Type):
+async def _approved_or_owner_records(db: AsyncSession, admin: Admin, model: type):
     statement = select(model).order_by(model.updated_at.desc())
     if admin.role != "OWNER":
         statement = statement.where(model.is_active.is_(True))

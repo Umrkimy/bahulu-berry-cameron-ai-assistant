@@ -1,13 +1,12 @@
 from typing import Annotated
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_admin, get_current_superuser
-from app.db.database import get_db
 from app.core.rate_limit import AI_LIMIT, STAFF_AI_LIMIT, rate_limiter
+from app.db.database import get_db
 from app.models.admin import Admin
 from app.schemas.ai_assistant import AIChatRequest, AIChatResponse
 from app.services.ai_assistant_services import (
@@ -15,7 +14,6 @@ from app.services.ai_assistant_services import (
     confirm_pending_confirmation,
     generate_ai_result,
 )
-
 
 router = APIRouter()
 

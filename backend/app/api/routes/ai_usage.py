@@ -11,7 +11,6 @@ from app.models.ai_usage import AIUsage
 from app.schemas.ai_usage import AIUsagePublic, AIUsageSummary
 from app.services.ai_usage_services import get_usage_summary
 
-
 router = APIRouter()
 
 

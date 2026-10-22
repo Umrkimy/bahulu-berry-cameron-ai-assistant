@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
@@ -11,10 +11,9 @@ from app.models.ai_usage import AIUsage
 from app.schemas.ai_usage import AIUsageByAdmin, AIUsageBySource, AIUsageDaily, AIUsageSummary
 from app.services.transaction_lock import acquire_transaction_lock
 
-
 MODEL_PRICING_USD_PER_MILLION = {
     "gpt-4o-mini": {"input": Decimal("0.15"), "output": Decimal("0.60")},
-    "text-embedding-3-small": {"input": Decimal("0.02"), "output": Decimal("0")},
+    "text-embedding-3-small": {"input": Decimal("0.02"), "output": Decimal(0)},
 }
 COUNTED_OUTCOMES = {"RESERVED", "COMPLETED", "UNCERTAIN"}
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
@@ -101,7 +100,7 @@ async def settle_ai_usage(
     if outcome == "COMPLETED":
         usage.estimated_cost_usd = calculate_cost_usd(usage.model, input_tokens, output_tokens)
     elif outcome != "UNCERTAIN":
-        usage.estimated_cost_usd = Decimal("0")
+        usage.estimated_cost_usd = Decimal(0)
     usage.outcome = outcome
     if commit:
         await db.commit()
@@ -133,7 +132,7 @@ async def get_usage_summary(db: AsyncSession) -> AIUsageSummary:
         budget_rm_display=float(budget * exchange_rate),
         spent_usd=float(spent),
         spent_rm_display=float(spent * exchange_rate),
-        remaining_usd=float(max(Decimal("0"), budget - spent)),
+        remaining_usd=float(max(Decimal(0), budget - spent)),
         percent_used=round(percent_used, 1),
         warning_threshold_percent=round(settings.AI_BUDGET_WARNING_THRESHOLD * 100, 1),
         warning=percent_used >= settings.AI_BUDGET_WARNING_THRESHOLD * 100,

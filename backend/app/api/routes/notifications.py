@@ -12,7 +12,6 @@ from app.models.notification import Notification
 from app.schemas.notification import NotificationPage, NotificationPublic, NotificationUnreadCount
 from app.schemas.pagination import PaginatedResponse
 
-
 router = APIRouter()
 
 

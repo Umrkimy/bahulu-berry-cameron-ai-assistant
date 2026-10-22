@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.storefront_homepage import StorefrontHomepage
 
-
 DEFAULT_HOMEPAGE_CONTENT = {
     "hero": {
         "eyebrow": {"en": "", "ms": ""},

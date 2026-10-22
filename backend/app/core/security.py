@@ -5,7 +5,6 @@ from fastapi import HTTPException, Request, Response, status
 
 from app.core.config import settings
 
-
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 CSRF_EXEMPT_PATHS = {"/api/auth/csrf", "/api/auth/token", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm", "/api/storefront/quote", "/api/storefront/checkout", "/api/storefront/orders/lookup", "/api/payments/webhook", "/webhooks/meta/whatsapp"}
 

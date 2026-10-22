@@ -11,7 +11,6 @@ from app.models.supplier import Supplier
 from app.schemas.supplier import SupplierInput, SupplierPublic
 from app.services.activity_services import record_activity
 
-
 router = APIRouter()
 
 

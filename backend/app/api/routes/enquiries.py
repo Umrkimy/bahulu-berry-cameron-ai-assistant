@@ -15,7 +15,6 @@ from app.schemas.task import TaskPublic
 from app.services.activity_services import record_activity
 from app.services.notification_services import add_notification
 
-
 router = APIRouter()
 _SOURCES = "^(WHATSAPP|CALL|WALK_IN|SOCIAL|OTHER)$"
 _STATUSES = "^(NEW|WORKING|RESOLVED|SPAM)$"

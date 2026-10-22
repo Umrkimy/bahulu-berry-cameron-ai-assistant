@@ -4,7 +4,6 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 
-
 class PaymentCreate(BaseModel):
     order_id: int
 

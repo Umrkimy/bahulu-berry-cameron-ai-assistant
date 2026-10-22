@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -111,7 +112,7 @@ class KnowledgeArticleInput(BaseModel):
     content_ms: str | None = Field(default=None, max_length=12_000)
     is_active: bool = False
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, context, /) -> None:
         if self.is_active and (not self.title_ms or not self.content_ms):
             raise ValueError("Active customer-support content requires approved English and Bahasa Melayu text.")
 

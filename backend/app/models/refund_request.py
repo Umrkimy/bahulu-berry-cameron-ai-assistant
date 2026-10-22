@@ -29,6 +29,6 @@ class RefundRequest(Base):
     refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
-    order: Mapped["Order"] = relationship()
-    requested_by_admin: Mapped["Admin"] = relationship(foreign_keys=[requested_by_admin_id])
-    reviewed_by_admin: Mapped["Admin | None"] = relationship(foreign_keys=[reviewed_by_admin_id])
+    order: Mapped[Order] = relationship()
+    requested_by_admin: Mapped[Admin] = relationship(foreign_keys=[requested_by_admin_id])
+    reviewed_by_admin: Mapped[Admin | None] = relationship(foreign_keys=[reviewed_by_admin_id])

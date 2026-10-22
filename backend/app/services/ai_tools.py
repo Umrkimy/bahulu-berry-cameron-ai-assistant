@@ -4,47 +4,61 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.permissions import ROLE_PERMISSIONS, Permission
+from app.models.admin import Admin
+from app.models.delivery import Delivery
+from app.models.inventory import Inventory
+from app.models.order import Order
+from app.models.product import Product
+from app.models.support import SupportRequest
+from app.models.task import Task
 from app.schemas.customer import CustomerCreate
-
 from app.services.customer_services import (
     create_customer as service_create_customer,
+)
+from app.services.customer_services import (
     find_customer as service_find_customer,
 )
-
+from app.services.dashboard_services import (
+    get_best_selling_products as service_get_best_selling_products,
+)
+from app.services.dashboard_services import (
+    get_customer_count as service_get_customer_count,
+)
+from app.services.dashboard_services import (
+    get_dashboard_summary as service_get_dashboard_summary,
+)
+from app.services.dashboard_services import (
+    get_order_count as service_get_order_count,
+)
+from app.services.dashboard_services import (
+    get_sales_summary as service_get_sales_summary,
+)
+from app.services.dashboard_services import (
+    get_unique_customers_for_date as service_get_unique_customers_for_date,
+)
 from app.services.inventory_services import (
     adjust_inventory,
     get_inventory_by_product,
 )
-
 from app.services.order_services import (
-    find_orders as service_find_orders,
-    get_order as service_get_order,
-    create_order as service_create_order,
-    update_order_status as service_update_order_status,
     cancel_order as service_cancel_order,
 )
-
-from app.services.dashboard_services import (
-    get_order_count as service_get_order_count,
-    get_sales_summary as service_get_sales_summary,
-    get_customer_count as service_get_customer_count,
-    get_unique_customers_for_date as service_get_unique_customers_for_date,
-    get_best_selling_products as service_get_best_selling_products,
-    get_dashboard_summary as service_get_dashboard_summary,
+from app.services.order_services import (
+    create_order as service_create_order,
 )
-
+from app.services.order_services import (
+    find_orders as service_find_orders,
+)
+from app.services.order_services import (
+    get_order as service_get_order,
+)
+from app.services.order_services import (
+    update_order_status as service_update_order_status,
+)
 from app.services.product_services import (
     get_product_by_name,
 )
-from app.models.delivery import Delivery
-from app.models.inventory import Inventory
-from app.models.product import Product
-from app.models.support import SupportRequest
-from app.models.admin import Admin
-from app.models.order import Order
-from app.models.task import Task
 from app.services.task_services import resolve_task_context
-
 
 # =========================================================
 # PRODUCT / INVENTORY
@@ -543,7 +557,7 @@ async def create_task_tool(
     parsed_due_at = None
     if due_at:
         try:
-            parsed_due_at = datetime.fromisoformat(due_at.replace("Z", "+00:00"))
+            parsed_due_at = datetime.fromisoformat(due_at)
         except ValueError:
             return {"success": False, "error": "Use a valid Malaysia date and time for the task deadline."}
         if parsed_due_at.tzinfo is None or parsed_due_at.utcoffset() != timedelta(hours=8):

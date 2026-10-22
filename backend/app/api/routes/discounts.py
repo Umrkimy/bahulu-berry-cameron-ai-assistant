@@ -9,9 +9,8 @@ from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.discount import Discount
 from app.schemas.discount import DiscountCreate, DiscountPublic, DiscountUpdate
-from app.services.discount_services import create_discount, update_discount
 from app.services.activity_services import record_activity
-
+from app.services.discount_services import create_discount, update_discount
 
 router = APIRouter()
 

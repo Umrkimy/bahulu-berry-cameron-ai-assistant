@@ -15,12 +15,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
-
 if TYPE_CHECKING:
     from app.models.customer import Customer
+    from app.models.delivery import Delivery
     from app.models.order_item import OrderItem
     from app.models.payment import Payment
-    from app.models.delivery import Delivery
     
 
 
@@ -100,21 +99,21 @@ class Order(Base):
         nullable=True,
     )
 
-    customer: Mapped["Customer"] = relationship(
+    customer: Mapped[Customer] = relationship(
         back_populates="orders",
     )
 
-    items: Mapped[list["OrderItem"]] = relationship(
+    items: Mapped[list[OrderItem]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
     )
 
-    payments: Mapped[list["Payment"]] = relationship(
+    payments: Mapped[list[Payment]] = relationship(
     back_populates="order",
     cascade="all, delete-orphan",
     )
 
-    delivery: Mapped["Delivery | None"] = relationship(
+    delivery: Mapped[Delivery | None] = relationship(
         back_populates="order",
         uselist=False,
         cascade="all, delete-orphan",

@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.admin import Admin
-from app.models.email_delivery import EmailDelivery
 from app.models.customer_account import CustomerSignInCode
+from app.models.email_delivery import EmailDelivery
 from app.models.password_reset_token import PasswordResetToken
 
 logger = logging.getLogger("bahulu.email")

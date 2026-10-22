@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -100,12 +99,12 @@ class Settings(BaseSettings):
 
     @field_validator("ALLOWED_ORIGINS")
     @classmethod
-    def parse_allowed_origins(cls, v: str) -> List[str]:
+    def parse_allowed_origins(cls, v: str) -> list[str]:
         return [origin.strip().rstrip("/") for origin in v.split(",") if origin.strip()]
 
     @field_validator("TRUSTED_HOSTS")
     @classmethod
-    def parse_trusted_hosts(cls, v: str) -> List[str]:
+    def parse_trusted_hosts(cls, v: str) -> list[str]:
         return [host.strip() for host in v.split(",") if host.strip()]
 
     @field_validator("DEBUG", mode="before")

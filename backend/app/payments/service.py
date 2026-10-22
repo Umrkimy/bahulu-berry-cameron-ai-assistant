@@ -7,11 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.models.order import Order
 from app.models.payment import Payment
-from app.core.config import settings
 from app.payments.registry import get_payment_provider
-
 
 logger = logging.getLogger("bahulu.payments")
 

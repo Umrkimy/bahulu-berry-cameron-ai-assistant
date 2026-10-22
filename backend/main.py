@@ -1,36 +1,34 @@
-from contextlib import asynccontextmanager
 import asyncio
 import logging
 import re
-from pathlib import Path
 import time
+from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import uuid4
 
+from asyncpg.exceptions import DataError as AsyncpgDataError
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from app.core.static_assets import PublicStaticFiles
-from asyncpg.exceptions import DataError as AsyncpgDataError
+from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 
-from app.db.database import AsyncSessionLocal, engine
-
-from app.core.config import settings
-from app.core.logging import configure_logging, request_id_var, safe_request_id
-from app.core.observability import init_sentry
-from app.core.security import verify_csrf_request
-from app.database_readiness import check_readiness
 import app.models
 import app.schemas
 from app.api.router import api_router
 from app.api.routes.meta_whatsapp import router as meta_whatsapp_router
+from app.core.config import settings
+from app.core.logging import configure_logging, request_id_var, safe_request_id
+from app.core.observability import init_sentry
+from app.core.security import verify_csrf_request
+from app.core.static_assets import PublicStaticFiles
+from app.database_readiness import check_readiness
+from app.db.database import AsyncSessionLocal, engine
+from app.services.customer_status_emails import send_queued_status_emails
+from app.services.email_services import purge_expired_email_security_records
 from app.services.messaging import purge_expired_message_content
 from app.services.notification_services import purge_expired_notifications
-from app.services.email_services import purge_expired_email_security_records
 from app.services.storefront_checkout import cancel_stale_storefront_orders
-from app.services.customer_status_emails import send_queued_status_emails
-
 
 configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT)
 init_sentry()

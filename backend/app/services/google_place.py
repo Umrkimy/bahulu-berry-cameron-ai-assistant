@@ -6,7 +6,6 @@ import httpx
 from app.core.config import settings
 from app.schemas.storefront_place import StorefrontPlace, StorefrontReview
 
-
 PLACE_FIELDS = "displayName,formattedAddress,rating,userRatingCount,googleMapsLinks,reviews"
 
 

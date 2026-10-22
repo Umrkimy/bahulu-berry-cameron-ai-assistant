@@ -12,7 +12,6 @@ from app.db.database import get_db
 from app.models.admin import Admin
 from app.services.messaging import MetaWhatsAppAdapter, process_inbound_message
 
-
 router = APIRouter()
 
 

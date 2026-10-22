@@ -16,7 +16,6 @@ from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.support import SupportRequest
 
-
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 PRESETS = {"TODAY", "LAST_7_DAYS", "LAST_30_DAYS", "LAST_90_DAYS", "LAST_12_MONTHS", "MONTH_TO_DATE"}
 TERMINAL_SUPPORT_STATUSES = {"RESOLVED", "CLOSED"}

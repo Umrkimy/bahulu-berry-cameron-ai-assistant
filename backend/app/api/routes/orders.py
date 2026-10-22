@@ -1,9 +1,10 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import (
     get_current_admin,
@@ -12,30 +13,33 @@ from app.auth.dependencies import (
 from app.auth.permissions import Permission, can, require
 from app.db.database import get_db
 from app.models.admin import Admin
+from app.models.delivery import Delivery
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.schemas.fulfillment import FulfillmentQueueResponse
 from app.schemas.order import (
     OrderCreate,
+    OrderDispatch,
     OrderLineSummary,
     OrderListPrivate,
     OrderPrivate,
     OrderQuoteRequest,
     OrderQuoteResponse,
-    OrderDispatch,
     OrderUpdate,
 )
-from app.schemas.fulfillment import FulfillmentQueueResponse
-from app.models.delivery import Delivery
-from app.services.order_services import (
-    cancel_order,
-    create_order as service_create_order,
-    update_order as service_update_order,
-)
-from app.services.pricing_services import calculate_order_pricing
 from app.services.activity_services import record_activity
 from app.services.customer_status_emails import ORDER_SHIPPED, queue_status_email
 from app.services.fulfillment_services import get_fulfillment_queue
-from datetime import UTC, datetime
+from app.services.order_services import (
+    cancel_order,
+)
+from app.services.order_services import (
+    create_order as service_create_order,
+)
+from app.services.order_services import (
+    update_order as service_update_order,
+)
+from app.services.pricing_services import calculate_order_pricing
 
 router = APIRouter()
 

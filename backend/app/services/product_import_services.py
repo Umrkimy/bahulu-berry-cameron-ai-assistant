@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.product import Product
 from app.schemas.product_import import ProductImportIssue, ProductImportPreview, ProductImportRow
 
-
 CSV_HEADERS = ("name", "category", "description", "price_myr", "opening_stock", "low_stock_threshold")
 MAX_IMPORT_BYTES = 1_000_000
 MAX_IMPORT_ROWS = 500
@@ -102,7 +101,7 @@ async def read_product_import(file: UploadFile, db: AsyncSession) -> ProductImpo
             price = _positive_price(raw_row.get("price_myr"))
         except ValueError as error:
             row_errors.append(_issue(row_number, "price_myr", str(error)))
-            price = Decimal("0")
+            price = Decimal(0)
         try:
             opening_stock = _whole_number(raw_row.get("opening_stock"), field_label="Opening stock")
         except ValueError as error:
