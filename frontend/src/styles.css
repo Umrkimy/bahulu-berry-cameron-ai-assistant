@@ -124,6 +124,7 @@ button, input, textarea, select {
   gap: 16px;
   padding-block: 4px 20px;
 }
+.app-page-header > .mantine-Button-root { flex-shrink: 0; }
 
 .data-table-mobile { display: none; }
 .data-table-toolbar, .data-table-pagination { gap: 12px; }
