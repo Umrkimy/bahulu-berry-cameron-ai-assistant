@@ -27,6 +27,7 @@ from app.api.routes import (
     storefront,
     suppliers,
     support,
+    support_ratings,
     tasks,
     team,
 )
@@ -78,6 +79,12 @@ api_router.include_router(
     payments.router,
     prefix="/payments",
     tags=["payments"],
+)
+
+api_router.include_router(
+    support_ratings.router,
+    prefix="/support/ratings",
+    tags=["support"],
 )
 
 api_router.include_router(

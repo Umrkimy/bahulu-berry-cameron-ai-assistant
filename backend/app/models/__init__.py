@@ -26,4 +26,5 @@ from app.models.storefront_homepage import StorefrontHomepage
 from app.models.supplier import Supplier
 from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportKnowledgeChunk, SupportRequest, SupportRequestNote, SupportTemplate
 from app.models.support_draft import SupportDraft
+from app.models.support_rating import SupportRating
 from app.models.task import Task

@@ -11,12 +11,17 @@ from app.core.config import settings
 from app.models.messaging import MessagingConversation
 from app.models.order import Order
 from app.models.product import Product
+from app.models.support_rating import SupportRating
 from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
+from app.services.notification_services import notify_owners
 from app.services.order_tracking import TRACKING_RETENTION_DAYS
 from app.services.product_services import product_sale_price, storefront_published_filters
 from app.services.support_copilot import detect_language
 
 ORDER_NUMBER_STEP = "ORDER_NUMBER"
+RATING_STEP = "RATING"
+COMMENT_STEP = "RATING_COMMENT"
+LOW_SCORE = 2
 MENU_HANDOFF_REASON = "Customer asked for staff on WhatsApp."
 MAX_LISTED_PRODUCTS = 20
 
@@ -47,6 +52,9 @@ COPY = {
         "order_not_found": "We could not find that order for this WhatsApp number. Reply 5 and our staff will check for you.",
         "hours": "{hours}\n\n{address}\nMap: {map}",
         "handoff": "Thanks! Our staff will reply here as soon as they can. {hours}.\n\nYou can tell us more about what you need in the meantime.",
+        "rating_ask": "Thanks for chatting with us! How was our help today?\n\nReply with a number from 1 to 5 (5 = excellent).",
+        "rating_thanks": "Thank you for rating us {score}/5! Is there anything you'd like to tell us? Just reply, or send * to skip.",
+        "comment_thanks": "Thank you, we have passed that on to our team.",
         "statuses": {"PENDING": "received", "PROCESSING": "being prepared", "SHIPPED": "sent out", "COMPLETED": "completed", "CANCELLED": "cancelled"},
     },
     "MS": {
@@ -62,6 +70,9 @@ COPY = {
         "order_not_found": "Kami tidak menemui tempahan itu untuk nombor WhatsApp ini. Balas 5 dan staf kami akan menyemaknya untuk anda.",
         "hours": "{hours}\n\n{address}\nPeta: {map}",
         "handoff": "Terima kasih! Staf kami akan membalas di sini secepat mungkin. {hours}.\n\nAnda boleh ceritakan lebih lanjut tentang keperluan anda sementara menunggu.",
+        "rating_ask": "Terima kasih kerana berbual dengan kami! Bagaimana bantuan kami hari ini?\n\nBalas dengan nombor 1 hingga 5 (5 = sangat baik).",
+        "rating_thanks": "Terima kasih atas penilaian {score}/5! Ada apa-apa yang ingin anda kongsikan? Balas sahaja, atau hantar * untuk langkau.",
+        "comment_thanks": "Terima kasih, kami sudah sampaikan kepada pasukan kami.",
         "statuses": {"PENDING": "diterima", "PROCESSING": "sedang disediakan", "SHIPPED": "telah dihantar", "COMPLETED": "selesai", "CANCELLED": "dibatalkan"},
     },
 }
@@ -77,6 +88,28 @@ class MenuReply:
 def handoff_message(language: str) -> str:
     copy = COPY.get(language, COPY["EN"])
     return copy["handoff"].format(hours=BUSINESS["hours"].get(language, BUSINESS["hours"]["EN"]).rstrip("."))
+
+
+def rating_question(language: str) -> str:
+    return COPY.get(language, COPY["EN"])["rating_ask"]
+
+
+async def _rating_reply(db: AsyncSession, conversation: MessagingConversation, step: str | None, text: str, message: str, copy: dict) -> MenuReply | None:
+    latest = await db.scalar(select(SupportRating).where(SupportRating.conversation_id == conversation.id).order_by(SupportRating.asked_at.desc(), SupportRating.id.desc()).limit(1))
+    if latest is None:
+        return None
+    if step == RATING_STEP and latest.score is None and re.fullmatch(r"[1-5]", text):
+        latest.score = int(text)
+        latest.rated_at = datetime.now(UTC)
+        latest.flagged = latest.score <= LOW_SCORE
+        if latest.flagged:
+            await notify_owners(db, notification_type="SUPPORT", title="Low WhatsApp rating", description=f"A customer rated a WhatsApp chat {latest.score}/5.", entity_type="support_rating", entity_id=latest.id)
+        conversation.menu_step = COMMENT_STEP
+        return MenuReply(copy["rating_thanks"].format(score=latest.score))
+    if step == COMMENT_STEP and latest.score is not None and latest.comment is None and text not in MENU_WORDS and text not in GREETINGS:
+        latest.comment = message.strip()[:500]
+        return MenuReply(_with_back(copy["comment_thanks"], copy))
+    return None
 
 
 def _normalize(message: str) -> str:
@@ -154,6 +187,8 @@ async def menu_reply(db: AsyncSession, conversation: MessagingConversation, *, m
     copy = COPY[language]
     step, conversation.menu_step = conversation.menu_step, None
 
+    if step in {RATING_STEP, COMMENT_STEP} and (rated := await _rating_reply(db, conversation, step, text, message, copy)):
+        return rated
     if step == ORDER_NUMBER_STEP and (match := re.fullmatch(r"#?\s?(\d{1,9})", text)):
         return MenuReply(_with_back(await _order_status(db, int(match[1]), conversation.contact_reference, copy), copy))
     if text in GREETINGS or text in MENU_WORDS:
