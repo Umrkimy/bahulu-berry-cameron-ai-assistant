@@ -1,16 +1,16 @@
+from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
-from decimal import Decimal
 
+import httpx
 import pytest
 import pytest_asyncio
-from openai import OpenAIError, APITimeoutError
-import httpx
+from openai import APITimeoutError, OpenAIError
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.models.ai_usage import AIUsage
 from app.models.admin import Admin
+from app.models.ai_usage import AIUsage
 from app.schemas.ai_assistant import AIChatMessage
 from app.services import ai_assistant_services
 from app.services.ai_usage_services import AIBudgetExceeded, calculate_cost_usd, get_usage_summary, reserve_ai_usage, settle_ai_usage

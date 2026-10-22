@@ -28,6 +28,8 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: uv sync --locked --group dev
         working-directory: backend
+      - run: uvx ruff@0.17.1 check .
+        working-directory: backend
       - run: uv run pytest
         working-directory: backend
       - run: uvx bandit -r app -q

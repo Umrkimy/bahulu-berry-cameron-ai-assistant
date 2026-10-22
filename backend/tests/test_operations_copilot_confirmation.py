@@ -5,7 +5,6 @@ from sqlalchemy import func, select
 
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
-from app.models.ai_action_confirmation import AIActionConfirmation
 from app.services import ai_assistant_services as ai
 
 

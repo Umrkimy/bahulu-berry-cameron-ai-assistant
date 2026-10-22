@@ -1,5 +1,5 @@
-from io import BytesIO
 import asyncio
+from io import BytesIO
 
 import httpx
 import pytest
@@ -7,12 +7,12 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.routes import media, products, product_images, storefront
+from app.api.routes import media, product_images, products, storefront
 from app.auth.dependencies import get_current_admin
 from app.core.config import settings
 from app.core.static_assets import PublicStaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.db.database import get_db
 from app.models import Admin, Inventory, Product
 from app.schemas.product import ProductCreate, ProductUpdate

@@ -6,9 +6,9 @@ from sqlalchemy import func, select
 
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
-from app.models.task import Task
-from app.models.product import Product
 from app.models.inventory import Inventory
+from app.models.product import Product
+from app.models.task import Task
 from app.services import ai_assistant_services as ai
 from app.services.ai_tools import create_task_tool, find_active_team_member, get_shift_summary
 
@@ -121,9 +121,8 @@ async def test_task_tool_rejects_ambiguous_members_and_non_malaysia_deadlines(se
 
 @pytest.mark.asyncio
 async def test_staff_cannot_preview_task_creation_with_ai(session):
-    owner = await _admin(session, "owner", "OWNER")
+    await _admin(session, "owner", "OWNER")
     staff = await _admin(session, "staff", "STAFF")
-    conversation_id = str(uuid4())
     result = await ai._execute_tool(
         db=session,
         tool_name="create_task",

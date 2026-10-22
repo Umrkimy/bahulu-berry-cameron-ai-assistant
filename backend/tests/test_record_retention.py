@@ -4,8 +4,8 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes.customers import archive_customer, create_customer, get_customers, restore_customer
-from app.auth.dependencies import get_current_superuser
 from app.api.routes.products import create_product, delete_product
+from app.auth.dependencies import get_current_superuser
 from app.models.admin import Admin
 from app.models.customer import Customer
 from app.models.inventory import Inventory
@@ -13,7 +13,7 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.stock_movement import StockMovement
-from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.schemas.customer import CustomerCreate
 from app.schemas.product import ProductCreate
 
 
@@ -90,7 +90,7 @@ async def test_customer_contact_normalisation_blocks_equivalent_active_and_archi
 @pytest.mark.asyncio
 async def test_customer_contact_validation_and_staff_archive_protection(session):
     owner = await create_owner(session)
-    customer = await create_customer(CustomerCreate(full_name="Fictional customer", phone_number="0123456789"), session, owner)
+    await create_customer(CustomerCreate(full_name="Fictional customer", phone_number="0123456789"), session, owner)
     with pytest.raises(HTTPException) as invalid:
         await create_customer(CustomerCreate(full_name="Invalid", phone_number="60123456789"), session, owner)
     assert invalid.value.status_code == 422

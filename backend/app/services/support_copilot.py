@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from decimal import Decimal
 
-from openai import APIConnectionError, APITimeoutError, APIStatusError, AsyncOpenAI, OpenAIError
+from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI, OpenAIError
 from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -108,7 +108,7 @@ def _handoff(*, language: str, reason: str, started: float) -> SupportDraftPubli
 
 
 async def create_grounded_draft(db: AsyncSession, *, message: str, requested_language: str) -> SupportDraftPublic:
-    token = _draft_cost_usd.set(Decimal("0"))
+    token = _draft_cost_usd.set(Decimal(0))
     try:
         draft = await _create_grounded_draft(db, message=message, requested_language=requested_language)
         return draft.model_copy(update={"estimated_cost_usd": float(_draft_cost_usd.get() or 0)})

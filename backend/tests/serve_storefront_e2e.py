@@ -1,9 +1,9 @@
 """Real API with a fresh temporary database/media directory, never the working DB."""
 import asyncio
 import os
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 runtime = Path(tempfile.mkdtemp(prefix="bahulu-storefront-e2e-"))
@@ -23,12 +23,13 @@ os.environ.update({
     "STOREFRONT_CHECKOUT_ENABLED": "true",
 })
 
-from app.db.database import Base, engine, AsyncSessionLocal
-from app.models import Admin
-from app.auth.password import hash_password
-from main import app
-import app.payments.service as payment_service
 import uvicorn
+
+import app.payments.service as payment_service
+from app.auth.password import hash_password
+from app.db.database import AsyncSessionLocal, Base, engine
+from app.models import Admin
+from main import app
 
 
 class FictionalPaymentProvider:

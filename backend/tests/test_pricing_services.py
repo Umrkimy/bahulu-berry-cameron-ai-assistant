@@ -1,19 +1,18 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.db.database import Base
-from app.models.discount import Discount
 from app.models.customer import Customer
+from app.models.discount import Discount
 from app.models.inventory import Inventory
 from app.models.product import Product
-from app.services.pricing_services import calculate_order_pricing
 from app.schemas.discount import DiscountCreate
 from app.services.discount_services import create_discount
 from app.services.order_services import create_order
+from app.services.pricing_services import calculate_order_pricing
 
 
 @pytest_asyncio.fixture

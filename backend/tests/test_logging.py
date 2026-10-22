@@ -5,6 +5,7 @@ import logging
 import httpx
 import pytest
 
+from app.core.config import settings
 from app.core.logging import (
     REDACTED,
     JsonFormatter,
@@ -13,7 +14,6 @@ from app.core.logging import (
     request_id_var,
     safe_request_id,
 )
-from app.core.config import settings
 from app.core.observability import init_sentry, scrub_event
 from main import app
 
