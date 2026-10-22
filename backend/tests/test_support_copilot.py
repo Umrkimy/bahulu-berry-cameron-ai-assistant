@@ -5,9 +5,9 @@ import pytest
 from sqlalchemy import select
 
 from app.models.support import HandoffRule, SupportFAQ, SupportKnowledgeChunk, SupportTemplate
+from app.schemas.support import SupportDraftSource
 from app.services import support_copilot
 from app.services.support_copilot import MODEL_NAME, PROMPT_VERSION, RetrievedChunk, create_grounded_draft, sync_knowledge_source
-from app.schemas.support import SupportDraftSource
 
 
 @pytest.fixture

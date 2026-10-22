@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.api.routes.support import claim_conversation, create_faq, create_request, delete_faq, create_request_note, dashboard_reply, requests, return_conversation_to_ai, update_request
+from app.api.routes.support import claim_conversation, create_faq, create_request, create_request_note, dashboard_reply, delete_faq, requests, return_conversation_to_ai, update_request
 from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
 from app.models.messaging import MessagingConversation

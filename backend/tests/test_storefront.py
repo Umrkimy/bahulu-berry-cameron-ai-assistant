@@ -9,8 +9,8 @@ from app.api.routes.storefront import get_storefront_product, list_storefront_pr
 from app.models.discount import Discount
 from app.models.inventory import Inventory
 from app.models.product import Product
-from app.services.pricing_services import calculate_order_pricing
 from app.schemas.storefront import StorefrontQuoteRequest
+from app.services.pricing_services import calculate_order_pricing
 
 
 def request() -> Request:

@@ -1,8 +1,8 @@
-from starlette.requests import Request
-from pydantic import SecretStr
 import pytest
 from fastapi import HTTPException
+from pydantic import SecretStr
 from sqlalchemy import select
+from starlette.requests import Request
 
 from app.api.routes.settings import email_status, request_owner_password_reset
 from app.core.config import settings

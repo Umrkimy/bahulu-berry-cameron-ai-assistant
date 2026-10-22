@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.models.inventory import Inventory
@@ -37,7 +38,7 @@ async def test_inventory_adjustment_cannot_go_negative_or_create_movement(sessio
     session.add(Inventory(product_id=product.id, quantity=1, low_stock_threshold=1))
     await session.commit()
 
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         await adjust_inventory(session, product.id, -2, movement_type="MANUAL_DECREASE", reason="Damaged stock")
     assert await session.scalar(select(StockMovement)) is None
 

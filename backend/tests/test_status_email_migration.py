@@ -7,9 +7,9 @@ disables app loggers, so migration tests must sort after test_logging.py.
 import sqlite3
 from pathlib import Path
 
+from alembic import command
 from alembic.config import Config
 
-from alembic import command
 from app.core.config import settings
 
 

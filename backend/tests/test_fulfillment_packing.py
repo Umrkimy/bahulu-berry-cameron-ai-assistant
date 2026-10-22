@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.api.routes.orders import dispatch_order, get_orders
@@ -13,8 +14,8 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.schemas.order import OrderDispatch
-from app.services.fulfillment_services import get_fulfillment_queue
 from app.services.delivery_services import update_delivery
+from app.services.fulfillment_services import get_fulfillment_queue
 from app.services.order_services import update_order
 
 
@@ -56,7 +57,7 @@ async def test_order_list_shows_what_each_order_contains(session):
 @pytest.mark.asyncio
 async def test_dispatch_requires_packing_confirmation_and_records_it(session):
     owner, staff, order = await create_paid_order(session)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         OrderDispatch()
     dispatched = await dispatch_order(order.id, OrderDispatch(packing_confirmed=True), session, staff)
     assert dispatched.status == "SHIPPED"
