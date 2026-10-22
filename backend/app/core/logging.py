@@ -36,7 +36,7 @@ REDACTION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*"), REDACTED),
     (re.compile(r"\b(?:sk|rk|pk|whsec)_(?:live_|test_)?[A-Za-z0-9]{8,}"), REDACTED),
     (
-        re.compile(r"(?i)([?&](?:[a-z_]*token|code|key|secret|password|signature|sig)=)[^&\s\"']+"),
+        re.compile(r"(?i)([?&](?:[a-z_.]*token|code|key|secret|password|signature|sig)=)[^&\s\"']+"),
         rf"\1{REDACTED}",
     ),
     (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), REDACTED),

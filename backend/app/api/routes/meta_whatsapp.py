@@ -10,7 +10,7 @@ from app.auth.dependencies import get_current_superuser
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.admin import Admin
-from app.services.messaging import MetaWhatsAppAdapter, process_inbound_message
+from app.services.messaging import MetaWhatsAppAdapter, apply_delivery_statuses, process_inbound_message
 
 router = APIRouter()
 
@@ -60,6 +60,7 @@ async def receive_meta_webhook(request: Request, db: Annotated[AsyncSession, Dep
     for message in adapter.normalize_inbound(payload):
         await process_inbound_message(db, message=message)
         processed += 1
+    await apply_delivery_statuses(db, adapter.delivery_statuses(payload))
     return {"status": "accepted", "processed": processed}
 
 

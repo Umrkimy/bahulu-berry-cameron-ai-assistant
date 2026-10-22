@@ -30,6 +30,13 @@ class OutboundSendError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class DeliveryStatus:
+    external_message_id: str
+    status: str
+    error: str | None
+
+
+@dataclass(frozen=True)
 class NormalizedInboundMessage:
     provider: str
     external_message_id: str
@@ -77,6 +84,25 @@ class MetaWhatsAppAdapter:
                     ))
         return messages
 
+    def delivery_statuses(self, payload: dict[str, Any]) -> list[DeliveryStatus]:
+        statuses: list[DeliveryStatus] = []
+        for entry in payload.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                if settings.WHATSAPP_META_PHONE_NUMBER_ID and value.get("metadata", {}).get("phone_number_id", "") != settings.WHATSAPP_META_PHONE_NUMBER_ID:
+                    continue
+                for item in value.get("statuses", []):
+                    message_id, status = item.get("id"), item.get("status")
+                    if not isinstance(message_id, str) or status not in DELIVERY_OUTCOMES:
+                        continue
+                    errors = item.get("errors") or [{}]
+                    error = None
+                    if status == "failed":
+                        first = errors[0] if isinstance(errors[0], dict) else {}
+                        error = f"{first.get('code', '')} {first.get('title', 'Not delivered')}".strip()[:160]
+                    statuses.append(DeliveryStatus(external_message_id=message_id, status=status, error=error))
+        return statuses
+
     def verify_inbound(self, payload: object) -> bool:
         return isinstance(payload, dict)
 
@@ -103,6 +129,28 @@ class MetaWhatsAppAdapter:
         if not isinstance(message_id, str):
             raise OutboundSendError("WhatsApp did not accept the message.")
         return message_id
+
+
+DELIVERY_OUTCOMES = {"sent": "SENT", "delivered": "DELIVERED", "read": "READ", "failed": "SEND_FAILED"}
+DELIVERY_RANK = {"PENDING_SEND": 0, "SENT": 1, "DELIVERED": 2, "READ": 3}
+
+
+async def apply_delivery_statuses(db: AsyncSession, statuses: list[DeliveryStatus]) -> int:
+    updated = 0
+    for item in statuses:
+        event = await db.scalar(select(MessagingEvent).where(MessagingEvent.provider == MetaWhatsAppAdapter.provider, MessagingEvent.external_message_id == item.external_message_id, MessagingEvent.direction == "OUTBOUND"))
+        if event is None:
+            continue
+        outcome = DELIVERY_OUTCOMES[item.status]
+        if outcome == "SEND_FAILED":
+            event.outcome, event.delivery_error = outcome, item.error
+        elif DELIVERY_RANK.get(outcome, 0) > DELIVERY_RANK.get(event.outcome, 99):
+            event.outcome = outcome
+        else:
+            continue
+        updated += 1
+    await db.commit()
+    return updated
 
 
 def outbound_enabled(provider: str) -> bool:
