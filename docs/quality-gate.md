@@ -12,7 +12,8 @@ customer-facing content.
   public checkout, live payments, customer intake, live WhatsApp, tracking, or
   non-essential cookies.
 - Checkout remains a disabled-by-default, non-submitting review. WhatsApp
-  remains draft-only and staff-controlled.
+  sends only fixed menu replies and backend data automatically; everything
+  else is staff-approved.
 
 ## Client approval required before public launch
 

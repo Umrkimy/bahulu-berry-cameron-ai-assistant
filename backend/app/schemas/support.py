@@ -55,6 +55,7 @@ class SupportDraftApprovalPublic(BaseModel):
     draft: SupportDraftReviewPublic
     text: str
     whatsapp_url: str | None = None
+    sent: bool | None = None
 
 
 class SupportAssigneePublic(BaseModel):

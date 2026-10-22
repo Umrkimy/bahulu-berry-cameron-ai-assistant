@@ -15,7 +15,7 @@ from app.models.messaging import MessagingConversation, MessagingEvent
 from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, SupportRequest, SupportRequestNote, SupportTemplate
 from app.models.support_draft import DRAFT_STATUSES, SupportDraft
 from app.schemas.activity import ActivityPublic
-from app.schemas.messaging import DashboardReplyInput, SimulatorInboundInput, SimulatorInboundPublic, SupportConversationPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
+from app.schemas.messaging import DashboardReplyInput, SupportConversationPublic, SupportMessagePublic, SupportMessagingConversationPublic, WhatsAppLinkPublic
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.support import (
     FAQInput,
@@ -38,7 +38,7 @@ from app.schemas.support import (
     TemplatePublic,
 )
 from app.services.activity_services import record_activity
-from app.services.messaging import SimulatorAdapter, create_simulated_dashboard_reply, process_inbound_message, purge_expired_message_content
+from app.services.messaging import create_dashboard_reply, outbound_enabled, purge_expired_message_content, within_customer_window
 from app.services.notification_services import add_notification, notify_owners
 from app.services.support_copilot import create_grounded_draft, rebuild_knowledge_index, remove_knowledge_source, sync_knowledge_source
 from app.services.support_drafts import review_public, save_draft, whatsapp_number, whatsapp_url
@@ -48,6 +48,7 @@ VALID_STATUS = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSE
 VALID_PRIORITY = {"LOW", "NORMAL", "HIGH", "URGENT"}
 VALID_SOURCES = {"MANUAL", "PHONE", "SOCIAL_MEDIA", "WALK_IN", "WHATSAPP_FUTURE"}
 HUMAN_HANDOFF_STATES = {"HUMAN_REQUESTED", "HUMAN_HANDLING"}
+OUTSIDE_WINDOW = "WhatsApp only allows replies within 24 hours of the customer's last message. Open WhatsApp to message them instead."
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -231,18 +232,6 @@ async def create_support_draft(
     )
     await db.commit()
     return draft
-
-
-@router.post("/simulator/inbound", response_model=SimulatorInboundPublic)
-async def simulate_inbound_message(
-    data: SimulatorInboundInput,
-    db: DB,
-    admin: Owner,
-):
-    adapter = SimulatorAdapter()
-    if not adapter.verify_inbound(data):
-        raise HTTPException(400, detail="Invalid simulator message.")
-    return await process_inbound_message(db, message=adapter.normalize_inbound(data), actor=admin)
 
 
 @router.get("/assignees", response_model=list[SupportAssigneePublic])
@@ -550,7 +539,9 @@ async def dashboard_reply(item_id: int, data: DashboardReplyInput, db: DB, admin
         raise HTTPException(409, detail="Claim this conversation before sending a dashboard reply.")
     if not _can_manage_handoff(ticket, admin):
         raise HTTPException(403, detail="Only the assigned staff member or an Owner can send a dashboard reply.")
-    return await create_simulated_dashboard_reply(db, conversation=conversation, support_request=ticket, admin=admin, content=data.content.strip())
+    if outbound_enabled(conversation.provider) and not await within_customer_window(db, conversation):
+        raise HTTPException(409, detail=OUTSIDE_WINDOW)
+    return await create_dashboard_reply(db, conversation=conversation, support_request=ticket, admin=admin, content=data.content.strip())
 
 
 @router.get("/requests/{item_id}/whatsapp-link", response_model=WhatsAppLinkPublic)
@@ -627,9 +618,13 @@ async def _record_draft_review(db: AsyncSession, admin: Admin, draft: SupportDra
 
 @router.post("/drafts/{draft_id}/approve", response_model=SupportDraftApprovalPublic)
 async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, db: DB, admin: CurrentAdmin):
-    draft, _, number = await _pending_draft_for_review(db, draft_id, admin)
+    draft, ticket, number = await _pending_draft_for_review(db, draft_id, admin)
     if draft.body is None:
         raise HTTPException(409, detail="This draft has expired.")
+    conversation = await db.get(MessagingConversation, draft.conversation_id) if draft.conversation_id else None
+    sending = conversation is not None and outbound_enabled(conversation.provider)
+    if sending and not await within_customer_window(db, conversation):
+        raise HTTPException(409, detail=OUTSIDE_WINDOW)
     edited = data.edited_body is not None and data.edited_body.strip() != draft.body.strip()
     text = data.edited_body.strip() if edited else draft.body
     draft.edited_body = text if edited else None
@@ -639,7 +634,12 @@ async def approve_support_draft(draft_id: int, data: SupportDraftApproveInput, d
     await _record_draft_review(db, admin, draft, "draft_approved", f"Approved an edited reply draft #{draft.id}." if edited else f"Approved reply draft #{draft.id}.", edited)
     await db.commit()
     await db.refresh(draft)
-    return SupportDraftApprovalPublic(draft=review_public(draft, whatsapp_available=number is not None), text=text, whatsapp_url=whatsapp_url(number, text) if number else None)
+    sent = None
+    if sending:
+        event = await create_dashboard_reply(db, conversation=conversation, support_request=ticket, admin=admin, content=text)
+        sent = event.outcome == "SENT"
+        await db.refresh(draft)
+    return SupportDraftApprovalPublic(draft=review_public(draft, whatsapp_available=number is not None), text=text, whatsapp_url=whatsapp_url(number, text) if number else None, sent=sent)
 
 
 @router.post("/drafts/{draft_id}/reject", response_model=SupportDraftReviewPublic)

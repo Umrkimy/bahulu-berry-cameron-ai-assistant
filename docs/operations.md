@@ -25,7 +25,8 @@ records only and close other tabs, terminals and notifications before sharing.
   Activity for change history.
 - Product imports require a fully valid preview and never overwrite existing
   product names. Imported products begin as storefront drafts.
-- Stripe remains test-only. WhatsApp remains a staff-reviewed simulator.
+- Stripe remains test-only. WhatsApp sends only Berry's menu replies on its own;
+  AI drafts and staff replies need a person.
 - Do not turn fictional demo content into real product, order, customer,
   payment, or delivery data.
 

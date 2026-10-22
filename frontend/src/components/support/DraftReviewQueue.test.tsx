@@ -37,7 +37,7 @@ describe("DraftReviewQueue", () => {
     expect(await screen.findByText("Can I pick up tomorrow?")).toBeInTheDocument();
     expect(screen.getByText("Pickup details are confirmed by our support team.")).toBeInTheDocument();
     expect(screen.getByText(/What are your pickup options\? \(faq\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Nothing is sent automatically/)).toBeInTheDocument();
+    expect(screen.getByText(/Nothing goes out until you approve it/)).toBeInTheDocument();
   });
 
   it("approves, copies the reply and offers a prefilled WhatsApp link", async () => {
@@ -55,7 +55,7 @@ describe("DraftReviewQueue", () => {
     const user = userEvent.setup();
     const writeText = mockClipboard();
     renderQueue();
-    await user.click(await screen.findByRole("button", { name: "Approve and copy" }));
+    await user.click(await screen.findByRole("button", { name: "Approve" }));
     await waitFor(() => expect(body).toEqual({}));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(pendingDraft.body));
     expect(await screen.findByRole("link", { name: "Open in WhatsApp" })).toHaveAttribute("href", url);
@@ -76,7 +76,7 @@ describe("DraftReviewQueue", () => {
     renderQueue();
     await user.click(await screen.findByRole("button", { name: "Edit" }));
     fireEvent.change(screen.getByLabelText("Edit reply"), { target: { value: "  Yes, our team will confirm pickup.  " } });
-    await user.click(screen.getByRole("button", { name: "Approve and copy" }));
+    await user.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(body).toEqual({ edited_body: "Yes, our team will confirm pickup." }));
     expect(await screen.findByText(/No WhatsApp number on file/)).toBeInTheDocument();
   });
@@ -116,7 +116,7 @@ describe("DraftReviewQueue", () => {
     expect(await screen.findByText("Approved after edit")).toBeInTheDocument();
     expect(screen.getByText("Yes, our team will confirm pickup.")).toBeInTheDocument();
     expect(screen.getByText("Original suggestion")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Approve and copy" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
 
     await user.click(screen.getByText("Rejected"));
     expect(await screen.findByText("Suggested reply")).toBeInTheDocument();
