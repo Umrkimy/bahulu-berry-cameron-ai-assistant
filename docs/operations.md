@@ -173,8 +173,8 @@ section documents what to set up there; none of it is created from this repo.
 
 ### Off-site copy and schedule (client-owned)
 
-- Schedule the backup daily at 02:00 KL time with host cron or a Coolify
-  scheduled task.
+- Schedule the backup daily at 02:00 KL time with host cron. On Coolify use
+  `ops/backup/coolify-backup.sh` (see `hosting-coolify.md`, section 5).
 - Copy each new `.tar.age` to client-owned storage in another location (for
   example an S3-compatible bucket with object lock or versioning). The files
   are already encrypted.
