@@ -64,7 +64,7 @@ function ConversationThread({ conversation, currentAdmin, names, drafts }: { con
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["support-conversations"] }), queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversation.id] }), queryClient.invalidateQueries({ queryKey: ["support-drafts"] })]);
   const onError = (title: string) => (error: unknown) => notifications.show({ color: "red", title, message: getApiError(error).message });
   const claim = useMutation({ mutationFn: () => claimSupportConversation(ticketId!), onSuccess: () => { void refresh(); notifications.show({ color: "green", title: "Chat is yours", message: "Berry stays quiet while you handle this customer." }); }, onError: onError("Could not take this chat") });
-  const handBack = useMutation({ mutationFn: () => returnSupportConversationToAi(ticketId!), onSuccess: () => { void refresh(); notifications.show({ color: "green", title: "Handed back to Berry", message: "Berry answers the menu again for this customer." }); }, onError: onError("Could not hand back to Berry") });
+  const handBack = useMutation({ mutationFn: () => returnSupportConversationToAi(ticketId!), onSuccess: () => { void refresh(); notifications.show({ color: "green", title: "Chat finished", message: "Berry asks the customer to rate the chat, then answers the menu again." }); }, onError: onError("Could not finish the chat") });
   const reply = useMutation({ mutationFn: () => sendSimulatedDashboardReply(ticketId!, replyForm.values.content.trim()), onSuccess: () => { replyForm.reset(); void refresh(); }, onError: onError("Reply not sent") });
   const reject = useMutation({ mutationFn: (id: number) => rejectSupportDraft(id), onSuccess: () => { setRejecting(null); void refresh(); }, onError: onError("Draft not rejected") });
 
@@ -78,7 +78,7 @@ function ConversationThread({ conversation, currentAdmin, names, drafts }: { con
         <Group gap="xs">
           {conversation.handoff_state === "HUMAN_REQUESTED" && ticketId !== null ? <Button leftSection={<IconUserCheck size={16} />} loading={claim.isPending} onClick={() => claim.mutate()}>Take this chat</Button> : null}
           {handling ? <Button component="a" href={link.data?.url} target="_blank" rel="noopener noreferrer" variant="default" leftSection={<IconBrandWhatsapp size={16} />} disabled={!link.data}>Open WhatsApp</Button> : null}
-          {handling ? <Button variant="default" leftSection={<IconRobot size={16} />} loading={handBack.isPending} onClick={() => handBack.mutate()}>Hand back to Berry</Button> : null}
+          {handling ? <Button variant="default" leftSection={<IconRobot size={16} />} loading={handBack.isPending} onClick={() => handBack.mutate()}>Finish chat</Button> : null}
         </Group>
       </Group>
       <ScrollArea.Autosize mah={520} p="md">
