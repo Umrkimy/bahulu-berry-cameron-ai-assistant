@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     WHATSAPP_META_APP_SECRET: SecretStr = SecretStr("")
     WHATSAPP_META_VERIFY_TOKEN: SecretStr = SecretStr("")
     WHATSAPP_META_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_MENU_ENABLED: bool = False
 
     STRIPE_SECRET_KEY: SecretStr
     STRIPE_WEBHOOK_SECRET: SecretStr
