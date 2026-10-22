@@ -22,13 +22,13 @@ from app.core.security import clear_auth_cookies, create_csrf_token, set_csrf_co
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.password_reset_token import PasswordResetToken
+from app.schemas.admin import (
+    AdminPrivate,
+)
 from app.schemas.auth import LoginResponse
 from app.schemas.email import PasswordResetConfirm, PasswordResetRequest, PasswordResetResponse
 from app.services.activity_services import record_activity
 from app.services.email_services import _hash_token, send_password_setup_email
-from app.schemas.admin import (
-    AdminPrivate,
-)
 
 router = APIRouter()
 

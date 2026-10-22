@@ -10,7 +10,6 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 
-
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 
 def _get_date_range(

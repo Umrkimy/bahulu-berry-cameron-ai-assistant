@@ -1,21 +1,19 @@
 from typing import Annotated
 
-
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.database import get_db
-from app.schemas.pagination import PaginatedResponse
 from app.auth.dependencies import get_current_admin, get_current_superuser
 from app.auth.permissions import Permission, require
+from app.db.database import get_db
 from app.models.admin import Admin
-from app.models.product import Product
 from app.models.inventory import Inventory
 from app.models.order_item import OrderItem
+from app.models.product import Product
 from app.models.stock_movement import StockMovement
-from app.services.activity_services import record_activity
+from app.schemas.pagination import PaginatedResponse
 from app.schemas.product import (
     ProductCreate,
     ProductPrivate,
@@ -23,6 +21,7 @@ from app.schemas.product import (
     ProductUpdate,
 )
 from app.schemas.product_import import ProductImportPreview, ProductImportResult
+from app.services.activity_services import record_activity
 from app.services.product_import_services import CSV_HEADERS, read_product_import
 from app.services.product_media import media_path
 

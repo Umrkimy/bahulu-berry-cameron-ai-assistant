@@ -1,10 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
 
-from app.schemas.inventory import InventoryNested
-from app.schemas.discount import DiscountSummary
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.discount import DiscountSummary
+from app.schemas.inventory import InventoryNested
 
 
 class ProductImagePublic(BaseModel):

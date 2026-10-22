@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
 from app.auth.dependencies import get_current_admin
 from app.auth.permissions import Permission, require
+from app.db.database import get_db
 from app.models.admin import Admin
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerPrivate, CustomerUpdate

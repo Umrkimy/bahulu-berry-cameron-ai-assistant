@@ -103,6 +103,6 @@ class Payment(Base):
         nullable=False,
     )
 
-    order: Mapped["Order"] = relationship(
+    order: Mapped[Order] = relationship(
         back_populates="payments",
     )

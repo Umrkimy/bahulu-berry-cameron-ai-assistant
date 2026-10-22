@@ -28,7 +28,6 @@ from app.services.customer_status_emails import ORDER_RECEIVED, queue_status_ema
 from app.services.notification_services import notify_owners_with_email
 from app.services.storefront_checkout import cancel_unpaid_storefront_order
 
-
 router = APIRouter()
 
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,8 +11,8 @@ from app.db.database import Base
 
 if TYPE_CHECKING:
     from app.models.discount import Discount
-    from app.models.order_item import OrderItem
     from app.models.inventory import Inventory
+    from app.models.order_item import OrderItem
     from app.models.product_image import ProductImage
 
 
@@ -54,17 +54,17 @@ class Product(Base):
 
         return "/static/product_images/default.jpg"
 
-    order_items: Mapped[list["OrderItem"]] = relationship(back_populates="product")
-    images: Mapped[list["ProductImage"]] = relationship(cascade="all, delete-orphan", lazy="selectin", order_by="ProductImage.position, ProductImage.id")
+    order_items: Mapped[list[OrderItem]] = relationship(back_populates="product")
+    images: Mapped[list[ProductImage]] = relationship(cascade="all, delete-orphan", lazy="selectin", order_by="ProductImage.position, ProductImage.id")
 
     @property
     def sale_price(self) -> Decimal | None:
         from app.services.product_services import product_sale_price
         return product_sale_price(self)
-    inventory: Mapped["Inventory"] = relationship(
+    inventory: Mapped[Inventory] = relationship(
         back_populates="product", uselist=False, lazy="selectin"
     )
-    discounts: Mapped[list["Discount"]] = relationship(
+    discounts: Mapped[list[Discount]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
         lazy="selectin",

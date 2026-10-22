@@ -7,7 +7,6 @@ from app.models.admin import Admin
 from app.models.notification import Notification
 from app.services.email_services import email_owners
 
-
 ROUTES = {
     "TASK": "/tasks",
     "SUPPORT": "/whatsapp",

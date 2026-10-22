@@ -24,7 +24,6 @@ from app.schemas.dashboard import (
     DashboardResponse,
 )
 
-
 router = APIRouter()
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 
@@ -147,8 +146,7 @@ async def get_dashboard_stats(
         / float(monthly_target)
     ) * 100
 
-    if progress > 100:
-        progress = 100
+    progress = min(progress, 100)
 
     total_inventory_items = await db.scalar(
         select(func.count(Inventory.id))

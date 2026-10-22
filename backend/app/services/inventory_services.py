@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory import Inventory
 from app.models.admin import Admin
+from app.models.inventory import Inventory
 from app.models.stock_movement import StockMovement
 
 

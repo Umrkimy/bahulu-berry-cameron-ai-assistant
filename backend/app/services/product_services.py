@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,10 +15,10 @@ def product_sale_price(product: Product) -> Decimal | None:
     for discount in sorted(product.active_discounts, key=lambda d: ({"PERCENTAGE": 1, "FIXED_AMOUNT": 2}.get(d.discount_type, 99), d.id)):
         value = Decimal(str(discount.discount_value))
         if discount.discount_type == "PERCENTAGE":
-            price = money(price - money(price * value / Decimal("100")))
+            price = money(price - money(price * value / Decimal(100)))
             changed = True
         elif discount.discount_type == "FIXED_AMOUNT":
-            price = money(max(Decimal("0"), price - value))
+            price = money(max(Decimal(0), price - value))
             changed = True
     return price if changed else None
 

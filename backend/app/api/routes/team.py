@@ -5,15 +5,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_superuser
+from app.auth.password import hash_password
 from app.auth.permissions import ROLES
 from app.core.rate_limit import PASSWORD_RESET_LIMIT, rate_limiter
-from app.auth.password import hash_password
 from app.db.database import get_db
 from app.models.admin import Admin
 from app.schemas.admin import AdminCreate, AdminPrivate, AdminUpdate
 from app.services.activity_services import record_activity
 from app.services.email_services import send_password_setup_email
-
 
 router = APIRouter()
 VALID_ROLES = set(ROLES)

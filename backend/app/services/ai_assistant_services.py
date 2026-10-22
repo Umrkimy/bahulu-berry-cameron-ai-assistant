@@ -4,44 +4,42 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from openai import AsyncOpenAI, OpenAIError, APIConnectionError, APITimeoutError, APIStatusError
+from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI, OpenAIError
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 
 from app.core.config import settings
-from app.schemas.ai_assistant import AIChatMessage
-from app.models.ai_action_confirmation import AIActionConfirmation
 from app.models.admin import Admin
+from app.models.ai_action_confirmation import AIActionConfirmation
+from app.schemas.ai_assistant import AIChatMessage
 from app.services.activity_services import record_activity
-from app.services.ai_usage_services import AIBudgetExceeded, reserve_ai_usage, settle_ai_usage
-from app.services.support_copilot import detect_language
-
 from app.services.ai_tools import (
     adjust_product_stock,
     cancel_order,
     check_product_stock,
     create_customer_tool,
     create_order_tool,
+    create_task_tool,
+    find_active_team_member,
     find_customer,
     find_orders,
     find_product,
-    get_order,
-    update_order_status,
-    get_order_count_tool,
-    get_sales_summary_tool,
-    get_customer_count_tool,
-    get_unique_customers_for_date_tool,
     get_best_selling_products_tool,
+    get_customer_count_tool,
     get_dashboard_summary_tool,
     get_delivery_workload,
     get_low_stock_summary,
+    get_order,
+    get_order_count_tool,
     get_order_workflow,
+    get_sales_summary_tool,
     get_shift_summary,
     get_support_queue_summary,
-    find_active_team_member,
-    create_task_tool,
+    get_unique_customers_for_date_tool,
+    update_order_status,
 )
-
+from app.services.ai_usage_services import AIBudgetExceeded, reserve_ai_usage, settle_ai_usage
+from app.services.support_copilot import detect_language
 
 client = AsyncOpenAI(
     api_key=settings.OPENAI_API_KEY.get_secret_value(),

@@ -10,7 +10,6 @@ from app.models.product import Product
 from app.models.refund_request import RefundRequest
 from app.models.support import SupportRequest
 
-
 SEVERITY_ORDER = {"CRITICAL": 0, "WARNING": 1}
 REFUND_ALERT_STATUSES = {"REQUESTED", "UNDER_REVIEW", "APPROVED"}
 OPEN_SUPPORT_STATUSES = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER"}

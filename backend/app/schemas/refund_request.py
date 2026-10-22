@@ -4,7 +4,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 RefundRequestStatus = Literal["REQUESTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "REFUNDED"]
 
 

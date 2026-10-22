@@ -1,9 +1,9 @@
+import hmac
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-import hmac
-from uuid import uuid4
 from typing import Any, Protocol
+from uuid import uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession

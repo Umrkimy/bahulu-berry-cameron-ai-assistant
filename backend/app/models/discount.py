@@ -40,4 +40,4 @@ class Discount(Base):
         nullable=False,
     )
 
-    product: Mapped["Product"] = relationship(back_populates="discounts")
+    product: Mapped[Product] = relationship(back_populates="discounts")

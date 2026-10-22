@@ -17,11 +17,10 @@ from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.refund_request import RefundRequest
 from app.payments.service import expire_pending_payments
+from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
 from app.services.customer_status_emails import ORDER_CANCELLED, queue_status_email
 from app.services.inventory_services import adjust_inventory
 from app.services.pricing_services import calculate_order_pricing
-from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
-
 
 MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
 

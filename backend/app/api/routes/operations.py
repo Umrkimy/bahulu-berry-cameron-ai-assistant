@@ -9,7 +9,6 @@ from app.models.admin import Admin
 from app.schemas.operations import OperationAlertPage
 from app.services.operations_services import get_operation_alerts
 
-
 router = APIRouter()
 
 

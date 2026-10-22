@@ -6,12 +6,12 @@ Authorization values and message text are masked before anything is written,
 so logs can be shared with a hosting provider without exposing customers.
 """
 
-from contextvars import ContextVar
-from datetime import datetime
 import json
 import logging
 import logging.config
 import re
+from contextvars import ContextVar
+from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 

@@ -8,7 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
-
 if TYPE_CHECKING:
     from app.models.order import Order
     from app.models.product import Product
@@ -52,11 +51,11 @@ class OrderItem(Base):
     )
 
 
-    order: Mapped["Order"] = relationship(
+    order: Mapped[Order] = relationship(
         back_populates="items",
     )
 
-    product: Mapped["Product"] = relationship(
+    product: Mapped[Product] = relationship(
         back_populates="order_items",
     )
 

@@ -16,7 +16,6 @@ from app.services.activity_services import record_activity
 from app.services.report_services import get_report_summary
 from app.utils.csv_safety import csv_safe_rows
 
-
 router = APIRouter()
 
 

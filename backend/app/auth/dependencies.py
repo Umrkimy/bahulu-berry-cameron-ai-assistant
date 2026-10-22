@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.db.database import get_db
 from app.models.admin import Admin
 
+
 async def get_current_admin(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],

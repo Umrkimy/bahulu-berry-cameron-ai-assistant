@@ -11,7 +11,6 @@ from app.models.activity_log import ActivityLog
 from app.models.admin import Admin
 from app.schemas.activity import ActivityListPublic, ActivityPublic
 
-
 router = APIRouter()
 
 

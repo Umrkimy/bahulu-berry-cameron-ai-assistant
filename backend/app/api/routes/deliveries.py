@@ -10,13 +10,12 @@ from app.schemas.delivery import (
     DeliveryPrivate,
     DeliveryUpdate,
 )
+from app.services.activity_services import record_activity
 from app.services.delivery_services import (
     get_deliveries,
     get_delivery_by_order,
     update_delivery,
 )
-from app.services.activity_services import record_activity
-
 
 router = APIRouter()
 

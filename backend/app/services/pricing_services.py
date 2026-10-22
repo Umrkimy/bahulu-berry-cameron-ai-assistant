@@ -1,11 +1,10 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.product import Product
-
 
 MONEY = Decimal("0.01")
 
@@ -89,7 +88,7 @@ async def calculate_order_pricing(
             elif discount.discount_type == "PERCENTAGE":
                 if bundle_price_applied and not discount.stack_with_bundle:
                     continue
-                discount_value = _money(line_total * value / Decimal("100"))
+                discount_value = _money(line_total * value / Decimal(100))
             elif discount.discount_type == "FIXED_AMOUNT":
                 discount_value = _money(min(line_total, min(unit_price, value) * quantity))
 

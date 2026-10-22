@@ -1,5 +1,5 @@
 import hashlib
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
@@ -7,6 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.routes.product_images import image_response
+from app.core.config import settings
 from app.core.rate_limit import (
     STOREFRONT_CHECKOUT_LIMIT,
     STOREFRONT_READ_LIMIT,
@@ -14,15 +16,11 @@ from app.core.rate_limit import (
     STOREFRONT_TRACKING_LOOKUP_LIMIT,
     rate_limiter,
 )
-from app.core.config import settings
 from app.db.database import get_db
 from app.models.product import Product
 from app.models.product_image import ProductImage
-from app.api.routes.product_images import image_response
-from app.services.product_services import product_sale_price
-from app.schemas.product import ProductImagePublic
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.product import StorefrontProduct, StorefrontPromotion
+from app.schemas.product import ProductImagePublic, StorefrontProduct, StorefrontPromotion
 from app.schemas.storefront import (
     StorefrontCheckoutRequest,
     StorefrontCheckoutResponse,
@@ -36,8 +34,9 @@ from app.schemas.storefront import (
 from app.schemas.storefront_homepage import StorefrontHomepageContent
 from app.schemas.storefront_place import StorefrontMap, StorefrontPlace
 from app.services.google_place import GooglePlaceUnavailable, fetch_google_place, google_map_embed_url
-from app.services.pricing_services import calculate_order_pricing
 from app.services.order_tracking import find_order_by_phone, find_order_by_token, tracking_view
+from app.services.pricing_services import calculate_order_pricing
+from app.services.product_services import product_sale_price
 from app.services.storefront_checkout import CheckoutError, place_storefront_order
 from app.services.storefront_homepage import DEFAULT_HOMEPAGE_CONTENT, get_homepage_record
 

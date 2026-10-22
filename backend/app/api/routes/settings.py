@@ -26,7 +26,6 @@ from app.services.email_services import send_password_setup_email
 from app.services.google_place import GooglePlaceUnavailable, fetch_google_place
 from app.services.storefront_homepage import ensure_homepage_record, get_homepage_record
 
-
 router = APIRouter()
 
 
