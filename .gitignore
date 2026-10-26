@@ -110,10 +110,9 @@ backend/scripts/
 # =====================
 # Local AI-tool state
 # =====================
-# Shared agent settings and skills are tracked; per-machine state is not.
+# Shared agent settings are tracked; skills and per-machine state are not.
 .claude/*
 !.claude/settings.json
-!.claude/skills/
 .claude/settings.local.json
 .agents/
 .impeccable/
