@@ -105,5 +105,4 @@ delivery ledger.
 Do not commit `.env` files, API keys, webhook secrets, real addresses, phone
 numbers, payment identifiers, or approved business content.
 
-Project references are consolidated under [`docs/`](docs/). `AGENTS.md` is the
-shared engineering instruction source; `CLAUDE.md` imports it for Claude Code.
+Project references are consolidated under [`docs/`](docs/).

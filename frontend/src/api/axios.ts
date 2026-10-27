@@ -27,7 +27,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && window.location.pathname !== "/login") {
+    if (error.response?.status === 401 && window.location.pathname !== "/login" && error.config?.url !== "/auth/me") {
       const next = `${window.location.pathname}${window.location.search}`;
       window.location.assign(`/login?reason=session-expired&next=${encodeURIComponent(next)}`);
     }

@@ -28,3 +28,4 @@ from app.models.support import HandoffRule, KnowledgeArticle, SupportFAQ, Suppor
 from app.models.support_draft import SupportDraft
 from app.models.support_rating import SupportRating
 from app.models.task import Task
+from app.models.whatsapp_menu_copy import WhatsAppMenuCopy

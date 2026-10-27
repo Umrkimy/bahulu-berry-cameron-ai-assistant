@@ -202,7 +202,7 @@ async def ask_for_rating(db: AsyncSession, conversation: MessagingConversation, 
         return False
     db.add(SupportRating(conversation_id=conversation.id, support_request_id=support_request_id, admin_id=admin_id))
     conversation.menu_step = RATING_STEP
-    question = rating_question(conversation.menu_language or "EN")
+    question = await rating_question(db, conversation.menu_language or "EN")
     event = MessagingEvent(
         provider=conversation.provider,
         external_message_id=f"local-outbound-{uuid4()}",
@@ -344,7 +344,7 @@ async def process_inbound_message(db: AsyncSession, *, message: NormalizedInboun
             draft = draft.model_copy(update={"draft_id": saved.id})
     reply = None
     if menu_enabled:
-        reply = handoff_message(conversation.menu_language or "EN") if outcome == "HANDOFF" else (menu.text if menu is not None else None)
+        reply = await handoff_message(db, conversation.menu_language or "EN") if outcome == "HANDOFF" else (menu.text if menu is not None else None)
     outbound = None
     if reply is not None:
         outbound = MessagingEvent(

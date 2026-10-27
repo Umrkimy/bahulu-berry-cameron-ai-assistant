@@ -12,6 +12,7 @@ from app.models.messaging import MessagingConversation
 from app.models.order import Order
 from app.models.product import Product
 from app.models.support_rating import SupportRating
+from app.models.whatsapp_menu_copy import WhatsAppMenuCopy
 from app.services.contact_normalization import ContactNormalizationError, normalize_phone_number
 from app.services.notification_services import notify_owners
 from app.services.order_tracking import TRACKING_RETENTION_DAYS
@@ -38,7 +39,7 @@ BUSINESS = {
     "map": "https://www.google.com/maps/place/Bahulu+Berry+Cameron/@4.4788545,101.3800129,17z/data=!4m6!3m5!1s0x31ca590066263efb:0x47ce3ff6e6722a41!8m2!3d4.4788545!4d101.3800129",
 }
 
-COPY = {
+DEFAULT_COPY = {
     "EN": {
         "menu": "Hi! I'm Berry, Bahulu Berry Cameron's virtual assistant.\n\n1  See our products and prices\n2  How to order\n3  Check my order\n4  Opening hours and location\n5  Talk to our staff\n6  Tukar ke Bahasa Melayu\n\nReply with a number.",
         "back": "Reply * for the main menu.",
@@ -78,6 +79,41 @@ COPY = {
 }
 
 
+# Placeholders each message may use; order_status must keep both of its own.
+TEXT_PLACEHOLDERS = {
+    "menu": (), "back": (), "products": (), "sold_out": (), "no_products": (),
+    "browse": ("url",), "order": ("url",), "ask_order": (),
+    "order_status": ("number", "status"), "order_not_found": (),
+    "hours": ("hours", "address", "map"), "handoff": ("hours",),
+    "rating_ask": (), "rating_thanks": ("score",), "comment_thanks": (),
+}
+REQUIRED_PLACEHOLDERS = {"order_status": ("number", "status")}
+STATUS_KEYS = ("PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED")
+PLACEHOLDER = re.compile(r"\{([a-z_]+)\}")
+
+
+def merge_copy(defaults: dict, overrides: dict) -> dict:
+    merged = {**defaults, **{key: value for key, value in overrides.items() if key in TEXT_PLACEHOLDERS and isinstance(value, str)}}
+    saved_statuses = overrides.get("statuses") if isinstance(overrides.get("statuses"), dict) else {}
+    merged["statuses"] = {**defaults["statuses"], **{key: value for key, value in saved_statuses.items() if key in STATUS_KEYS and isinstance(value, str)}}
+    return merged
+
+
+async def saved_overrides(db: AsyncSession) -> dict:
+    record = await db.scalar(select(WhatsAppMenuCopy).where(WhatsAppMenuCopy.id == 1).execution_options(populate_existing=True))
+    return record.overrides if record is not None and isinstance(record.overrides, dict) else {}
+
+
+async def load_copy(db: AsyncSession, language: str) -> dict:
+    language = language if language in DEFAULT_COPY else "EN"
+    overrides = (await saved_overrides(db)).get(language)
+    return merge_copy(DEFAULT_COPY[language], overrides if isinstance(overrides, dict) else {})
+
+
+def _fill(template: str, **values: object) -> str:
+    return PLACEHOLDER.sub(lambda match: str(values[match[1]]) if match[1] in values else match[0], template)
+
+
 @dataclass(frozen=True)
 class MenuReply:
     text: str
@@ -85,13 +121,13 @@ class MenuReply:
     draft_too: bool = False
 
 
-def handoff_message(language: str) -> str:
-    copy = COPY.get(language, COPY["EN"])
-    return copy["handoff"].format(hours=BUSINESS["hours"].get(language, BUSINESS["hours"]["EN"]).rstrip("."))
+async def handoff_message(db: AsyncSession, language: str) -> str:
+    copy = await load_copy(db, language)
+    return _fill(copy["handoff"], hours=BUSINESS["hours"].get(language, BUSINESS["hours"]["EN"]).rstrip("."))
 
 
-def rating_question(language: str) -> str:
-    return COPY.get(language, COPY["EN"])["rating_ask"]
+async def rating_question(db: AsyncSession, language: str) -> str:
+    return (await load_copy(db, language))["rating_ask"]
 
 
 async def _rating_reply(db: AsyncSession, conversation: MessagingConversation, step: str | None, text: str, message: str, copy: dict) -> MenuReply | None:
@@ -105,7 +141,7 @@ async def _rating_reply(db: AsyncSession, conversation: MessagingConversation, s
         if latest.flagged:
             await notify_owners(db, notification_type="SUPPORT", title="Low WhatsApp rating", description=f"A customer rated a WhatsApp chat {latest.score}/5.", entity_type="support_rating", entity_id=latest.id)
         conversation.menu_step = COMMENT_STEP
-        return MenuReply(copy["rating_thanks"].format(score=latest.score))
+        return MenuReply(_fill(copy["rating_thanks"], score=latest.score))
     if step == COMMENT_STEP and latest.score is not None and latest.comment is None and text not in MENU_WORDS and text not in GREETINGS:
         latest.comment = message.strip()[:500]
         return MenuReply(_with_back(copy["comment_thanks"], copy))
@@ -147,7 +183,7 @@ async def _product_list(db: AsyncSession, language: str, copy: dict) -> str:
             line += f" ({copy['sold_out']})"
         lines.append(line)
     lines.append("")
-    lines.append(copy["browse"].format(url=settings.STOREFRONT_PUBLIC_URL))
+    lines.append(_fill(copy["browse"], url=settings.STOREFRONT_PUBLIC_URL))
     return "\n".join(lines)
 
 
@@ -176,7 +212,7 @@ async def _order_status(db: AsyncSession, number: int, sender: str | None, copy:
         known_phones = {order.customer.canonical_phone_number if order.customer else None, order.delivery.recipient_phone if order.delivery else None}
     if order is None or phone is None or phone not in known_phones or _closed_too_long(order):
         return copy["order_not_found"]
-    return copy["order_status"].format(number=order.id, status=copy["statuses"].get(order.status, order.status.lower()))
+    return _fill(copy["order_status"], number=order.id, status=copy["statuses"].get(order.status, order.status.lower()))
 
 
 async def menu_reply(db: AsyncSession, conversation: MessagingConversation, *, message: str, requested_language: str, first_contact: bool) -> MenuReply | None:
@@ -184,7 +220,7 @@ async def menu_reply(db: AsyncSession, conversation: MessagingConversation, *, m
     if conversation.menu_language is None:
         conversation.menu_language = "MS" if text in MALAY_GREETINGS else detect_language(message, requested_language)
     language = conversation.menu_language
-    copy = COPY[language]
+    copy = await load_copy(db, language)
     step, conversation.menu_step = conversation.menu_step, None
 
     if step in {RATING_STEP, COMMENT_STEP} and (rated := await _rating_reply(db, conversation, step, text, message, copy)):
@@ -196,17 +232,17 @@ async def menu_reply(db: AsyncSession, conversation: MessagingConversation, *, m
     if text == "1":
         return MenuReply(_with_back(await _product_list(db, language, copy), copy))
     if text == "2":
-        return MenuReply(_with_back(copy["order"].format(url=settings.STOREFRONT_PUBLIC_URL), copy))
+        return MenuReply(_with_back(_fill(copy["order"], url=settings.STOREFRONT_PUBLIC_URL), copy))
     if text == "3":
         conversation.menu_step = ORDER_NUMBER_STEP
         return MenuReply(copy["ask_order"])
     if text == "4":
-        return MenuReply(_with_back(copy["hours"].format(hours=BUSINESS["hours"][language], address=BUSINESS["address"], map=BUSINESS["map"]), copy))
+        return MenuReply(_with_back(_fill(copy["hours"], hours=BUSINESS["hours"][language], address=BUSINESS["address"], map=BUSINESS["map"]), copy))
     if text == "5" or _wants_staff(text):
-        return MenuReply(handoff_message(language), handoff_reason=MENU_HANDOFF_REASON)
+        return MenuReply(await handoff_message(db, language), handoff_reason=MENU_HANDOFF_REASON)
     if text == "6":
         conversation.menu_language = "EN" if language == "MS" else "MS"
-        return MenuReply(COPY[conversation.menu_language]["menu"])
+        return MenuReply((await load_copy(db, conversation.menu_language))["menu"])
     if first_contact:
         return MenuReply(copy["menu"], draft_too=True)
     return None
