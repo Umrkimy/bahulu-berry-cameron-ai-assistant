@@ -67,6 +67,10 @@ Balas dengan nombor.
 `*` returns to the main menu from any step. Wording above is a draft for Umar
 and the client to review.
 
+Owners edit every menu message and order status label in English and BM under
+Admin > WhatsApp > Berry settings; a save is used for the next reply. Opening
+hours, address and map link stay in code, shared with the storefront.
+
 ### 1. Products and prices
 
 Published, in-stock products from the backend with RM prices, then the
