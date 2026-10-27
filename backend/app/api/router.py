@@ -30,6 +30,7 @@ from app.api.routes import (
     support_ratings,
     tasks,
     team,
+    whatsapp_menu,
 )
 
 api_router = APIRouter()
@@ -84,6 +85,12 @@ api_router.include_router(
 api_router.include_router(
     support_ratings.router,
     prefix="/support/ratings",
+    tags=["support"],
+)
+
+api_router.include_router(
+    whatsapp_menu.router,
+    prefix="/support/whatsapp-menu",
     tags=["support"],
 )
 
